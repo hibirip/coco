@@ -27,25 +27,26 @@ export default function AuthCallback() {
         console.log('🔄 OAuth 콜백 처리 시작...');
         console.log('🔍 현재 URL:', window.location.href);
         
-        // Supabase의 onAuthStateChange를 기다림
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('🔄 Auth 이벤트:', event, session);
+        // Supabase 자동 처리를 기다림 (2초)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 세션 체크
+        const { data: sessionCheck, error: checkError } = await supabase.auth.getSession();
+        console.log('🔍 세션 체크 결과:', { session: sessionCheck?.session, error: checkError });
+        
+        if (sessionCheck?.session) {
+          console.log('✅ 세션 발견! 로그인 성공');
+          const user = sessionCheck.session.user;
+          const userName = user.user_metadata?.full_name || user.email;
+          setStatus('success');
+          setMessage('로그인 성공! 홈으로 이동합니다...');
+          toast.success(`환영합니다, ${userName}님!`);
           
-          if (event === 'SIGNED_IN' && session) {
-            console.log('✅ 로그인 성공 (onAuthStateChange):', session.user.email);
-            const userName = session.user.user_metadata?.full_name || session.user.email;
-            setStatus('success');
-            setMessage('로그인 성공! 홈으로 이동합니다...');
-            toast.success(`환영합니다, ${userName}님!`);
-            
-            // 구독 해제
-            subscription?.unsubscribe();
-            
-            setTimeout(() => {
-              navigate('/', { replace: true });
-            }, 2000);
-          }
-        });
+          setTimeout(() => {
+            navigate('/', { replace: true });
+          }, 2000);
+          return;
+        }
         
         // 기존 로직도 유지 (fallback)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -117,9 +118,6 @@ export default function AuthCallback() {
           }, 3000);
         }
         
-        // subscription 반환
-        return subscription;
-        
       } catch (error) {
         console.error('❌ AuthCallback 오류:', error);
         setStatus('error');
@@ -131,12 +129,7 @@ export default function AuthCallback() {
       }
     };
 
-    const cleanup = handleAuthCallback();
-    
-    // Cleanup 함수 반환
-    return () => {
-      cleanup?.then(sub => sub?.unsubscribe?.());
-    };
+    handleAuthCallback();
   }, [navigate, toast]);
 
   const getStatusIcon = () => {
