@@ -18,47 +18,59 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Google 로그인 함수 (뼈대)
+  // Google 로그인 함수
   const signInWithGoogle = async () => {
     try {
-      setLoading(true);
       
       if (isDemoMode) {
         console.log('🔧 Demo Mode: Google 로그인 시뮬레이션');
-        // Demo mode에서는 mock user 생성
-        const mockUser = {
-          id: 'demo-user-123',
-          email: 'demo@example.com',
-          user_metadata: {
-            full_name: 'Demo User',
-            avatar_url: 'https://via.placeholder.com/40'
-          }
-        };
-        setCurrentUser(mockUser);
-        return { data: { user: mockUser }, error: null };
+        setLoading(true);
+        
+        // Demo mode에서는 mock user 생성 (1초 지연)
+        setTimeout(() => {
+          const mockUser = {
+            id: 'demo-user-123',
+            email: 'demo@example.com',
+            user_metadata: {
+              full_name: 'Demo User',
+              avatar_url: 'https://via.placeholder.com/40'
+            }
+          };
+          setCurrentUser(mockUser);
+          setLoading(false);
+          console.log('✅ Demo 로그인 완료');
+        }, 1000);
+        
+        return { data: { user: null }, error: null };
       }
 
       // 실제 Supabase Google OAuth
+      console.log('🔄 Google OAuth 시작...');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
       if (error) {
-        console.error('Google 로그인 실패:', error.message);
+        console.error('❌ Google 로그인 실패:', error.message);
+        setLoading(false);
         return { data: null, error };
       }
 
-      console.log('✅ Google 로그인 요청 성공');
+      console.log('✅ Google 로그인 팝업 열림');
+      // OAuth는 팝업/리다이렉트로 처리되므로 여기서 loading을 false로 하지 않음
       return { data, error: null };
 
     } catch (error) {
-      console.error('Google 로그인 중 오류:', error);
-      return { data: null, error };
-    } finally {
+      console.error('❌ Google 로그인 중 예외 오류:', error);
       setLoading(false);
+      return { data: null, error: { message: error.message } };
     }
   };
 

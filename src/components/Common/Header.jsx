@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut } from 'lucide-react';
+import { Menu, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts';
+import UserProfile from './UserProfile';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { currentUser, loading, signInWithGoogle, signOut, isAuthenticated, isDemoMode } = useAuth();
+  const { loading, signInWithGoogle, isAuthenticated } = useAuth();
 
   const navigation = [
     { name: '암호화폐', href: '/', key: 'home' },
@@ -47,24 +48,12 @@ const Header = () => {
           {/* 데스크톱 로그인/프로필 영역 */}
           <div className="hidden md:flex items-center space-x-4">
             {loading ? (
-              <div className="text-textSecondary text-sm">로딩중...</div>
-            ) : isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2 text-sm">
-                  <User className="w-4 h-4 text-primary" />
-                  <span className="text-text">
-                    {currentUser?.user_metadata?.full_name || currentUser?.email || 'User'}
-                  </span>
-                  {isDemoMode && <span className="text-xs text-textSecondary">(Demo)</span>}
-                </div>
-                <button 
-                  onClick={signOut}
-                  className="flex items-center space-x-1 bg-section hover:bg-card text-text px-3 py-2 rounded-lg text-sm transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>로그아웃</span>
-                </button>
+              <div className="flex items-center space-x-2 text-textSecondary text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>로딩중...</span>
               </div>
+            ) : isAuthenticated ? (
+              <UserProfile />
             ) : (
               <button 
                 onClick={signInWithGoogle}
@@ -108,26 +97,13 @@ const Header = () => {
               ))}
               <div className="px-4 pt-4 border-t border-border">
                 {loading ? (
-                  <div className="text-textSecondary text-sm text-center">로딩중...</div>
+                  <div className="flex items-center justify-center space-x-2 text-textSecondary text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>로딩중...</span>
+                  </div>
                 ) : isAuthenticated ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <User className="w-4 h-4 text-primary" />
-                      <span className="text-text">
-                        {currentUser?.user_metadata?.full_name || currentUser?.email || 'User'}
-                      </span>
-                      {isDemoMode && <span className="text-xs text-textSecondary">(Demo)</span>}
-                    </div>
-                    <button 
-                      onClick={() => {
-                        signOut();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center justify-center space-x-2 bg-section hover:bg-card text-text px-4 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>로그아웃</span>
-                    </button>
+                  <div className="md:hidden">
+                    <UserProfile />
                   </div>
                 ) : (
                   <button 
