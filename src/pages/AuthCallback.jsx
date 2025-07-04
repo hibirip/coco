@@ -25,24 +25,43 @@ export default function AuthCallback() {
         }
 
         console.log('🔄 OAuth 콜백 처리 시작...');
+        console.log('🔍 현재 URL:', window.location.href);
         
-        // URL 해시에서 토큰 추출 및 세션 교환
+        // URL 파라미터 확인
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
         const accessToken = hashParams.get('access_token');
+        const code = searchParams.get('code');
         
-        if (accessToken) {
-          console.log('🔑 액세스 토큰 발견, 세션 교환 중...');
-          // Supabase가 자동으로 처리하도록 기다림
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        let sessionData = null;
+        let sessionError = null;
+        
+        // 토큰이나 코드가 있으면 세션 교환 시도
+        if (code) {
+          console.log('🔑 인증 코드 발견, 세션 교환 중...');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          sessionData = data;
+          sessionError = error;
+        } else if (accessToken) {
+          console.log('🔑 액세스 토큰 발견, 세션 설정 중...');
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: hashParams.get('refresh_token')
+          });
+          sessionData = data;
+          sessionError = error;
+        } else {
+          // 토큰/코드가 없으면 현재 세션 확인
+          console.log('⚠️ 토큰/코드 없음, 현재 세션 확인...');
+          const { data, error } = await supabase.auth.getSession();
+          sessionData = data;
+          sessionError = error;
         }
         
-        // 세션 확인
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ 세션 확인 실패:', error.message);
+        if (sessionError) {
+          console.error('❌ 세션 확인 실패:', sessionError.message);
           setStatus('error');
-          setMessage(`로그인 실패: ${error.message}`);
+          setMessage(`로그인 실패: ${sessionError.message}`);
           
           setTimeout(() => {
             navigate('/', { replace: true });
@@ -50,9 +69,9 @@ export default function AuthCallback() {
           return;
         }
 
-        if (data?.session?.user) {
-          console.log('✅ 로그인 성공:', data.session.user.email);
-          const userName = data.session.user.user_metadata?.full_name || data.session.user.email;
+        if (sessionData?.session?.user) {
+          console.log('✅ 로그인 성공:', sessionData.session.user.email);
+          const userName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.email;
           setStatus('success');
           setMessage('로그인 성공! 홈으로 이동합니다...');
           toast.success(`환영합니다, ${userName}님!`);

@@ -23,6 +23,14 @@ function App() {
     <ErrorBoundary>
       <Router>
         <Routes>
+          {/* AuthCallback은 Layout 밖에서 독립적으로 렌더링 */}
+          <Route path="/auth/callback" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AuthCallback />
+            </Suspense>
+          } />
+          
+          {/* 나머지 라우트는 Layout 안에서 렌더링 */}
           <Route path="/" element={<Layout />}>
             <Route index element={
               <Suspense fallback={<LoadingSpinner />}>
@@ -52,11 +60,6 @@ function App() {
             <Route path="events" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <EventsPage />
-              </Suspense>
-            } />
-            <Route path="auth/callback" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <AuthCallback />
               </Suspense>
             } />
             <Route path="*" element={
