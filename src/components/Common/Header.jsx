@@ -27,19 +27,15 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-2">
             <img 
               src="/logo.png" 
-              alt="CoinTracker Logo" 
+              alt="Coindex Logo" 
               className="h-8 w-auto md:h-10"
               onError={(e) => {
                 // 로고 로딩 실패 시 텍스트로 fallback
                 e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'block';
               }}
             />
-            <div 
-              className="text-2xl font-bold text-primary hidden"
-              style={{ display: 'none' }}
-            >
-              CoinTracker
+            <div className="text-2xl font-bold text-white">
+              COINDEX
             </div>
           </Link>
 

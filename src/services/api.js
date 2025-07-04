@@ -50,7 +50,7 @@ async function fetchWithRetry(url, options = {}, retries = RETRY_CONFIG.maxRetri
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'CoinTracker/1.0',
+        'User-Agent': 'Coindex/1.0',
         ...options.headers
       }
     });

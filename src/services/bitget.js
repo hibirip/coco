@@ -38,7 +38,7 @@ export async function testBitgetDirectCall(endpoint, params = {}) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'CoinTracker/1.0'
+        'User-Agent': 'Coindex/1.0'
       }
     });
 
