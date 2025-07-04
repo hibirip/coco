@@ -288,16 +288,105 @@ app.use('/api/news', async (req, res) => {
   }
 });
 
-// === CoinMarketCap API 프록시 (준비) ===
+// === CoinMarketCap API 프록시 ===
 app.use('/api/cmc', async (req, res) => {
   try {
-    // TODO: CoinMarketCap API 연동
-    res.json({
-      success: true,
-      message: 'CoinMarketCap API는 추후 구현 예정입니다.',
-      data: []
+    // CoinMarketCap API Key 확인
+    const CMC_API_KEY = process.env.CMC_API_KEY;
+    
+    if (!CMC_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        error: 'CoinMarketCap API 키가 설정되지 않았습니다. CMC_API_KEY 환경변수를 설정해주세요.',
+        code: 'CMC_API_KEY_MISSING',
+        status: 503,
+        endpoint: 'CoinMarketCap'
+      });
+    }
+    
+    // CoinMarketCap API 설정
+    const CMC_BASE_URL = 'https://pro-api.coinmarketcap.com';
+    const path = req.path === '/' ? '/v1/cryptocurrency/listings/latest' : req.path;
+    const url = `${CMC_BASE_URL}${path}`;
+    const cacheKey = `cmc_${req.path}_${JSON.stringify(req.query)}`;
+    
+    console.log(`💰 CoinMarketCap 프록시: ${req.method} ${url}`);
+    
+    // 캐시 확인 (CMC 데이터는 1분 캐싱)
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 60000) { // 1분
+      console.log('✅ 캐시된 CMC 응답');
+      return res.json(cached.data);
+    }
+    
+    // 요청 헤더 설정
+    const headers = {
+      'X-CMC_PRO_API_KEY': CMC_API_KEY,
+      'User-Agent': 'CoinTracker-Proxy/1.0',
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    };
+    
+    // API 요청
+    const response = await axios.get(url, {
+      params: req.query,
+      timeout: 15000, // 15초 타임아웃
+      headers: headers
     });
+    
+    console.log(`✅ CoinMarketCap 응답: ${response.status}`);
+    
+    // 응답 데이터 정규화
+    let cmcData = response.data;
+    
+    // CoinMarketCap API 응답 형식에 맞춰 정규화
+    if (cmcData && typeof cmcData === 'object') {
+      const normalizedData = {
+        success: true,
+        data: cmcData.data || cmcData,
+        status: cmcData.status || { error_code: 0, error_message: 'OK' },
+        timestamp: Date.now(),
+        source: 'coinmarketcap'
+      };
+      
+      // 캐시 저장
+      cache.set(cacheKey, {
+        data: normalizedData,
+        timestamp: Date.now()
+      });
+      
+      res.json(normalizedData);
+    } else {
+      throw new Error('Invalid response format from CoinMarketCap API');
+    }
+    
   } catch (error) {
+    console.error('❌ CoinMarketCap API 오류:', error.message);
+    
+    // API 키 관련 오류 처리
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return res.status(401).json({
+        success: false,
+        error: 'CoinMarketCap API 인증 오류. API 키를 확인해주세요.',
+        code: 'CMC_AUTH_ERROR',
+        status: 401,
+        endpoint: 'CoinMarketCap'
+      });
+    }
+    
+    // 할당량 초과 오류
+    if (error.response?.status === 429) {
+      return res.status(429).json({
+        success: false,
+        error: 'CoinMarketCap API 할당량이 초과되었습니다.',
+        code: 'CMC_RATE_LIMIT',
+        status: 429,
+        endpoint: 'CoinMarketCap',
+        retryAfter: error.response.headers['retry-after'] || '3600'
+      });
+    }
+    
+    // 기타 에러는 일반 에러 핸들러로 처리
     const errorResponse = handleApiError(error, 'CoinMarketCap');
     res.status(errorResponse.status).json(errorResponse);
   }
@@ -320,14 +409,16 @@ app.get('/', (req, res) => {
         bitget: '/api/bitget/*',
         upbit: '/api/upbit/*',
         exchangeRate: '/api/exchange-rate',
-        news: '/api/news (준비중)',
-        coinMarketCap: '/api/cmc/* (준비중)'
+        news: '/api/news',
+        coinMarketCap: '/api/cmc/*'
       }
     },
     examples: {
       bitget: '/api/bitget/api/v2/spot/market/tickers?symbol=BTCUSDT',
       upbit: '/api/upbit/v1/ticker?markets=KRW-BTC',
-      exchangeRate: '/api/exchange-rate'
+      exchangeRate: '/api/exchange-rate',
+      news: '/api/news?limit=10&category=bitcoin',
+      coinMarketCap: '/api/cmc?start=1&limit=100&convert=USD'
     }
   });
 });
@@ -396,6 +487,6 @@ app.listen(PORT, () => {
   console.log('  • /api/bitget/* - Bitget API 프록시');
   console.log('  • /api/upbit/* - Upbit API 프록시');
   console.log('  • /api/exchange-rate - 환율 API');
-  console.log('  • /api/news - 뉴스 API (준비중)');
-  console.log('  • /api/cmc/* - CoinMarketCap API (준비중)');
+  console.log('  • /api/news - CoinNess 뉴스 API');
+  console.log('  • /api/cmc/* - CoinMarketCap API');
 });

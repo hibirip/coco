@@ -37,6 +37,8 @@ import {
   checkNewsServiceStatus, 
   getAvailableCategories 
 } from '../services/news';
+import { usePrices } from '../contexts';
+import { useBitgetWebSocket } from '../hooks';
 
 export default function HomePage() {
   const [apiStatus, setApiStatus] = useState(null);
@@ -77,12 +79,53 @@ export default function HomePage() {
     isStale: upbitIsStale
   } = useUpbitPrices();
 
+  // PriceContext 훅 사용
+  const {
+    prices,
+    upbitPrices: contextUpbitPrices,
+    isConnected,
+    exchangeRate: contextExchangeRate,
+    MAJOR_COINS,
+    MAJOR_SYMBOLS,
+    stats,
+    errors,
+    calculateKimchiPremium,
+    getAllKimchiPremiums
+  } = usePrices();
+
+  // Bitget WebSocket 훅 사용
+  const {
+    isConnected: wsConnected,
+    isConnecting: wsConnecting,
+    isReconnecting: wsReconnecting,
+    isFailed: wsFailed,
+    connectionState: wsConnectionState,
+    reconnectAttempts: wsReconnectAttempts,
+    messageCount: wsMessageCount,
+    dataReceived: wsDataReceived,
+    lastPingTime: wsLastPingTime,
+    symbolsToSubscribe: wsSymbols,
+    connect: wsConnect,
+    disconnect: wsDisconnect,
+    reconnect: wsReconnect,
+    readyState: wsReadyState
+  } = useBitgetWebSocket({
+    enabled: true // 기본적으로 WebSocket 연결 활성화
+  });
+
   useEffect(() => {
     // 환경변수 로드 테스트
     console.log('🔧 환경변수 테스트:');
     console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
     console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '설정됨' : '누락됨');
     console.log('isDemoMode:', isDemoMode);
+    
+    // PriceContext 테스트
+    console.log('📊 PriceContext 초기 상태:');
+    console.log('  - 주요 코인 수:', MAJOR_SYMBOLS.length);
+    console.log('  - 연결 상태:', isConnected);
+    console.log('  - 통계:', stats);
+    console.log('  - 첫 번째 코인:', Object.values(MAJOR_COINS)[0]);
     
     // Supabase 클라이언트 테스트
     if (supabase) {
@@ -240,6 +283,109 @@ export default function HomePage() {
     }
   };
 
+  const handleTestCMC = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 CoinMarketCap API 테스트 시작...');
+      
+      // CMC API 테스트 (API 키 없이)
+      const response = await fetch('http://localhost:8080/api/cmc?limit=5', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      console.log('💰 CMC API 응답:', data);
+      
+      if (response.status === 503) {
+        alert(`CMC API 테스트 완료!\n상태: API 키 필요 (예상됨)\n에러 코드: ${data.code}\n메시지: ${data.error}`);
+      } else if (response.ok) {
+        alert(`CMC API 테스트 완료!\n상태: 정상\n조회된 데이터: ${data.data?.length || 0}개`);
+      } else {
+        alert(`CMC API 테스트 결과:\n상태 코드: ${response.status}\n메시지: ${data.error || 'Unknown error'}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ CMC 테스트 실패:', error);
+      alert(`CMC 테스트 실패: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestPriceContext = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 PriceContext 테스트 시작...');
+      
+      // PriceContext 상태 확인
+      console.log('📊 PriceContext 상태:');
+      console.log('  - 연결 상태:', isConnected);
+      console.log('  - 환율:', contextExchangeRate);
+      console.log('  - 가격 데이터 수:', Object.keys(prices).length);
+      console.log('  - 업비트 데이터 수:', Object.keys(contextUpbitPrices).length);
+      console.log('  - 주요 코인 수:', MAJOR_SYMBOLS.length);
+      console.log('  - 통계:', stats);
+      console.log('  - 에러 수:', errors.length);
+      
+      // 주요 코인 목록 확인
+      console.log('🪙 주요 코인 목록:');
+      Object.entries(MAJOR_COINS).forEach(([key, coin]) => {
+        console.log(`  ${key}: ${coin.name} (${coin.symbol} <-> ${coin.upbitMarket})`);
+      });
+      
+      // 김치프리미엄 계산 테스트 (데이터 없어도 정상 작동)
+      const allPremiums = getAllKimchiPremiums();
+      console.log('🌶️ 김치프리미엄 계산 결과:', allPremiums);
+      
+      alert(`PriceContext 테스트 완료!\n연결 상태: ${isConnected ? '연결됨' : '연결 안됨'}\n주요 코인: ${MAJOR_SYMBOLS.length}개\n가격 데이터: ${Object.keys(prices).length}개\n김치프리미엄: ${Object.keys(allPremiums).length}개\n에러: ${errors.length}개`);
+      
+    } catch (error) {
+      console.error('❌ PriceContext 테스트 실패:', error);
+      alert(`PriceContext 테스트 실패: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestWebSocket = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 Bitget WebSocket 테스트 시작...');
+      
+      // WebSocket 상태 확인
+      console.log('📡 WebSocket 상태:');
+      console.log('  - 연결됨:', wsConnected);
+      console.log('  - 연결 중:', wsConnecting);
+      console.log('  - 재연결 중:', wsReconnecting);
+      console.log('  - 실패:', wsFailed);
+      console.log('  - 연결 상태:', wsConnectionState);
+      console.log('  - 재연결 시도:', wsReconnectAttempts);
+      console.log('  - 메시지 수:', wsMessageCount);
+      console.log('  - 데이터 수신:', wsDataReceived);
+      console.log('  - 마지막 Ping:', wsLastPingTime ? new Date(wsLastPingTime).toLocaleTimeString() : 'None');
+      console.log('  - 구독 심볼:', wsSymbols.length, '개');
+      console.log('  - ReadyState:', wsReadyState);
+      
+      // 실시간 가격 데이터 확인
+      console.log('💰 실시간 가격 데이터:');
+      Object.entries(prices).forEach(([symbol, data]) => {
+        console.log(`  ${symbol}: $${data.price} (${data.changePercent24h > 0 ? '+' : ''}${data.changePercent24h?.toFixed(2)}%)`);
+      });
+      
+      alert(`WebSocket 테스트 완료!\n연결 상태: ${wsConnected ? '연결됨' : wsConnecting ? '연결 중' : wsReconnecting ? '재연결 중' : '연결 안됨'}\n메시지 수: ${wsMessageCount}개\n데이터 수신: ${wsDataReceived}개\n구독 심볼: ${wsSymbols.length}개\n가격 데이터: ${Object.keys(prices).length}개`);
+      
+    } catch (error) {
+      console.error('❌ WebSocket 테스트 실패:', error);
+      alert(`WebSocket 테스트 실패: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 테스트 데이터
   const testData = {
     btcKrw: 65000000,
@@ -318,6 +464,30 @@ export default function HomePage() {
             className="bg-purple-600 hover:bg-purple-600/80 disabled:bg-purple-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {loading ? '테스트 중...' : '뉴스 API 테스트'}
+          </button>
+          
+          <button
+            onClick={handleTestCMC}
+            disabled={loading}
+            className="bg-yellow-600 hover:bg-yellow-600/80 disabled:bg-yellow-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : 'CMC API 테스트'}
+          </button>
+          
+          <button
+            onClick={handleTestPriceContext}
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-600/80 disabled:bg-green-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : 'PriceContext 테스트'}
+          </button>
+          
+          <button
+            onClick={handleTestWebSocket}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-600/80 disabled:bg-blue-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : 'WebSocket 테스트'}
           </button>
         </div>
       </div>
@@ -552,6 +722,122 @@ export default function HomePage() {
             className="bg-info hover:bg-info/80 disabled:bg-info/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {upbitLoading ? '새로고침 중...' : '업비트 가격 새로고침'}
+          </button>
+        </div>
+      </div>
+
+      {/* PriceContext 상태 */}
+      <div className="bg-section p-6 rounded-lg">
+        <h2 className="text-xl font-bold text-primary mb-4">실시간 데이터 상태</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* WebSocket 연결 상태 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-text">WebSocket 연결</h3>
+            <div className="space-y-2 text-sm">
+              <p>• 연결 상태: <span className={`${wsConnected ? 'text-success' : wsConnecting ? 'text-warning' : wsReconnecting ? 'text-warning' : wsFailed ? 'text-danger' : 'text-textSecondary'}`}>
+                {wsConnected ? '연결됨 (Mock)' : wsConnecting ? '연결 중' : wsReconnecting ? '재연결 중' : wsFailed ? '실패' : '대기 중'}
+              </span></p>
+              <p>• 재연결 시도: <span className="text-primary">{wsReconnectAttempts}회</span></p>
+              <p>• 메시지 수: <span className="text-primary">{wsMessageCount}개</span></p>
+              <p>• 데이터 수신: <span className="text-primary">{wsDataReceived}개</span></p>
+            </div>
+          </div>
+          
+          {/* PriceContext 데이터 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-text">Context 데이터</h3>
+            <div className="space-y-2 text-sm">
+              <p>• Context 연결: <span className={`${isConnected ? 'text-success' : 'text-danger'}`}>
+                {isConnected ? '연결됨' : '연결 안됨'}
+              </span></p>
+              <p>• 환율: <span className="text-primary">
+                {contextExchangeRate ? formatKRW(contextExchangeRate) : '로딩 중...'}
+              </span></p>
+              <p>• 가격 데이터: <span className="text-primary">{Object.keys(prices).length}개</span></p>
+              <p>• 업비트 데이터: <span className="text-primary">{Object.keys(contextUpbitPrices).length}개</span></p>
+            </div>
+          </div>
+          
+          {/* 통계 및 설정 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-text">통계</h3>
+            <div className="space-y-2 text-sm">
+              <p>• 전체 코인: <span className="text-primary">{stats.totalCoins}개</span></p>
+              <p>• 연결된 코인: <span className="text-primary">{stats.connectedCoins}개</span></p>
+              <p>• 김치프리미엄: <span className="text-primary">{stats.kimchiPremiumCount}개</span></p>
+              <p>• 에러 수: <span className={`${errors.length > 0 ? 'text-danger' : 'text-success'}`}>{errors.length}개</span></p>
+            </div>
+          </div>
+
+          {/* 실시간 가격 데이터 */}
+          <div className="md:col-span-3 space-y-3">
+            <h3 className="text-lg font-semibold text-text">
+              실시간 가격 데이터 ({Object.keys(prices).length}/{MAJOR_SYMBOLS.length})
+            </h3>
+            
+            {Object.keys(prices).length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                {Object.entries(prices).slice(0, 10).map(([symbol, data]) => (
+                  <div key={symbol} className="bg-card p-2 rounded">
+                    <p className="font-medium text-text">{symbol.replace('USDT', '')}</p>
+                    <p className="text-primary">${data.price?.toFixed(data.price > 1 ? 2 : 6)}</p>
+                    <p className={`${data.changePercent24h > 0 ? 'text-success' : data.changePercent24h < 0 ? 'text-danger' : 'text-textSecondary'}`}>
+                      {data.changePercent24h > 0 ? '+' : ''}{data.changePercent24h?.toFixed(2)}%
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-card p-4 rounded-lg text-center">
+                <p className="text-textSecondary">
+                  {wsConnected ? '데이터 수신 대기 중...' : 'WebSocket 연결 대기 중...'}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            onClick={handleTestPriceContext}
+            disabled={loading}
+            className="bg-primary hover:bg-primary/80 disabled:bg-primary/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : 'Context 테스트'}
+          </button>
+          
+          <button
+            onClick={handleTestWebSocket}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-600/80 disabled:bg-blue-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : 'WebSocket 테스트'}
+          </button>
+          
+          {wsConnected ? (
+            <button
+              onClick={wsDisconnect}
+              className="bg-danger hover:bg-danger/80 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              연결 해제
+            </button>
+          ) : (
+            <button
+              onClick={wsConnect}
+              disabled={wsConnecting}
+              className="bg-success hover:bg-success/80 disabled:bg-success/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {wsConnecting ? '연결 중...' : '연결'}
+            </button>
+          )}
+          
+          <button
+            onClick={wsReconnect}
+            disabled={wsConnecting}
+            className="bg-warning hover:bg-warning/80 disabled:bg-warning/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {wsConnecting ? '연결 중...' : '재연결'}
           </button>
         </div>
       </div>
