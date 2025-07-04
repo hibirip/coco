@@ -5,14 +5,14 @@ export default {
     extend: {
       colors: {
         primary: "#3ECF8E", // 슈파베이스 네온 그린
-        background: "#000000", // 블랙 배경
-        section: "#1a1a1a", // 다크그레이 섹션
+        background: "#0c0c0c", // 다크 배경
+        section: "#232425", // 다크그레이 섹션
         card: "#0f0f0f", // 카드 배경
         text: "#ffffff", // 화이트 텍스트
         textSecondary: "#a0a0a0", // 보조 텍스트
         border: "#2a2a2a", // 보더 색상
-        success: "#3ECF8E", // 상승 (그린)
-        danger: "#ff4757" // 하락 (레드)
+        success: "#ff4757", // 상승 (레드)
+        danger: "#3ECF8E" // 하락 (그린)
       },
       screens: {
         'xs': '475px',

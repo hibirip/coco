@@ -21,7 +21,7 @@ const Layout = () => {
         </>
       )}
       
-      <main className="flex-1">
+      <main className={`flex-1 ${!isCoinDetailPage ? 'xl:px-48' : ''}`}>
         <Outlet />
       </main>
       <Footer />
