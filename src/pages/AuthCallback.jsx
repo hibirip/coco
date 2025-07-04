@@ -26,7 +26,17 @@ export default function AuthCallback() {
 
         console.log('🔄 OAuth 콜백 처리 시작...');
         
-        // URL에서 인증 코드 또는 토큰 처리
+        // URL 해시에서 토큰 추출 및 세션 교환
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          console.log('🔑 액세스 토큰 발견, 세션 교환 중...');
+          // Supabase가 자동으로 처리하도록 기다림
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        // 세션 확인
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
