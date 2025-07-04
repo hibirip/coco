@@ -11,7 +11,8 @@ import {
   formatKRW, 
   formatUSD, 
   formatPercent, 
-  getChangeColorClass 
+  getChangeColorClass,
+  getCoinLogoUrl 
 } from '../utils';
 
 const TAB_OPTIONS = [
@@ -108,10 +109,22 @@ export default function CoinDetailPage() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           {/* 코인 기본 정보 */}
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
-              <span className="text-primary text-xl font-bold">
-                {normalizedSymbol.replace('USDT', '').slice(0, 3)}
-              </span>
+            <div className="w-16 h-16 relative overflow-hidden rounded-full">
+              <img 
+                src={getCoinLogoUrl(normalizedSymbol)}
+                alt={`${coinInfo.name} logo`}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = `
+                    <div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+                      <span class="text-primary text-xl font-bold">
+                        ${normalizedSymbol.replace('USDT', '').slice(0, 3)}
+                      </span>
+                    </div>
+                  `;
+                }}
+              />
             </div>
             
             <div>

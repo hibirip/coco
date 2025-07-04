@@ -1,32 +1,76 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { Layout } from './components/Common';
-import {
-  HomePage,
-  PricesPage,
-  CoinDetailPage,
-  NewsPage,
-  AnalysisPage,
-  EventsPage,
-  AuthCallback,
-  NotFoundPage
-} from './pages';
+import LoadingSpinner from './components/Common/LoadingSpinner';
+import ToastContainer from './components/Common/Toast';
+import ErrorBoundary from './components/Common/ErrorBoundary';
+import { useToast } from './hooks';
+
+// React.lazy로 페이지 컴포넌트들을 동적 import
+const HomePage = lazy(() => import('./pages/HomePage'));
+const PricesPage = lazy(() => import('./pages/PricesPage'));
+const CoinDetailPage = lazy(() => import('./pages/CoinDetailPage'));
+const NewsPage = lazy(() => import('./pages/NewsPage'));
+const AnalysisPage = lazy(() => import('./pages/AnalysisPage'));
+const EventsPage = lazy(() => import('./pages/EventsPage'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function App() {
+  const { toasts, removeToast } = useToast();
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="prices" element={<PricesPage />} />
-          <Route path="coin/:symbol" element={<CoinDetailPage />} />
-          <Route path="news" element={<NewsPage />} />
-          <Route path="analysis" element={<AnalysisPage />} />
-          <Route path="events" element={<EventsPage />} />
-          <Route path="auth/callback" element={<AuthCallback />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <HomePage />
+              </Suspense>
+            } />
+            <Route path="prices" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <PricesPage />
+              </Suspense>
+            } />
+            <Route path="coin/:symbol" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <CoinDetailPage />
+              </Suspense>
+            } />
+            <Route path="news" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <NewsPage />
+              </Suspense>
+            } />
+            <Route path="analysis" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <AnalysisPage />
+              </Suspense>
+            } />
+            <Route path="events" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <EventsPage />
+              </Suspense>
+            } />
+            <Route path="auth/callback" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <AuthCallback />
+              </Suspense>
+            } />
+            <Route path="*" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <NotFoundPage />
+              </Suspense>
+            } />
+          </Route>
+        </Routes>
+        
+        {/* Toast 알림 */}
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+      </Router>
+    </ErrorBoundary>
   );
 }
 

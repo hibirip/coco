@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isDemoMode } from '../lib/supabase';
+import { useToast } from '../hooks';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('로그인 처리 중...');
 
@@ -40,8 +42,10 @@ export default function AuthCallback() {
 
         if (data?.session?.user) {
           console.log('✅ 로그인 성공:', data.session.user.email);
+          const userName = data.session.user.user_metadata?.full_name || data.session.user.email;
           setStatus('success');
           setMessage('로그인 성공! 홈으로 이동합니다...');
+          toast.success(`환영합니다, ${userName}님!`);
           
           setTimeout(() => {
             navigate('/', { replace: true });

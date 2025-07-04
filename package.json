@@ -12,7 +12,8 @@
     "server:start": "cd server && npm start",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup": "node quick-setup.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",

@@ -3,14 +3,15 @@
  * 실시간 가격 데이터 표시, 김치프리미엄 옵션, 즐겨찾기 기능
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrices } from '../../contexts';
 import { 
   formatKRW, 
   formatUSD, 
   formatPercent, 
-  getChangeColorClass 
+  getChangeColorClass,
+  getCoinLogoUrl 
 } from '../../utils';
 
 /**
@@ -100,8 +101,8 @@ export default function CoinTable({
     limit
   ]);
 
-  // 즐겨찾기 토글
-  const toggleFavorite = (symbol) => {
+  // 즐겨찾기 토글 - useCallback으로 최적화
+  const toggleFavorite = useCallback((symbol) => {
     setFavorites(prev => {
       const newFavorites = new Set(prev);
       if (newFavorites.has(symbol)) {
@@ -111,20 +112,22 @@ export default function CoinTable({
       }
       return newFavorites;
     });
-  };
+  }, []);
 
-  // 코인 클릭 핸들러
-  const handleCoinClick = (symbol) => {
+  // 코인 클릭 핸들러 - useCallback으로 최적화
+  const handleCoinClick = useCallback((symbol) => {
     if (onCoinClick) {
       onCoinClick(symbol);
     } else {
       navigate(`/coin/${symbol.toLowerCase()}`);
     }
-  };
+  }, [onCoinClick, navigate]);
 
-  // 연결 상태 확인
-  const hasConnection = isConnected || upbitIsConnected;
-  const hasFullConnection = isConnected && upbitIsConnected && exchangeRate;
+  // 연결 상태 확인 - useMemo로 최적화
+  const connectionStatus = useMemo(() => ({
+    hasConnection: isConnected || upbitIsConnected,
+    hasFullConnection: isConnected && upbitIsConnected && exchangeRate
+  }), [isConnected, upbitIsConnected, exchangeRate]);
 
   return (
     <div className={`bg-section rounded-lg overflow-hidden ${className}`}>
@@ -137,16 +140,16 @@ export default function CoinTable({
           <div className="flex items-center gap-2 text-sm">
             {/* 연결 상태 표시 */}
             <div className="flex items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${hasConnection ? 'bg-success' : 'bg-danger'}`}></div>
+              <div className={`w-2 h-2 rounded-full ${connectionStatus.hasConnection ? 'bg-success' : 'bg-danger'}`}></div>
               <span className="text-textSecondary">
-                {hasFullConnection ? '실시간' : hasConnection ? '부분연결' : '연결안됨'}
+                {connectionStatus.hasFullConnection ? '실시간' : connectionStatus.hasConnection ? '부분연결' : '연결안됨'}
               </span>
             </div>
             
             {/* 김치프리미엄 표시 여부 */}
             {showKimchi && (
               <span className="text-textSecondary">
-                김프 {hasFullConnection ? '활성' : '대기'}
+                김프 {connectionStatus.hasFullConnection ? '활성' : '대기'}
               </span>
             )}
           </div>
@@ -198,10 +201,23 @@ export default function CoinTable({
 
                   {/* 로고 */}
                   <td className="px-4 py-3">
-                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                      <span className="text-primary text-sm font-bold">
-                        {symbol.replace('USDT', '').slice(0, 2)}
-                      </span>
+                    <div className="relative w-10 h-10">
+                      <img 
+                        src={getCoinLogoUrl(symbol)}
+                        alt={`${symbol} logo`}
+                        className="w-10 h-10 object-contain"
+                        onError={(e) => {
+                          // 로고 로드 실패 시 대체 디자인 표시
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = `
+                            <div class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                              <span class="text-primary text-sm font-bold">
+                                ${symbol.replace('USDT', '').slice(0, 2)}
+                              </span>
+                            </div>
+                          `;
+                        }}
+                      />
                     </div>
                   </td>
 
@@ -328,7 +344,7 @@ export default function CoinTable({
                   <div className="space-y-2">
                     <p>표시할 코인 데이터가 없습니다</p>
                     <p className="text-sm">
-                      {!hasConnection ? 'WebSocket 연결을 확인해주세요' : '데이터 로딩 중...'}
+                      {!connectionStatus.hasConnection ? 'WebSocket 연결을 확인해주세요' : '데이터 로딩 중...'}
                     </p>
                   </div>
                 </td>
@@ -349,7 +365,7 @@ export default function CoinTable({
           </div>
           
           <div className="flex items-center gap-4">
-            {showKimchi && hasFullConnection && (
+            {showKimchi && connectionStatus.hasFullConnection && (
               <span>김치프리미엄 실시간</span>
             )}
             <span>

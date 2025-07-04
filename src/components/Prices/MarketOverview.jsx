@@ -5,7 +5,7 @@
 
 import { useMemo, useCallback } from 'react';
 import { usePrices } from '../../contexts';
-import { formatKRW, formatUSD, formatPercent, getChangeColorClass } from '../../utils';
+import { formatKRW, formatUSD, formatPercent, getChangeColorClass, getCoinLogoUrl } from '../../utils';
 
 // 더미 데이터 (향후 실제 API로 대체)
 const MARKET_DATA = {
@@ -148,8 +148,20 @@ export default function MarketOverview({ className = '' }) {
         <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                <span className="text-orange-400 text-lg">₿</span>
+              <div className="w-10 h-10 relative overflow-hidden rounded-lg">
+                <img 
+                  src={getCoinLogoUrl('BTCUSDT')}
+                  alt="BTC logo"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `
+                      <div class="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <span class="text-orange-400 text-lg">₿</span>
+                      </div>
+                    `;
+                  }}
+                />
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-textSecondary">BTC 도미넌스</h3>

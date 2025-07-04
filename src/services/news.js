@@ -1,15 +1,17 @@
 /**
  * CoinNess 뉴스 서비스
- * 암호화폐 뉴스 조회 및 카테고리별 필터링
+ * 암호화폐 뉴스 조회, 카테고리별 필터링, Twitter 피드
  */
 
 // 뉴스 서비스 설정
 const NEWS_CONFIG = {
   PROXY_URL: 'http://localhost:8080/api/news',
+  COINNESS_URL: 'https://api.coinness.com/v2',
   CACHE_DURATION: 180000, // 3분 (뉴스는 자주 업데이트되므로 짧게)
   RETRY_ATTEMPTS: 2,
   TIMEOUT: 15000, // 15초
-  DEFAULT_LIMIT: 20
+  DEFAULT_LIMIT: 20,
+  USE_MOCK: true // 개발 중에는 Mock 데이터 사용
 };
 
 // 뉴스 카테고리 매핑
@@ -54,6 +56,146 @@ function setCachedData(key, data) {
     data,
     timestamp: Date.now()
   });
+}
+
+/**
+ * Mock 뉴스 데이터 생성
+ */
+function generateMockNews(count = 20) {
+  const categories = ['비트코인', '이더리움', '규제', '시장', '기술', 'DeFi', 'NFT', '알트코인'];
+  const sources = ['코인데스크', '코인니스', '더블록', '크립토슬레이트', '블록미디어', 'CoinTelegraph'];
+  
+  const sampleNews = [
+    {
+      title: '비트코인, 45,000달러 돌파 후 조정 구간 진입',
+      summary: '비트코인이 45,000달러를 돌파한 후 차익실현 매물이 나오면서 조정 구간에 진입했습니다. 전문가들은 이번 조정이 건전한 상승을 위한 과정이라고 분석하고 있습니다.',
+      content: '비트코인이 45,000달러를 돌파한 후 차익실현 매물이 나오면서 조정 구간에 진입했습니다. 전문가들은 이번 조정이 건전한 상승을 위한 과정이라고 분석하고 있습니다. 최근 기관 투자자들의 유입과 ETF 승인 기대감이 상승을 이끌었으나, 단기적인 수익 실현 매물이 나오고 있는 상황입니다.',
+      category: '시장',
+      importance: 'high'
+    },
+    {
+      title: '이더리움 2.0 스테이킹 보상률 상승세',
+      summary: '이더리움 2.0 스테이킹 보상률이 최근 상승세를 보이고 있어 투자자들의 관심이 높아지고 있습니다.',
+      content: '이더리움 2.0 스테이킹 보상률이 최근 상승세를 보이고 있어 투자자들의 관심이 높아지고 있습니다. 현재 연 4.5% 수준의 보상률을 제공하고 있으며, 네트워크 보안과 안정성도 크게 개선되고 있습니다.',
+      category: '기술',
+      importance: 'medium'
+    },
+    {
+      title: '미국 SEC, 비트코인 ETF 승인 검토 중',
+      summary: '미국 증권거래위원회(SEC)가 여러 비트코인 ETF 신청서에 대한 승인 검토를 진행 중인 것으로 알려졌습니다.',
+      content: '미국 증권거래위원회(SEC)가 여러 비트코인 ETF 신청서에 대한 승인 검토를 진행 중인 것으로 알려졌습니다. 업계 전문가들은 올해 안에 승인 결정이 날 가능성이 높다고 전망하고 있습니다.',
+      category: '규제',
+      importance: 'high'
+    },
+    {
+      title: 'DeFi 시장 총예치금액(TVL) 1000억 달러 돌파',
+      summary: 'DeFi(탈중앙화 금융) 시장의 총예치금액이 1000억 달러를 돌파하며 새로운 이정표를 세웠습니다.',
+      content: 'DeFi(탈중앙화 금융) 시장의 총예치금액이 1000억 달러를 돌파하며 새로운 이정표를 세웠습니다. 유니스왑, 아베, 컴파운드 등 주요 프로토콜들의 성장이 이러한 성과를 이끌었습니다.',
+      category: 'DeFi',
+      importance: 'medium'
+    },
+    {
+      title: 'NFT 시장 회복세, 거래량 전월 대비 30% 증가',
+      summary: 'NFT 시장이 회복세를 보이며 거래량이 전월 대비 30% 증가한 것으로 나타났습니다.',
+      content: 'NFT 시장이 회복세를 보이며 거래량이 전월 대비 30% 증가한 것으로 나타났습니다. 새로운 컬렉션들의 출시와 게임파이 섹터의 성장이 주요 동력으로 작용했습니다.',
+      category: 'NFT',
+      importance: 'low'
+    }
+  ];
+
+  return Array.from({ length: count }, (_, index) => {
+    const baseNews = sampleNews[index % sampleNews.length];
+    const randomVariation = Math.floor(Math.random() * 1000);
+    
+    return {
+      id: `news_${Date.now()}_${index}`,
+      title: `${baseNews.title} ${index > 4 ? `(#${randomVariation})` : ''}`,
+      summary: baseNews.summary,
+      content: baseNews.content,
+      category: categories[Math.floor(Math.random() * categories.length)],
+      author: sources[Math.floor(Math.random() * sources.length)],
+      publishedAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+      imageUrl: `https://picsum.photos/600/400?random=${index}`,
+      url: `https://coinness.com/news/${Date.now()}_${index}`,
+      readTime: Math.floor(Math.random() * 5) + 2,
+      tags: ['암호화폐', '블록체인', baseNews.category],
+      importance: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
+      sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)],
+      metadata: {
+        source: 'coinness',
+        lang: 'ko',
+        isBreaking: Math.random() > 0.8,
+        updatedAt: new Date().toISOString()
+      }
+    };
+  });
+}
+
+/**
+ * Mock Twitter 피드 데이터 생성
+ */
+function generateMockTwitterFeeds() {
+  const influencers = [
+    {
+      name: 'Elon Musk',
+      username: 'elonmusk',
+      avatar: 'https://pbs.twimg.com/profile_images/1590968738358079488/IY9Gx6Ok_400x400.jpg',
+      verified: true,
+      followers: '150M'
+    },
+    {
+      name: 'Michael Saylor',
+      username: 'saylor',
+      avatar: 'https://pbs.twimg.com/profile_images/1555995571370967042/z8Dg6rIe_400x400.jpg',
+      verified: true,
+      followers: '3M'
+    },
+    {
+      name: 'Changpeng Zhao',
+      username: 'cz_binance',
+      avatar: 'https://pbs.twimg.com/profile_images/1592844781734559744/9Sbb5MBF_400x400.jpg',
+      verified: true,
+      followers: '8M'
+    },
+    {
+      name: 'Vitalik Buterin',
+      username: 'VitalikButerin',
+      avatar: 'https://pbs.twimg.com/profile_images/977496875887558661/L86xyLF4_400x400.jpg',
+      verified: true,
+      followers: '5M'
+    },
+    {
+      name: 'Cathie Wood',
+      username: 'CathieDWood',
+      avatar: 'https://pbs.twimg.com/profile_images/1506754356016553986/jjb_s5mL_400x400.jpg',
+      verified: true,
+      followers: '1.5M'
+    }
+  ];
+
+  const tweets = [
+    'Bitcoin is digital gold 🚀 The future is bright for cryptocurrency adoption worldwide.',
+    'Ethereum ecosystem continues to evolve with innovative DeFi protocols and scaling solutions.',
+    'Building the next generation of Web3 infrastructure. The revolution is just beginning.',
+    'Innovation never stops in crypto space. We are witnessing the birth of a new financial system.',
+    'Blockchain technology will change everything we know about value transfer and digital ownership.',
+    'The institutional adoption of Bitcoin is accelerating faster than ever before.',
+    'DeFi is democratizing finance and giving people control over their own money.',
+    'NFTs represent a paradigm shift in digital ownership and creative economy.',
+    'The future of money is programmable. Smart contracts are the building blocks.',
+    'Crypto regulation clarity will unlock massive institutional investment flows.'
+  ];
+
+  return influencers.map((influencer, index) => ({
+    id: `tweet_${Date.now()}_${index}`,
+    user: influencer,
+    content: tweets[index % tweets.length],
+    timestamp: new Date(Date.now() - Math.random() * 12 * 60 * 60 * 1000).toISOString(),
+    likes: Math.floor(Math.random() * 50000) + 1000,
+    retweets: Math.floor(Math.random() * 10000) + 100,
+    replies: Math.floor(Math.random() * 1000) + 50,
+    url: `https://twitter.com/${influencer.username}/status/${Date.now()}${index}`
+  }));
 }
 
 /**
@@ -140,29 +282,46 @@ export async function getLatestNews(options = {}) {
       return cached;
     }
 
-    const params = {
-      limit,
-      offset,
-      lang
-    };
+    let processedNews = [];
 
-    // 카테고리가 'all'이 아닌 경우 추가
-    if (category !== 'all') {
-      params.category = category;
+    if (NEWS_CONFIG.USE_MOCK) {
+      console.log('🟡 Mock 뉴스 데이터 사용');
+      const mockData = generateMockNews(limit);
+      
+      // 카테고리 필터링
+      if (category !== 'all') {
+        const filteredData = mockData.filter(news => 
+          news.category.toLowerCase().includes(category.toLowerCase())
+        );
+        processedNews = filteredData.slice(offset, offset + limit);
+      } else {
+        processedNews = mockData.slice(offset, offset + limit);
+      }
+    } else {
+      const params = {
+        limit,
+        offset,
+        lang
+      };
+
+      // 카테고리가 'all'이 아닌 경우 추가
+      if (category !== 'all') {
+        params.category = category;
+      }
+
+      const response = await fetchNewsAPI('/', params);
+      
+      // 응답 데이터 정규화
+      const newsData = response.success ? response.data : [];
+      
+      if (!Array.isArray(newsData)) {
+        console.warn('뉴스 데이터가 배열이 아닙니다:', newsData);
+        return [];
+      }
+
+      // 뉴스 데이터 후처리
+      processedNews = newsData.map(news => processNewsItem(news));
     }
-
-    const response = await fetchNewsAPI('/', params);
-    
-    // 응답 데이터 정규화
-    const newsData = response.success ? response.data : [];
-    
-    if (!Array.isArray(newsData)) {
-      console.warn('뉴스 데이터가 배열이 아닙니다:', newsData);
-      return [];
-    }
-
-    // 뉴스 데이터 후처리
-    const processedNews = newsData.map(news => processNewsItem(news));
     
     setCachedData(cacheKey, processedNews);
     console.log(`📰 최신 뉴스 조회 완료: ${processedNews.length}개 (${category})`);
@@ -172,8 +331,9 @@ export async function getLatestNews(options = {}) {
   } catch (error) {
     console.error('최신 뉴스 조회 오류:', error);
     
-    // 에러 시 빈 배열 반환 (사용자 경험 저해 방지)
-    return [];
+    // 에러 시 Mock 데이터 반환 (사용자 경험 저해 방지)
+    const fallbackNews = generateMockNews(options.limit || NEWS_CONFIG.DEFAULT_LIMIT);
+    return fallbackNews;
   }
 }
 
@@ -390,6 +550,58 @@ export function clearNewsCache() {
 }
 
 /**
+ * Twitter 피드 조회
+ * @returns {Promise<Array>} Twitter 피드 배열
+ */
+export async function getTwitterFeeds() {
+  try {
+    const cacheKey = 'twitter_feeds';
+    const cached = getCachedData(cacheKey);
+    if (cached) {
+      console.log('✅ 캐시된 Twitter 피드 사용');
+      return cached;
+    }
+
+    console.log('🐦 Mock Twitter 피드 데이터 생성');
+    const twitterFeeds = generateMockTwitterFeeds();
+    
+    setCachedData(cacheKey, twitterFeeds);
+    console.log(`🐦 Twitter 피드 조회 완료: ${twitterFeeds.length}개`);
+    
+    return twitterFeeds;
+
+  } catch (error) {
+    console.error('Twitter 피드 조회 오류:', error);
+    return [];
+  }
+}
+
+/**
+ * 헤드라인 뉴스 조회 (가장 중요한 뉴스)
+ * @returns {Promise<object|null>} 헤드라인 뉴스
+ */
+export async function getHeadlineNews() {
+  try {
+    const allNews = await getLatestNews({ limit: 10 });
+    
+    if (allNews.length === 0) {
+      return null;
+    }
+
+    // 중요도가 높은 뉴스 우선 선택
+    const highImportanceNews = allNews.filter(news => news.importance === 'high');
+    const headlineNews = highImportanceNews.length > 0 ? highImportanceNews[0] : allNews[0];
+    
+    console.log(`📰 헤드라인 뉴스: ${headlineNews.title}`);
+    return headlineNews;
+
+  } catch (error) {
+    console.error('헤드라인 뉴스 조회 오류:', error);
+    return null;
+  }
+}
+
+/**
  * 뉴스 서비스 상태 확인
  * @returns {Promise<object>} 서비스 상태
  */
@@ -424,6 +636,8 @@ export default {
   getNewsByCategory,
   searchNews,
   getNewsDetail,
+  getTwitterFeeds,
+  getHeadlineNews,
   getAvailableCategories,
   getNewsCacheStatus,
   clearNewsCache,
