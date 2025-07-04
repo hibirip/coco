@@ -60,13 +60,16 @@ export const AuthProvider = ({ children }) => {
       }
 
       // 실제 Supabase Google OAuth
+      const redirectUrl = `${window.location.origin}/auth/callback`;
       console.log('🔄 Google OAuth 시작...');
+      console.log('🔍 실제 리디렉션 URL:', redirectUrl);
+      console.log('🔍 현재 window.location.origin:', window.location.origin);
       toast.info('Google 로그인 창이 열립니다...', { duration: 3000 });
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
