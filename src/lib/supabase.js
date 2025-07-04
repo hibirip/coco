@@ -4,13 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// 환경변수 디버깅 (프로덕션에서도 확인)
+console.log('🔍 Supabase 환경변수 확인:');
+console.log('VITE_SUPABASE_URL:', supabaseUrl ? `✅ ${supabaseUrl}` : '❌ 누락');
+console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `✅ ${supabaseAnonKey.substring(0, 20)}...` : '❌ 누락');
+
 // Fallback 처리 및 Demo Mode 체크
 const isDemoMode = !supabaseUrl || !supabaseAnonKey;
 
 if (isDemoMode) {
   console.warn('⚠️ Supabase 환경변수가 설정되지 않았습니다. 데모 모드로 실행됩니다.');
-  console.warn('VITE_SUPABASE_URL:', supabaseUrl ? '✅ 설정됨' : '❌ 누락');
-  console.warn('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ 설정됨' : '❌ 누락');
 }
 
 // Supabase 클라이언트 생성
