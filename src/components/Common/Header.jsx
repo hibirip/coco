@@ -25,7 +25,22 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* 로고 */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold text-primary">CoinTracker</div>
+            <img 
+              src="/logo.png" 
+              alt="CoinTracker Logo" 
+              className="h-8 w-auto md:h-10"
+              onError={(e) => {
+                // 로고 로딩 실패 시 텍스트로 fallback
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'block';
+              }}
+            />
+            <div 
+              className="text-2xl font-bold text-primary hidden"
+              style={{ display: 'none' }}
+            >
+              CoinTracker
+            </div>
           </Link>
 
           {/* 데스크톱 네비게이션 */}
