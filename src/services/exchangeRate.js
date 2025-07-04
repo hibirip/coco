@@ -5,11 +5,21 @@
 
 // 환율 API 설정
 const EXCHANGE_RATE_CONFIG = {
+  // 구글 검색 기준 환율 (다양한 소스 활용)
+  GOOGLE_SEARCH_APIS: [
+    'https://api.exchangerate-api.com/v4/latest/USD',
+    'https://open.er-api.com/v6/latest/USD',
+    'https://api.fxratesapi.com/latest?base=USD&symbols=KRW'
+  ],
+  // 프록시 서버 (로컬 개발용)
   PROXY_URL: 'http://localhost:8080/api/exchange-rate',
-  DEFAULT_RATE: 1320, // "1달러 원화" 구글 검색 기준 (2025년 1월)
+  // 구글 검색 "1달러 원화" 기준 (2025년 7월 기준)
+  DEFAULT_RATE: 1380,
+  // 5시간마다 업데이트
   CACHE_DURATION: 5 * 60 * 60 * 1000, // 5시간 (밀리초)
+  UPDATE_INTERVAL: 5 * 60 * 60 * 1000, // 5시간 자동 업데이트
   RETRY_ATTEMPTS: 3,
-  TIMEOUT: 10000 // 10초
+  TIMEOUT: 15000 // 15초 (더 여유롭게)
 };
 
 // 로컬 스토리지 키
@@ -89,59 +99,92 @@ function clearCachedExchangeRate() {
 }
 
 /**
- * 프록시 서버를 통한 환율 API 호출
+ * 구글 검색 기준 환율 API 호출 (다중 소스)
  * @param {number} retryCount - 재시도 횟수
  * @returns {Promise<object>} 환율 데이터
  */
-async function fetchExchangeRateFromAPI(retryCount = 0) {
-  try {
-    console.log(`📡 환율 API 호출 (${retryCount + 1}/${EXCHANGE_RATE_CONFIG.RETRY_ATTEMPTS})`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), EXCHANGE_RATE_CONFIG.TIMEOUT);
-    
-    const response = await fetch(EXCHANGE_RATE_CONFIG.PROXY_URL, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log('📊 환율 API 응답:', data);
-    
-    if (data.success && data.rate && typeof data.rate === 'number') {
-      return {
-        rate: data.rate,
-        timestamp: Date.now(),
-        source: data.source || 'api',
-        isFromCache: false
-      };
-    } else {
-      throw new Error('환율 API 응답 형식이 올바르지 않습니다');
-    }
-    
-  } catch (error) {
-    console.error(`❌ 환율 API 호출 실패 (${retryCount + 1}회):`, error.message);
-    
-    // 재시도 로직
-    if (retryCount < EXCHANGE_RATE_CONFIG.RETRY_ATTEMPTS - 1) {
-      const delay = Math.pow(2, retryCount) * 1000; // 지수 백오프
-      console.log(`🔄 ${delay}ms 후 재시도...`);
+async function fetchExchangeRateFromGoogleAPIs(retryCount = 0) {
+  const apiUrls = EXCHANGE_RATE_CONFIG.GOOGLE_SEARCH_APIS;
+  
+  for (let i = 0; i < apiUrls.length; i++) {
+    try {
+      const apiUrl = apiUrls[i];
+      console.log(`📡 환율 API 호출 ${i + 1}/${apiUrls.length}: ${apiUrl}`);
       
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return fetchExchangeRateFromAPI(retryCount + 1);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), EXCHANGE_RATE_CONFIG.TIMEOUT);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; Coco-Exchange-Rate/1.0)'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`📊 환율 API 응답 (${i + 1}):`, data);
+      
+      // 각 API별 응답 형식 처리
+      let krwRate = null;
+      let source = `google_api_${i + 1}`;
+      
+      if (data.rates && data.rates.KRW) {
+        // exchangerate-api.com 형식
+        krwRate = data.rates.KRW;
+        source = 'exchangerate-api.com';
+      } else if (data.conversion_rates && data.conversion_rates.KRW) {
+        // open.er-api.com 형식
+        krwRate = data.conversion_rates.KRW;
+        source = 'open.er-api.com';
+      } else if (data.data && data.data.KRW) {
+        // fxratesapi.com 형식
+        krwRate = data.data.KRW;
+        source = 'fxratesapi.com';
+      }
+      
+      if (krwRate && typeof krwRate === 'number' && krwRate > 1000 && krwRate < 2000) {
+        console.log(`✅ 유효한 환율 수신: ${krwRate} (${source})`);
+        return {
+          rate: Math.round(krwRate), // 소수점 반올림
+          timestamp: Date.now(),
+          source: source,
+          isFromCache: false
+        };
+      } else {
+        console.warn(`⚠️ 비정상 환율 데이터: ${krwRate} (${source})`);
+        continue; // 다음 API 시도
+      }
+      
+    } catch (error) {
+      console.error(`❌ 환율 API ${i + 1} 실패:`, error.message);
+      continue; // 다음 API 시도
     }
-    
-    throw error;
   }
+  
+  throw new Error('모든 환율 API 호출 실패');
+}
+
+/**
+ * 구글 검색 기준 기본값으로 환율 설정
+ * @returns {object} 구글 기준 환율 데이터
+ */
+function getGoogleSearchBasedRate() {
+  console.log(`📋 구글 검색 기준 환율 사용: ${EXCHANGE_RATE_CONFIG.DEFAULT_RATE}`);
+  return {
+    rate: EXCHANGE_RATE_CONFIG.DEFAULT_RATE,
+    timestamp: Date.now(),
+    source: 'google_search_fallback',
+    isFromCache: false,
+    message: '구글 검색 "1달러 원화" 기준값'
+  };
 }
 
 /**
@@ -151,7 +194,7 @@ async function fetchExchangeRateFromAPI(retryCount = 0) {
  */
 export async function getUSDKRWRate(forceRefresh = false) {
   try {
-    // 강제 새로고침이 아닌 경우 캐시 확인
+    // 강제 새로고침이 아닌 경우 캐시 확인 (5시간 이내)
     if (!forceRefresh) {
       const cached = getCachedExchangeRate();
       if (cached) {
@@ -160,43 +203,84 @@ export async function getUSDKRWRate(forceRefresh = false) {
       }
     }
     
-    // API를 통해 환율 조회
+    console.log('🔍 새로운 환율 데이터 조회 시작...');
+    
+    // 1차: 구글 검색 기준 환율 API들 시도
     try {
-      const apiResult = await fetchExchangeRateFromAPI();
+      const apiResult = await fetchExchangeRateFromGoogleAPIs();
       setCachedExchangeRate(apiResult.rate, apiResult.source);
       
       console.log(`✅ 환율 조회 성공: ${apiResult.rate} (${apiResult.source})`);
       return apiResult;
       
     } catch (apiError) {
-      console.warn('환율 API 실패, 기본값 사용:', apiError.message);
+      console.warn('🔄 구글 API 실패, 구글 검색 기준 기본값 사용:', apiError.message);
       
-      // API 실패 시 기본값 반환
-      const fallbackResult = {
-        rate: EXCHANGE_RATE_CONFIG.DEFAULT_RATE,
-        timestamp: Date.now(),
-        source: 'fallback',
-        isFromCache: false,
-        error: apiError.message
-      };
+      // 2차: 구글 검색 기준 기본값 사용
+      const googleResult = getGoogleSearchBasedRate();
+      setCachedExchangeRate(googleResult.rate, googleResult.source);
       
-      // 기본값도 캐시에 저장 (짧은 시간)
-      setCachedExchangeRate(fallbackResult.rate, 'fallback');
-      
-      return fallbackResult;
+      console.log(`📋 구글 검색 기준값 사용: ${googleResult.rate}`);
+      return googleResult;
     }
     
   } catch (error) {
-    console.error('환율 조회 전체 실패:', error);
+    console.error('❌ 환율 조회 전체 실패:', error);
     
-    // 최후의 수단으로 기본값 반환
-    return {
+    // 최후의 수단: 응급 기본값
+    const emergencyResult = {
       rate: EXCHANGE_RATE_CONFIG.DEFAULT_RATE,
       timestamp: Date.now(),
       source: 'emergency_fallback',
       isFromCache: false,
-      error: error.message
+      error: error.message,
+      message: '응급 기본값 사용 (구글 검색 기준)'
     };
+    
+    return emergencyResult;
+  }
+}
+
+/**
+ * 자동 환율 업데이트 시작 (5시간 간격)
+ * @param {Function} onUpdate - 환율 업데이트 시 호출할 콜백 함수
+ */
+export function startAutoUpdate(onUpdate = null) {
+  console.log('🤖 환율 자동 업데이트 시작 (5시간 간격)');
+  
+  // 즉시 한 번 업데이트
+  getUSDKRWRate(false).then(rateData => {
+    if (onUpdate && rateData?.rate) {
+      onUpdate(rateData.rate);
+    }
+  });
+  
+  // 5시간마다 자동 업데이트
+  const updateInterval = setInterval(async () => {
+    try {
+      console.log('⏰ 5시간 자동 환율 업데이트 실행');
+      const rateData = await getUSDKRWRate(true); // 강제 새로고침
+      
+      if (onUpdate && rateData?.rate) {
+        onUpdate(rateData.rate);
+        console.log(`🔄 환율 업데이트 콜백 호출: ${rateData.rate}`);
+      }
+    } catch (error) {
+      console.error('❌ 자동 환율 업데이트 실패:', error);
+    }
+  }, EXCHANGE_RATE_CONFIG.UPDATE_INTERVAL);
+  
+  return updateInterval;
+}
+
+/**
+ * 자동 업데이트 중지
+ * @param {NodeJS.Timeout} intervalId - setInterval에서 반환된 ID
+ */
+export function stopAutoUpdate(intervalId) {
+  if (intervalId) {
+    clearInterval(intervalId);
+    console.log('🛑 환율 자동 업데이트 중지');
   }
 }
 
@@ -262,5 +346,7 @@ export default {
   refreshExchangeRate,
   getExchangeRateCacheStatus,
   getExchangeRateServiceStatus,
-  clearCachedExchangeRate
+  clearCachedExchangeRate,
+  startAutoUpdate,
+  stopAutoUpdate
 };

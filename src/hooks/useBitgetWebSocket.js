@@ -43,7 +43,7 @@ export function useBitgetWebSocket(options = {}) {
 
   // PriceContext 훅 사용
   const {
-    MAJOR_SYMBOLS,
+    ALL_SYMBOLS,
     setConnectionStatus,
     setConnecting,
     updatePrice,
@@ -66,8 +66,8 @@ export function useBitgetWebSocket(options = {}) {
   const subscribeTimeoutRef = useRef(null);
   const mockDataIntervalRef = useRef(null);
 
-  // 구독할 심볼 결정 (전달된 symbols 또는 기본 MAJOR_SYMBOLS)
-  const symbolsToSubscribe = symbols.length > 0 ? symbols : MAJOR_SYMBOLS;
+  // 구독할 심볼 결정 (전달된 symbols 또는 기본 ALL_SYMBOLS)
+  const symbolsToSubscribe = symbols.length > 0 ? symbols : ALL_SYMBOLS;
 
   /**
    * 연결 상태 업데이트
@@ -164,7 +164,7 @@ export function useBitgetWebSocket(options = {}) {
         setDataReceived(prev => prev + 1);
       });
       setMessageCount(prev => prev + 1);
-    }, 10000); // 10초마다 데이터 업데이트
+    }, 12000); // 12초마다 데이터 업데이트
 
     // 첫 번째 데이터 즉시 전송
     setTimeout(() => {
@@ -496,7 +496,7 @@ export function useBitgetWebSocket(options = {}) {
     return () => {
       disconnect();
     };
-  }, [enabled, symbolsToSubscribe.length, connect, disconnect]);
+  }, [enabled, symbolsToSubscribe.length]); // connect, disconnect 제거
 
   // 상태 및 제어 함수 반환
   return {

@@ -2,6 +2,7 @@
 export { useExchangeRate, useCurrentExchangeRate, useExchangeRateStatus } from './useExchangeRate';
 export { useUpbitPrices, useUpbitPrice, useUpbitPricesStatus } from './useUpbitPrices';
 export { useBitgetWebSocket } from './useBitgetWebSocket';
+export { useUpbitWebSocket } from './useUpbitWebSocket';
 
 // Context 훅들
 export { usePrices } from '../contexts/PriceContext';

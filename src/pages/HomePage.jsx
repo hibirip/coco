@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase, isDemoMode } from '../lib/supabase';
 import { 
   formatKRW, 
@@ -38,7 +39,8 @@ import {
   getAvailableCategories 
 } from '../services/news';
 import { usePrices } from '../contexts';
-import { useBitgetWebSocket } from '../hooks';
+import { useBitgetWebSocket, useUpbitWebSocket } from '../hooks';
+import { CoinTable } from '../components/Common';
 
 export default function HomePage() {
   const [apiStatus, setApiStatus] = useState(null);
@@ -84,6 +86,8 @@ export default function HomePage() {
     prices,
     upbitPrices: contextUpbitPrices,
     isConnected,
+    upbitIsConnected,
+    upbitIsConnecting,
     exchangeRate: contextExchangeRate,
     MAJOR_COINS,
     MAJOR_SYMBOLS,
@@ -110,6 +114,26 @@ export default function HomePage() {
     reconnect: wsReconnect,
     readyState: wsReadyState
   } = useBitgetWebSocket({
+    enabled: true // 기본적으로 WebSocket 연결 활성화
+  });
+  
+  // Upbit WebSocket 훅 사용
+  const {
+    isConnected: upbitWsConnected,
+    isConnecting: upbitWsConnecting,
+    isReconnecting: upbitWsReconnecting,
+    isFailed: upbitWsFailed,
+    connectionState: upbitWsConnectionState,
+    reconnectAttempts: upbitWsReconnectAttempts,
+    messageCount: upbitWsMessageCount,
+    dataReceived: upbitWsDataReceived,
+    lastDataTime: upbitWsLastDataTime,
+    marketsToSubscribe: upbitWsMarkets,
+    connect: upbitWsConnect,
+    disconnect: upbitWsDisconnect,
+    reconnect: upbitWsReconnect,
+    readyState: upbitWsReadyState
+  } = useUpbitWebSocket({
     enabled: true // 기본적으로 WebSocket 연결 활성화
   });
 
@@ -385,6 +409,81 @@ export default function HomePage() {
       setLoading(false);
     }
   };
+  
+  const handleTestUpbitWebSocket = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 업비트 WebSocket 테스트 시작...');
+      
+      // 업비트 WebSocket 상태 확인
+      console.log('📡 업비트 WebSocket 상태:');
+      console.log('  - 연결됨:', upbitWsConnected);
+      console.log('  - 연결 중:', upbitWsConnecting);
+      console.log('  - 재연결 중:', upbitWsReconnecting);
+      console.log('  - 실패:', upbitWsFailed);
+      console.log('  - 연결 상태:', upbitWsConnectionState);
+      console.log('  - 재연결 시도:', upbitWsReconnectAttempts);
+      console.log('  - 메시지 수:', upbitWsMessageCount);
+      console.log('  - 데이터 수신:', upbitWsDataReceived);
+      console.log('  - 마지막 데이터:', upbitWsLastDataTime ? new Date(upbitWsLastDataTime).toLocaleTimeString() : 'None');
+      console.log('  - 구독 마켓:', upbitWsMarkets.length, '개');
+      console.log('  - ReadyState:', upbitWsReadyState);
+      
+      // 업비트 가격 데이터 확인
+      console.log('💰 업비트 가격 데이터:');
+      Object.entries(contextUpbitPrices).forEach(([market, data]) => {
+        console.log(`  ${market}: ₩${data.trade_price?.toLocaleString()} (${data.change_percent > 0 ? '+' : ''}${data.change_percent?.toFixed(2)}%)`);
+      });
+      
+      alert(`업비트 WebSocket 테스트 완료!\n연결 상태: ${upbitWsConnected ? '연결됨' : upbitWsConnecting ? '연결 중' : upbitWsReconnecting ? '재연결 중' : '연결 안됨'}\n메시지 수: ${upbitWsMessageCount}개\n데이터 수신: ${upbitWsDataReceived}개\n구독 마켓: ${upbitWsMarkets.length}개\n가격 데이터: ${Object.keys(contextUpbitPrices).length}개`);
+      
+    } catch (error) {
+      console.error('❌ 업비트 WebSocket 테스트 실패:', error);
+      alert(`업비트 WebSocket 테스트 실패: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleTestKimchiPremium = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 김치프리미엄 계산 테스트 시작...');
+      
+      // 모든 김치프리미엄 계산
+      const allPremiums = getAllKimchiPremiums();
+      console.log('🌶️ 김치프리미엄 계산 결과:', allPremiums);
+      
+      // 개별 코인별 상세 정보
+      console.log('💱 개별 코인별 김치프리미엄:');
+      MAJOR_SYMBOLS.forEach(symbol => {
+        const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
+        if (!coin) return;
+        
+        const bitgetPrice = prices[symbol];
+        const upbitPrice = contextUpbitPrices[coin.upbitMarket];
+        const premium = calculateKimchiPremium(symbol);
+        
+        console.log(`  ${coin.name} (${symbol}):`);
+        console.log(`    - Bitget: $${bitgetPrice?.price || 'N/A'}`);
+        console.log(`    - Upbit: ₩${upbitPrice?.trade_price?.toLocaleString() || 'N/A'}`);
+        console.log(`    - 환율: ${contextExchangeRate || 'N/A'}`);
+        console.log(`    - 김치프리미엄: ${premium?.premium?.toFixed(2) || 'N/A'}%`);
+      });
+      
+      const premiumCount = Object.keys(allPremiums).length;
+      const avgPremium = premiumCount > 0 ? 
+        Object.values(allPremiums).reduce((sum, p) => sum + p.premium, 0) / premiumCount : 0;
+      
+      alert(`김치프리미엄 테스트 완료!\n계산 가능한 코인: ${premiumCount}개\n평균 김치프리미엄: ${avgPremium.toFixed(2)}%\n환율: ${contextExchangeRate ? formatKRW(contextExchangeRate) : 'N/A'}\nBitget 데이터: ${Object.keys(prices).length}개\n업비트 데이터: ${Object.keys(contextUpbitPrices).length}개`);
+      
+    } catch (error) {
+      console.error('❌ 김치프리미엄 테스트 실패:', error);
+      alert(`김치프리미엄 테스트 실패: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 테스트 데이터
   const testData = {
@@ -400,7 +499,174 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* 환경변수 상태 */}
+      {/* 메인 배너 섹션 */}
+      <div className="bg-gradient-to-r from-primary/20 to-blue-500/20 p-8 rounded-xl border border-primary/30">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-primary">Coco</h1>
+          <p className="text-xl text-text">실시간 암호화폐 시세 & 김치프리미엄</p>
+          <p className="text-textSecondary">
+            Bitget과 업비트의 실시간 가격 비교로 최적의 거래 타이밍을 찾아보세요
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
+            <Link 
+              to="/prices" 
+              className="bg-primary hover:bg-primary/80 text-background px-6 py-3 rounded-lg font-medium transition-colors"
+            >
+              실시간 시세 보기
+            </Link>
+            <Link 
+              to="/kimchi" 
+              className="bg-transparent hover:bg-primary/10 text-primary border border-primary px-6 py-3 rounded-lg font-medium transition-colors"
+            >
+              김치프리미엄 분석
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* 인기 코인 섹션 */}
+      <div className="bg-section p-6 rounded-lg">
+        {/* 섹션 헤더 */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+              <span className="text-primary text-lg">🔥</span>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-primary">인기 코인</h2>
+              <p className="text-sm text-textSecondary">실시간 상위 10개 코인 시세</p>
+            </div>
+          </div>
+          <Link 
+            to="/prices" 
+            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <span className="text-sm font-medium">전체보기</span>
+            <span className="text-lg">→</span>
+          </Link>
+        </div>
+
+        {/* 미니 시세판 */}
+        <CoinTable 
+          limit={10}
+          showKimchi={true}
+          showFavorites={false}
+          className="mb-4"
+        />
+      </div>
+
+      {/* 각 페이지 프리뷰 섹션 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* PricesPage 프리뷰 */}
+        <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <span className="text-blue-400 text-lg">📊</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text">실시간 시세</h3>
+              <p className="text-sm text-textSecondary">전체 코인 시세판</p>
+            </div>
+          </div>
+          <p className="text-textSecondary mb-4">
+            실시간 가격, 검색, 정렬, 필터 기능을 통해 원하는 코인을 빠르게 찾아보세요.
+          </p>
+          <Link 
+            to="/prices" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <span className="text-sm font-medium">바로가기</span>
+            <span>→</span>
+          </Link>
+        </div>
+
+        {/* KimchiPage 프리뷰 */}
+        <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <span className="text-red-400 text-lg">🌶️</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text">김치프리미엄</h3>
+              <p className="text-sm text-textSecondary">가격 차이 분석</p>
+            </div>
+          </div>
+          <p className="text-textSecondary mb-4">
+            국내외 거래소 가격 차이를 실시간으로 분석하여 차익거래 기회를 발견하세요.
+          </p>
+          <Link 
+            to="/kimchi" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <span className="text-sm font-medium">바로가기</span>
+            <span>→</span>
+          </Link>
+        </div>
+
+        {/* NewsPage 프리뷰 */}
+        <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+              <span className="text-purple-400 text-lg">📰</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text">암호화폐 뉴스</h3>
+              <p className="text-sm text-textSecondary">최신 소식</p>
+            </div>
+          </div>
+          <p className="text-textSecondary mb-4">
+            암호화폐 시장의 최신 뉴스와 분석을 통해 시장 트렌드를 파악하세요.
+          </p>
+          <Link 
+            to="/news" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <span className="text-sm font-medium">바로가기</span>
+            <span>→</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 실시간 데이터 상태 확인 */}
+      <div className="bg-section p-6 rounded-lg">
+        <h2 className="text-xl font-bold text-primary mb-4">실시간 데이터 상태</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-card p-4 rounded-lg">
+            <h3 className="font-medium text-text mb-2">환율 정보</h3>
+            <div className="space-y-1 text-sm">
+              <p>현재 환율: <span className="text-primary font-medium">
+                {contextExchangeRate ? `₩${contextExchangeRate.toLocaleString()}` : '로딩 중...'}
+              </span></p>
+              <p>연결 상태: <span className={`${contextExchangeRate ? 'text-success' : 'text-warning'}`}>
+                {contextExchangeRate ? '정상' : '대기 중'}
+              </span></p>
+            </div>
+          </div>
+          
+          <div className="bg-card p-4 rounded-lg">
+            <h3 className="font-medium text-text mb-2">가격 데이터</h3>
+            <div className="space-y-1 text-sm">
+              <p>Bitget: <span className="text-primary">{Object.keys(prices).length}개</span></p>
+              <p>업비트: <span className="text-primary">{Object.keys(contextUpbitPrices).length}개</span></p>
+              <p>연결: <span className={`${isConnected ? 'text-success' : 'text-warning'}`}>
+                {isConnected ? 'Bitget ✓' : 'Bitget ✗'} {upbitIsConnected ? 'Upbit ✓' : 'Upbit ✗'}
+              </span></p>
+            </div>
+          </div>
+          
+          <div className="bg-card p-4 rounded-lg">
+            <h3 className="font-medium text-text mb-2">김치프리미엄</h3>
+            <div className="space-y-1 text-sm">
+              <p>계산 가능: <span className="text-primary">{stats.kimchiPremiumCount}개</span></p>
+              <p>상태: <span className={`${stats.kimchiPremiumCount > 0 ? 'text-success' : 'text-warning'}`}>
+                {stats.kimchiPremiumCount > 0 ? '정상 계산' : '데이터 대기'}
+              </span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 환경변수 상태 (개발용) */}
       <div className="bg-section p-6 rounded-lg">
         <h1 className="text-2xl font-bold text-primary mb-4">환경변수 상태</h1>
         <div className="space-y-2 text-sm">
@@ -487,7 +753,23 @@ export default function HomePage() {
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-600/80 disabled:bg-blue-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            {loading ? '테스트 중...' : 'WebSocket 테스트'}
+            {loading ? '테스트 중...' : 'Bitget WS 테스트'}
+          </button>
+          
+          <button
+            onClick={handleTestUpbitWebSocket}
+            disabled={loading}
+            className="bg-purple-600 hover:bg-purple-600/80 disabled:bg-purple-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : '업비트 WS 테스트'}
+          </button>
+          
+          <button
+            onClick={handleTestKimchiPremium}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-600/80 disabled:bg-red-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : '김치프리미엄 테스트'}
           </button>
         </div>
       </div>
@@ -730,10 +1012,10 @@ export default function HomePage() {
       <div className="bg-section p-6 rounded-lg">
         <h2 className="text-xl font-bold text-primary mb-4">실시간 데이터 상태</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* WebSocket 연결 상태 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Bitget WebSocket 연결 상태 */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-text">WebSocket 연결</h3>
+            <h3 className="text-lg font-semibold text-text">Bitget WebSocket</h3>
             <div className="space-y-2 text-sm">
               <p>• 연결 상태: <span className={`${wsConnected ? 'text-success' : wsConnecting ? 'text-warning' : wsReconnecting ? 'text-warning' : wsFailed ? 'text-danger' : 'text-textSecondary'}`}>
                 {wsConnected ? '연결됨 (Mock)' : wsConnecting ? '연결 중' : wsReconnecting ? '재연결 중' : wsFailed ? '실패' : '대기 중'}
@@ -741,6 +1023,19 @@ export default function HomePage() {
               <p>• 재연결 시도: <span className="text-primary">{wsReconnectAttempts}회</span></p>
               <p>• 메시지 수: <span className="text-primary">{wsMessageCount}개</span></p>
               <p>• 데이터 수신: <span className="text-primary">{wsDataReceived}개</span></p>
+            </div>
+          </div>
+          
+          {/* Upbit WebSocket 연결 상태 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-text">업비트 WebSocket</h3>
+            <div className="space-y-2 text-sm">
+              <p>• 연결 상태: <span className={`${upbitWsConnected ? 'text-success' : upbitWsConnecting ? 'text-warning' : upbitWsReconnecting ? 'text-warning' : upbitWsFailed ? 'text-danger' : 'text-textSecondary'}`}>
+                {upbitWsConnected ? '연결됨' : upbitWsConnecting ? '연결 중' : upbitWsReconnecting ? '재연결 중' : upbitWsFailed ? '실패' : '대기 중'}
+              </span></p>
+              <p>• 재연결 시도: <span className="text-primary">{upbitWsReconnectAttempts}회</span></p>
+              <p>• 메시지 수: <span className="text-primary">{upbitWsMessageCount}개</span></p>
+              <p>• 데이터 수신: <span className="text-primary">{upbitWsDataReceived}개</span></p>
             </div>
           </div>
           
@@ -769,9 +1064,26 @@ export default function HomePage() {
               <p>• 에러 수: <span className={`${errors.length > 0 ? 'text-danger' : 'text-success'}`}>{errors.length}개</span></p>
             </div>
           </div>
+          
+          {/* 김치프리미엄 상태 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-text">김치프리미엄</h3>
+            <div className="space-y-2 text-sm">
+              <p>• Context 연결: <span className={`${isConnected ? 'text-success' : 'text-danger'}`}>
+                {isConnected ? '연결됨' : '연결 안됨'}
+              </span></p>
+              <p>• 업비트 연결: <span className={`${upbitIsConnected ? 'text-success' : 'text-danger'}`}>
+                {upbitIsConnected ? '연결됨' : '연결 안됨'}
+              </span></p>
+              <p>• 환율: <span className="text-primary">
+                {contextExchangeRate ? formatKRW(contextExchangeRate) : '로딩 중...'}
+              </span></p>
+              <p>• 계산 가능: <span className="text-primary">{stats.kimchiPremiumCount}개</span></p>
+            </div>
+          </div>
 
           {/* 실시간 가격 데이터 */}
-          <div className="md:col-span-3 space-y-3">
+          <div className="md:col-span-4 space-y-3">
             <h3 className="text-lg font-semibold text-text">
               실시간 가격 데이터 ({Object.keys(prices).length}/{MAJOR_SYMBOLS.length})
             </h3>
@@ -792,6 +1104,48 @@ export default function HomePage() {
               <div className="bg-card p-4 rounded-lg text-center">
                 <p className="text-textSecondary">
                   {wsConnected ? '데이터 수신 대기 중...' : 'WebSocket 연결 대기 중...'}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* 김치프리미엄 실시간 데이터 */}
+          <div className="md:col-span-4 space-y-3 mt-6">
+            <h3 className="text-lg font-semibold text-text">
+              김치프리미엄 실시간 ({stats.kimchiPremiumCount}/{MAJOR_SYMBOLS.length})
+            </h3>
+            
+            {stats.kimchiPremiumCount > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                {MAJOR_SYMBOLS.slice(0, 6).map(symbol => {
+                  const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
+                  const bitgetPrice = prices[symbol];
+                  const upbitPrice = contextUpbitPrices[coin?.upbitMarket];
+                  const premium = calculateKimchiPremium(symbol);
+                  
+                  if (!coin || !premium) return null;
+                  
+                  return (
+                    <div key={symbol} className="bg-card p-3 rounded border-l-4" style={{borderLeftColor: premium.premium > 0 ? '#ef4444' : '#10b981'}}>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-text">{coin.name}</h4>
+                        <span className={`text-xs px-2 py-1 rounded ${premium.premium > 0 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                          {premium.premium > 0 ? '+' : ''}{premium.premium.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-xs text-textSecondary">
+                        <p>Bitget: {bitgetPrice?.price ? `$${bitgetPrice.price.toFixed(2)}` : 'N/A'}</p>
+                        <p>Upbit: {upbitPrice?.trade_price ? `₩${upbitPrice.trade_price.toLocaleString()}` : 'N/A'}</p>
+                        <p>USD-KRW: {premium.bitgetKrwPrice ? `₩${premium.bitgetKrwPrice.toLocaleString()}` : 'N/A'}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-card p-4 rounded-lg text-center">
+                <p className="text-textSecondary">
+                  {isConnected && upbitIsConnected && contextExchangeRate ? '김치프리미엄 계산 준비 중...' : '데이터 연결 대기 중...'}
                 </p>
               </div>
             )}
@@ -837,7 +1191,41 @@ export default function HomePage() {
             disabled={wsConnecting}
             className="bg-warning hover:bg-warning/80 disabled:bg-warning/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            {wsConnecting ? '연결 중...' : '재연결'}
+            {wsConnecting ? '연결 중...' : 'Bitget 재연결'}
+          </button>
+          
+          {/* 업비트 WebSocket 제어 */}
+          {upbitWsConnected ? (
+            <button
+              onClick={upbitWsDisconnect}
+              className="bg-danger hover:bg-danger/80 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              업비트 해제
+            </button>
+          ) : (
+            <button
+              onClick={upbitWsConnect}
+              disabled={upbitWsConnecting}
+              className="bg-success hover:bg-success/80 disabled:bg-success/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {upbitWsConnecting ? '연결 중...' : '업비트 연결'}
+            </button>
+          )}
+          
+          <button
+            onClick={upbitWsReconnect}
+            disabled={upbitWsConnecting}
+            className="bg-warning hover:bg-warning/80 disabled:bg-warning/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {upbitWsConnecting ? '연결 중...' : '업비트 재연결'}
+          </button>
+          
+          <button
+            onClick={handleTestKimchiPremium}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-600/80 disabled:bg-red-600/50 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {loading ? '테스트 중...' : '김치프리미엄 테스트'}
           </button>
         </div>
       </div>
@@ -894,6 +1282,45 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* CoinTable 컴포넌트 테스트 */}
+      <div className="bg-section p-6 rounded-lg">
+        <h2 className="text-xl font-bold text-primary mb-4">CoinTable 컴포넌트 테스트</h2>
+        
+        <div className="space-y-6">
+          {/* 전체 테이블 (김치프리미엄 포함) */}
+          <div>
+            <h3 className="text-lg font-semibold text-text mb-3">전체 코인 테이블</h3>
+            <CoinTable 
+              showKimchi={true}
+              showFavorites={true}
+              className="mb-4"
+            />
+          </div>
+          
+          {/* 제한된 테이블 (김치프리미엄 없이) */}
+          <div>
+            <h3 className="text-lg font-semibold text-text mb-3">상위 5개 코인 (김치프리미엄 제외)</h3>
+            <CoinTable 
+              limit={5}
+              showKimchi={false}
+              showFavorites={true}
+              className="mb-4"
+            />
+          </div>
+          
+          {/* 간단한 테이블 (즐겨찾기 없이) */}
+          <div>
+            <h3 className="text-lg font-semibold text-text mb-3">간단 보기 (상위 3개)</h3>
+            <CoinTable 
+              limit={3}
+              showKimchi={true}
+              showFavorites={false}
+              className="mb-4"
+            />
           </div>
         </div>
       </div>
