@@ -13,7 +13,6 @@ const CoinDetailPage = lazy(() => import('./pages/CoinDetailPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
-const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function App() {
@@ -23,14 +22,6 @@ function App() {
     <ErrorBoundary>
       <Router>
         <Routes>
-          {/* AuthCallback은 Layout 밖에서 독립적으로 렌더링 */}
-          <Route path="/auth/callback" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <AuthCallback />
-            </Suspense>
-          } />
-          
-          {/* 나머지 라우트는 Layout 안에서 렌더링 */}
           <Route path="/" element={<Layout />}>
             <Route index element={
               <Suspense fallback={<LoadingSpinner />}>

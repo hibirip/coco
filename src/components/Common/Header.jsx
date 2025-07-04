@@ -55,12 +55,9 @@ const Header = () => {
             ) : isAuthenticated ? (
               <UserProfile />
             ) : (
-              <button 
-                onClick={signInWithGoogle}
-                className="bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                Google 로그인
-              </button>
+              <div className="text-sm text-textSecondary">
+                {/* 로그인 버튼 임시 제거 */}
+              </div>
             )}
           </div>
 
@@ -106,15 +103,9 @@ const Header = () => {
                     <UserProfile />
                   </div>
                 ) : (
-                  <button 
-                    onClick={() => {
-                      signInWithGoogle();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Google 로그인
-                  </button>
+                  <div className="text-center text-sm text-textSecondary">
+                    {/* 모바일 로그인 버튼 임시 제거 */}
+                  </div>
                 )}
               </div>
             </div>
