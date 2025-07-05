@@ -8,13 +8,21 @@ import { API_CONFIG } from '../config/api';
 
 // Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
-  // 모든 환경에서 프록시 사용
-  BASE_URL: API_CONFIG.BITGET.BASE_URL,
-  USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
+  // 환경별 API 설정
+  get BASE_URL() {
+    try {
+      return API_CONFIG.BITGET.BASE_URL;
+    } catch (error) {
+      // 배포환경에서 Bitget API 사용 불가 시 null 반환
+      logger.warn('Bitget REST API는 배포환경에서 사용할 수 없습니다 (WebSocket 사용)');
+      return null;
+    }
+  },
+  USE_MOCK: false,
   TICKERS_ENDPOINT: API_CONFIG.BITGET.TICKER,
   SINGLE_TICKER_ENDPOINT: API_CONFIG.BITGET.SINGLE_TICKER,
   CACHE_TTL: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
-  REQUEST_TIMEOUT: 3000 // 3초 타임아웃 (빠른 폴백)
+  REQUEST_TIMEOUT: 3000
 };
 
 // 메모리 캐시
@@ -58,11 +66,15 @@ function setCachedData(symbol, data) {
  */
 async function fetchBitgetTickerData(symbol) {
   try {
+    // 배포환경에서는 REST API 사용 불가
+    if (!BITGET_TICKER_CONFIG.BASE_URL) {
+      throw new Error('Bitget REST API not available in production environment');
+    }
+    
     const params = new URLSearchParams({
       symbol: symbol.toUpperCase()
     });
     
-    // 모든 환경에서 동일한 프록시 사용 (로컬 기준)
     const url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.SINGLE_TICKER_ENDPOINT}?${params}`;
     
     logger.performance(`Bitget Ticker API 요청: ${symbol}`);

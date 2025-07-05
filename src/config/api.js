@@ -1,10 +1,20 @@
 /**
- * API 설정 - Express 서버 통합 API 관리
- * 모든 환경에서 Express 서버(localhost:8080)를 통해 API 호출
+ * API 설정 - 환경별 API 관리
+ * 개발환경: Express 프록시 서버 사용
+ * 배포환경: 직접 API 호출
  */
 
-// Express 서버 URL (모든 환경에서 동일)
+// 환경별 설정
+const isDevelopment = import.meta.env.DEV;
 const EXPRESS_SERVER_URL = 'http://localhost:8080';
+
+// 직접 API URL (배포환경용)
+const DIRECT_API_URLS = {
+  BITGET: null, // 배포환경에서는 WebSocket만 사용
+  UPBIT: 'https://api.upbit.com', // 업비트는 CORS 허용
+  EXCHANGE_RATE: 'https://api.exchangerate-api.com/v4/latest/USD',
+  NEWS: 'https://api.coingecko.com'
+};
 
 // API 타입별 경로 설정
 const API_PATHS = {
@@ -17,16 +27,28 @@ const API_PATHS = {
 /**
  * API 엔드포인트 생성
  * @param {string} apiType - API 타입 (BITGET, UPBIT, EXCHANGE_RATE, NEWS)
- * @returns {string} Express 서버를 통한 API URL
+ * @returns {string} 환경별 API URL
  */
 export function getApiEndpoint(apiType) {
-  const path = API_PATHS[apiType];
-  if (!path) {
+  // 개발환경: Express 프록시 서버 사용
+  if (isDevelopment) {
+    const path = API_PATHS[apiType];
+    if (!path) {
+      throw new Error(`Unknown API type: ${apiType}`);
+    }
+    return `${EXPRESS_SERVER_URL}${path}`;
+  }
+  
+  // 배포환경: 직접 API 호출
+  const directUrl = DIRECT_API_URLS[apiType];
+  if (directUrl === null) {
+    throw new Error(`API type ${apiType} is not available in production (use WebSocket instead)`);
+  }
+  if (!directUrl) {
     throw new Error(`Unknown API type: ${apiType}`);
   }
-
-  // 모든 환경에서 Express 서버를 통해 API 호출
-  return `${EXPRESS_SERVER_URL}${path}`;
+  
+  return directUrl;
 }
 
 /**
