@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePrices } from '../contexts/PriceContext';
+import { logger } from '../utils/logger';
 
 // WebSocket 설정
 const BITGET_WS_CONFIG = {
@@ -97,7 +98,7 @@ export function useBitgetWebSocket(options = {}) {
    * 에러 로깅
    */
   const logError = useCallback((message) => {
-    console.error('🔴 Bitget WebSocket:', message);
+    logger.error('Bitget WebSocket:', message);
     addError(`WebSocket: ${message}`);
   }, [addError]);
 
@@ -105,7 +106,7 @@ export function useBitgetWebSocket(options = {}) {
    * 성공 로깅
    */
   const logSuccess = useCallback((message) => {
-    console.log('🟢 Bitget WebSocket:', message);
+    logger.websocket('Bitget:', message);
   }, []);
 
   /**
@@ -155,7 +156,7 @@ export function useBitgetWebSocket(options = {}) {
     }
 
     updateConnectionState(WS_STATES.CONNECTED);
-    logSuccess('Mock WebSocket 연결 시뮬레이션 시작');
+    logger.info('Mock Bitget WebSocket 시뮬레이션 시작');
 
     mockDataIntervalRef.current = setInterval(() => {
       symbolsToSubscribe.forEach(symbol => {
@@ -173,7 +174,7 @@ export function useBitgetWebSocket(options = {}) {
         updatePrice(symbol, mockData);
         setDataReceived(prev => prev + 1);
       });
-      logSuccess(`Mock 데이터 생성 시작: ${symbolsToSubscribe.length}개 심볼`);
+      logger.info(`Mock Bitget 데이터 생성: ${symbolsToSubscribe.length}개 심볼`);
     }, 500);
   }, [symbolsToSubscribe, updateConnectionState, logSuccess, generateMockData, updatePrice]);
 
@@ -186,7 +187,7 @@ export function useBitgetWebSocket(options = {}) {
       mockDataIntervalRef.current = null;
     }
     updateConnectionState(WS_STATES.DISCONNECTED);
-    logSuccess('Mock WebSocket 연결 해제');
+    logger.info('Mock Bitget WebSocket 해제');
   }, [updateConnectionState, logSuccess]);
 
   /**
@@ -200,7 +201,7 @@ export function useBitgetWebSocket(options = {}) {
         };
         wsRef.current.send(JSON.stringify(pingMessage));
         setLastPingTime(Date.now());
-        console.log('📡 Bitget WebSocket Ping 전송');
+        logger.debug('Bitget WebSocket Ping 전송');
       } catch (error) {
         logError(`Ping 전송 실패: ${error.message}`);
       }
@@ -224,8 +225,8 @@ export function useBitgetWebSocket(options = {}) {
         };
 
         wsRef.current.send(JSON.stringify(subscribeMessage));
-        logSuccess(`구독 메시지 전송: ${symbolsToSubscribe.length}개 심볼`);
-        console.log('📡 구독 메시지:', JSON.stringify(subscribeMessage, null, 2));
+        logger.websocket(`구독 메시지 전송: ${symbolsToSubscribe.length}개 심볼`);
+        logger.debug('구독 메시지:', JSON.stringify(subscribeMessage, null, 2));
         
         // 구독 응답 타임아웃 설정
         subscribeTimeoutRef.current = setTimeout(() => {
@@ -248,7 +249,7 @@ export function useBitgetWebSocket(options = {}) {
 
       // Pong 응답 처리
       if (data.event === 'pong') {
-        console.log('📡 Bitget WebSocket Pong 수신');
+        logger.debug('Bitget WebSocket Pong 수신');
         return;
       }
 
@@ -297,7 +298,7 @@ export function useBitgetWebSocket(options = {}) {
               
               // 첫 번째 데이터 수신 시 로그
               if (dataReceived === 0) {
-                logSuccess(`첫 실시간 데이터 수신: ${symbol} = $${priceData.price}`);
+                logger.info(`첫 Bitget 데이터 수신: ${symbol} = $${priceData.price}`);
               }
             }
           });

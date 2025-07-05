@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePrices } from '../contexts/PriceContext';
+import { logger } from '../utils/logger';
 
 // WebSocket 설정
 const UPBIT_WS_CONFIG = {
@@ -107,7 +108,7 @@ export function useUpbitWebSocket(options = {}) {
    * 에러 로깅
    */
   const logError = useCallback((message) => {
-    console.error('🔴 업비트 WebSocket:', message);
+    logger.error('업비트 WebSocket:', message);
     addError(`업비트 WebSocket: ${message}`);
   }, [addError]);
 
@@ -115,7 +116,7 @@ export function useUpbitWebSocket(options = {}) {
    * 성공 로깅
    */
   const logSuccess = useCallback((message) => {
-    console.log('🟢 업비트 WebSocket:', message);
+    logger.websocket('업비트:', message);
   }, []);
 
   /**
@@ -165,7 +166,7 @@ export function useUpbitWebSocket(options = {}) {
     }
 
     updateConnectionState(WS_STATES.CONNECTED);
-    logSuccess('Mock 업비트 WebSocket 시뮬레이션 시작');
+    logger.info('Mock 업비트 WebSocket 시뮬레이션 시작');
 
     mockDataIntervalRef.current = setInterval(() => {
       marketsToSubscribe.forEach(market => {
@@ -185,7 +186,7 @@ export function useUpbitWebSocket(options = {}) {
         setDataReceived(prev => prev + 1);
       });
       setLastDataTime(Date.now());
-      logSuccess(`Mock 업비트 데이터 생성 시작: ${marketsToSubscribe.length}개 마켓`);
+      logger.info(`Mock 업비트 데이터 생성: ${marketsToSubscribe.length}개 마켓`);
     }, 500);
   }, [marketsToSubscribe, updateConnectionState, logSuccess, generateMockUpbitData, updateUpbitPrice]);
 
@@ -198,7 +199,7 @@ export function useUpbitWebSocket(options = {}) {
       mockDataIntervalRef.current = null;
     }
     updateConnectionState(WS_STATES.DISCONNECTED);
-    logSuccess('Mock 업비트 WebSocket 연결 해제');
+    logger.info('Mock 업비트 WebSocket 해제');
   }, [updateConnectionState, logSuccess]);
 
   /**
@@ -220,8 +221,8 @@ export function useUpbitWebSocket(options = {}) {
 
         const messageString = JSON.stringify(subscribeMessage);
         wsRef.current.send(messageString);
-        logSuccess(`구독 메시지 전송: ${marketsToSubscribe.length}개 마켓`);
-        console.log('📡 업비트 구독 메시지:', subscribeMessage);
+        logger.websocket(`구독 메시지 전송: ${marketsToSubscribe.length}개 마켓`);
+        logger.debug('업비트 구독 메시지:', subscribeMessage);
         
       } catch (error) {
         logError(`구독 실패: ${error.message}`);
@@ -259,16 +260,15 @@ export function useUpbitWebSocket(options = {}) {
 
         // 디버깅: 첫 번째 코인만 로그 출력
         if (data.code === 'KRW-BTC') {
-          console.log(`🔍 업비트 데이터 수신 (${data.code}):`, {
+          logger.debug(`업비트 데이터 수신 (${data.code}):`, {
             trade_price: data.trade_price,
-            tickerData,
-            updateUpbitPriceType: typeof updateUpbitPrice
+            tickerData
           });
         }
 
         // 첫 번째 데이터 수신 시 로그
         if (dataReceived === 0) {
-          logSuccess(`첫 실시간 데이터 수신: ${data.code} = ₩${data.trade_price?.toLocaleString()}`);
+          logger.info(`첫 업비트 데이터 수신: ${data.code} = ₩${data.trade_price?.toLocaleString()}`);
         }
       }
     } catch (error) {
@@ -289,9 +289,9 @@ export function useUpbitWebSocket(options = {}) {
       // 일반 텍스트 메시지 (연결 확인 등)
       try {
         const data = JSON.parse(event.data);
-        console.log('📡 업비트 WebSocket 메시지:', data);
+        logger.debug('업비트 WebSocket 메시지:', data);
       } catch (error) {
-        console.log('📡 업비트 WebSocket 텍스트:', event.data);
+        logger.debug('업비트 WebSocket 텍스트:', event.data);
       }
     }
   }, [processBinaryData]);

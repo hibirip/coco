@@ -860,9 +860,8 @@ const PriceContext = createContext(null);
 export function PriceProvider({ children }) {
   const [state, dispatch] = useReducer(priceReducer, initialState);
   
-  console.log('🔍 PriceProvider 렌더링:', {
-    exchangeRate: state.exchangeRate,
-    hasChildren: !!children
+  logger.debug('PriceProvider 렌더링:', {
+    exchangeRate: state.exchangeRate
   });
   
   // 연결 상태 설정
@@ -912,10 +911,9 @@ export function PriceProvider({ children }) {
   const updateUpbitPrice = useCallback((market, priceData) => {
     // 디버깅: BTC만 로그 출력
     if (market === 'KRW-BTC') {
-      console.log(`🔍 PriceContext updateUpbitPrice 호출 (${market}):`, {
+      logger.debug(`PriceContext updateUpbitPrice (${market}):`, {
         market,
-        priceData,
-        previousPrice: state.upbitPrices[market]?.trade_price
+        priceData
       });
     }
     
