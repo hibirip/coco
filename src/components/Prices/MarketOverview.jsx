@@ -77,13 +77,6 @@ export default function MarketOverview({ className = '' }) {
 
   return (
     <div className={`${className}`}>
-      {/* 섹션 제목 */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-primary mb-2">시장 동향</h2>
-        <p className="text-sm text-textSecondary">
-          전체 암호화폐 시장의 주요 지표와 동향을 확인하세요
-        </p>
-      </div>
 
       {/* 4개 카드 그리드 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
