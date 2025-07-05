@@ -5,9 +5,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { CoinTable } from '../components/Common';
-import { MarketOverview } from '../components/Prices';
 import { usePrices } from '../contexts';
-import { formatKRW, formatPercent } from '../utils';
 
 // 정렬 옵션 정의
 const SORT_OPTIONS = [
@@ -207,133 +205,7 @@ export default function PricesPage() {
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
 
-      {/* 시장 동향 차트 */}
-      <MarketOverview className="mb-6" />
-      
-      {/* 코인별 동향 요약 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-section p-4 rounded-lg text-center">
-          <p className="text-2xl font-bold text-success">{pageStats.rising}</p>
-          <p className="text-sm text-textSecondary">상승</p>
-        </div>
-        <div className="bg-section p-4 rounded-lg text-center">
-          <p className="text-2xl font-bold text-danger">{pageStats.falling}</p>
-          <p className="text-sm text-textSecondary">하락</p>
-        </div>
-        <div className="bg-section p-4 rounded-lg text-center">
-          <p className="text-2xl font-bold text-primary">{pageStats.kimchiPositive}</p>
-          <p className="text-sm text-textSecondary">김프 양수</p>
-        </div>
-        <div className="bg-section p-4 rounded-lg text-center">
-          <p className="text-2xl font-bold text-text">{pageStats.total}</p>
-          <p className="text-sm text-textSecondary">전체</p>
-        </div>
-      </div>
 
-      {/* 검색 및 필터 컨트롤 */}
-      <div className="bg-section p-6 rounded-lg">
-        {/* 모바일: 검색창만 표시, 데스크톱: 모든 컨트롤 표시 */}
-        <div className="block md:hidden">
-          {/* 모바일 검색창 */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="코인명 또는 심볼 검색 (예: Bitcoin, BTC)"
-            className="w-full px-4 py-2 bg-card border border-border rounded-lg text-text placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
-
-        {/* 데스크톱 컨트롤 */}
-        <div className="hidden md:flex flex-col lg:flex-row gap-4">
-          {/* 검색 */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-text mb-2">
-              코인 검색
-            </label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="코인명 또는 심볼 검색 (예: Bitcoin, BTC)"
-              className="w-full px-4 py-2 bg-card border border-border rounded-lg text-text placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-
-          {/* 정렬 */}
-          <div className="lg:w-48">
-            <label className="block text-sm font-medium text-text mb-2">
-              정렬
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-4 py-2 bg-card border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              {SORT_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 필터 토글 */}
-          <div className="lg:w-48">
-            <label className="block text-sm font-medium text-text mb-2">
-              필터
-            </label>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="w-full px-4 py-2 bg-primary text-background rounded-lg hover:bg-primary/80 transition-colors flex items-center justify-between"
-            >
-              <span>필터 옵션</span>
-              <span className={`transform transition-transform ${showFilters ? 'rotate-180' : ''}`}>
-                ▼
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* 확장된 필터 (데스크톱만) */}
-        {showFilters && (
-          <div className="hidden md:block mt-4 pt-4 border-t border-border">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {FILTER_OPTIONS.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => setFilterBy(option.value)}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    filterBy === option.value
-                      ? 'bg-primary text-background'
-                      : 'bg-card text-text hover:bg-card/80'
-                  }`}
-                  title={option.desc}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 검색 결과 정보 */}
-        <div className="mt-4 flex items-center justify-between text-sm text-textSecondary">
-          <div>
-            {debouncedSearch && (
-              <span>'{debouncedSearch}' 검색 결과: {pageStats.total}개</span>
-            )}
-            {filterBy !== 'all' && (
-              <span className="ml-2">
-                ({FILTER_OPTIONS.find(opt => opt.value === filterBy)?.label} 필터 적용)
-              </span>
-            )}
-          </div>
-          <div>
-            {SORT_OPTIONS.find(opt => opt.value === sortBy)?.label} 정렬
-          </div>
-        </div>
-      </div>
 
       {/* 메인 코인 테이블 */}
       <div className="bg-section rounded-lg overflow-hidden">
@@ -342,6 +214,8 @@ export default function PricesPage() {
           showFavorites={true}
           className=""
           customData={filteredAndSortedCoins}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
         />
         
         {/* 결과 없음 상태 */}
@@ -363,54 +237,6 @@ export default function PricesPage() {
         )}
       </div>
 
-      {/* 하단 정보 섹션 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-section p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-primary mb-4">거래소 정보</h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-textSecondary">Bitget:</span>
-              <span className="text-text">해외 거래소 (USD)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-textSecondary">업비트:</span>
-              <span className="text-text">국내 거래소 (KRW)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-textSecondary">김치프리미엄:</span>
-              <span className="text-text">국내외 가격 차이</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-textSecondary">업데이트:</span>
-              <span className="text-success">실시간 WebSocket</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-section p-6 rounded-lg">
-          <h2 className="text-xl font-bold text-primary mb-4">시장 현황</h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-textSecondary">전체 코인:</span>
-              <span className="text-text">{stats.totalCoins}개</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-textSecondary">실시간 연결:</span>
-              <span className="text-text">{stats.connectedCoins}개</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-textSecondary">김프 계산:</span>
-              <span className="text-text">{stats.kimchiPremiumCount}개</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-textSecondary">현재 환율:</span>
-              <span className="text-primary">
-                {exchangeRate ? formatKRW(exchangeRate) : '로딩중...'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

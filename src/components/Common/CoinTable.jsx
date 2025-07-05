@@ -34,10 +34,14 @@ export default function CoinTable({
   className = '',
   onCoinClick,
   customData,
-  showHeader = true
+  showHeader = true,
+  searchQuery = '',
+  onSearchChange
 }) {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState(new Set());
+  const [sortBy, setSortBy] = useState('priority');
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' 또는 'desc'
 
   // PriceContext에서 데이터 가져오기
   const {
@@ -52,38 +56,75 @@ export default function CoinTable({
     upbitIsConnected
   } = usePrices();
 
-  // 테이블 데이터 준비
+  // 정렬된 테이블 데이터 준비
   const tableData = useMemo(() => {
+    let data = [];
+    
     // customData가 제공된 경우 해당 데이터 사용
     if (customData && Array.isArray(customData)) {
-      return limit ? customData.slice(0, limit) : customData;
+      data = customData;
+    } else {
+      // 기본 데이터 로직
+      data = MAJOR_SYMBOLS.map(symbol => {
+        const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
+        const bitgetPrice = prices[symbol];
+        const upbitPrice = upbitPrices[coin?.upbitMarket];
+        const kimchiPremium = showKimchi ? calculateKimchiPremium(symbol) : null;
+        
+        return {
+          symbol,
+          coin,
+          bitgetPrice,
+          upbitPrice,
+          kimchiPremium,
+          sparklineData: klineData[symbol] || null,
+          // 정렬을 위한 우선순위
+          priority: coin?.priority || 999,
+          // 데이터 유효성
+          hasData: bitgetPrice?.price || upbitPrice?.trade_price
+        };
+      })
+      .filter(item => item.coin && item.hasData); // 유효한 데이터만 표시
     }
-    
-    // 기본 데이터 로직
-    const coins = MAJOR_SYMBOLS.map(symbol => {
-      const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
-      const bitgetPrice = prices[symbol];
-      const upbitPrice = upbitPrices[coin?.upbitMarket];
-      const kimchiPremium = showKimchi ? calculateKimchiPremium(symbol) : null;
-      
-      
-      return {
-        symbol,
-        coin,
-        bitgetPrice,
-        upbitPrice,
-        kimchiPremium,
-        sparklineData: klineData[symbol] || null,
-        // 정렬을 위한 우선순위
-        priority: coin?.priority || 999,
-        // 데이터 유효성
-        hasData: bitgetPrice?.price || upbitPrice?.trade_price
-      };
-    })
-    .filter(item => item.coin && item.hasData) // 유효한 데이터만 표시
-    .sort((a, b) => a.priority - b.priority); // 우선순위로 정렬
 
-    return limit ? coins.slice(0, limit) : coins;
+    // 정렬 적용
+    const sortedData = [...data].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'price':
+          aValue = a.bitgetPrice?.price || a.upbitPrice?.trade_price || 0;
+          bValue = b.bitgetPrice?.price || b.upbitPrice?.trade_price || 0;
+          break;
+        case 'kimchi':
+          aValue = a.kimchiPremium?.premium || 0;
+          bValue = b.kimchiPremium?.premium || 0;
+          break;
+        case 'change':
+          aValue = a.upbitPrice?.change_percent || a.bitgetPrice?.changePercent24h || 0;
+          bValue = b.upbitPrice?.change_percent || b.bitgetPrice?.changePercent24h || 0;
+          break;
+        case 'volume':
+          aValue = (a.bitgetPrice?.volume24h && a.bitgetPrice?.price) ? 
+            a.bitgetPrice.volume24h * a.bitgetPrice.price : 0;
+          bValue = (b.bitgetPrice?.volume24h && b.bitgetPrice?.price) ? 
+            b.bitgetPrice.volume24h * b.bitgetPrice.price : 0;
+          break;
+        case 'priority':
+        default:
+          aValue = a.priority || 999;
+          bValue = b.priority || 999;
+          break;
+      }
+      
+      if (sortOrder === 'desc') {
+        return bValue - aValue;
+      } else {
+        return aValue - bValue;
+      }
+    });
+
+    return limit ? sortedData.slice(0, limit) : sortedData;
   }, [
     customData,
     prices, 
@@ -93,8 +134,22 @@ export default function CoinTable({
     MAJOR_COINS, 
     calculateKimchiPremium, 
     showKimchi, 
-    limit
+    limit,
+    sortBy,
+    sortOrder
   ]);
+
+  // 정렬 핸들러
+  const handleSort = useCallback((column) => {
+    if (sortBy === column) {
+      // 같은 컬럼 클릭 시 오름차순/내림차순 토글
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      // 다른 컬럼 클릭 시 해당 컬럼으로 정렬하고 내림차순으로 시작
+      setSortBy(column);
+      setSortOrder('desc');
+    }
+  }, [sortBy]);
 
   // 즐겨찾기 토글 - useCallback으로 최적화
   const toggleFavorite = useCallback((symbol) => {
@@ -126,6 +181,18 @@ export default function CoinTable({
 
   return (
     <div className={`bg-section rounded-lg overflow-hidden ${className}`}>
+      {/* 검색 컨트롤 */}
+      {onSearchChange && (
+        <div className="p-4 border-b border-border">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="코인명 또는 심볼 검색 (예: Bitcoin, BTC)"
+            className="w-full px-4 py-2 bg-card border border-border rounded-lg text-text placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+        </div>
+      )}
 
       {/* 테이블 내용 */}
       <div className="overflow-hidden">
@@ -137,13 +204,61 @@ export default function CoinTable({
                 <th className="px-4 py-3 w-12">★</th>
               )}
               <th className="px-4 py-3 min-w-[200px]">코인</th>
-              <th className="px-4 py-3 text-right min-w-[120px]">현재가</th>
+              <th 
+                className="px-4 py-3 text-right min-w-[120px] cursor-pointer hover:bg-card/80 transition-colors"
+                onClick={() => handleSort('price')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  현재가
+                  {sortBy === 'price' && (
+                    <span className="text-primary">
+                      {sortOrder === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
+              </th>
               {showKimchi && (
-                <th className="px-4 py-3 text-center min-w-[80px]">김프</th>
+                <th 
+                  className="px-4 py-3 text-center min-w-[80px] cursor-pointer hover:bg-card/80 transition-colors"
+                  onClick={() => handleSort('kimchi')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    김프
+                    {sortBy === 'kimchi' && (
+                      <span className="text-primary">
+                        {sortOrder === 'desc' ? '↓' : '↑'}
+                      </span>
+                    )}
+                  </div>
+                </th>
               )}
-              <th className="px-4 py-3 text-center min-w-[100px]">전일대비</th>
+              <th 
+                className="px-4 py-3 text-center min-w-[100px] cursor-pointer hover:bg-card/80 transition-colors"
+                onClick={() => handleSort('change')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  전일대비
+                  {sortBy === 'change' && (
+                    <span className="text-primary">
+                      {sortOrder === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
+              </th>
               <th className="px-4 py-3 text-center min-w-[120px]">변동추이(24시간)</th>
-              <th className="px-4 py-3 text-right min-w-[120px]">거래액(24h)</th>
+              <th 
+                className="px-4 py-3 text-right min-w-[120px] cursor-pointer hover:bg-card/80 transition-colors"
+                onClick={() => handleSort('volume')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  거래액(24h)
+                  {sortBy === 'volume' && (
+                    <span className="text-primary">
+                      {sortOrder === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
+              </th>
               <th className="px-4 py-3 text-center min-w-[80px]">상세</th>
             </tr>
           </thead>
@@ -152,7 +267,8 @@ export default function CoinTable({
               tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
                 <tr 
                   key={symbol}
-                  className="border-b border-border hover:bg-card/50 transition-colors"
+                  className="border-b border-border hover:bg-card/50 transition-colors cursor-pointer"
+                  onClick={() => handleCoinClick(symbol)}
                 >
                   {/* 즐겨찾기 */}
                   {showFavorites && (
@@ -389,7 +505,8 @@ export default function CoinTable({
             tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
               <div 
                 key={symbol}
-                className="bg-card p-3 rounded-lg border border-border"
+                className="bg-card p-3 rounded-lg border border-border cursor-pointer hover:bg-card/80 transition-colors"
+                onClick={() => handleCoinClick(symbol)}
               >
                 <div className="grid grid-cols-4 gap-2 items-center">
                   {/* 코인 정보 */}

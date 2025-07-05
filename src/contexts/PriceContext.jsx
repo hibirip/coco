@@ -9,6 +9,7 @@ import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exch
 import { getBatchKlineData, klineToSparklineData } from '../services/bitgetKline';
 import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
+import { preloadLogos } from '../components/Common/CoinLogo';
 
 // 주요 10개 코인 (홈페이지용)
 export const MAJOR_COINS = {
@@ -1104,6 +1105,24 @@ export function PriceProvider({ children }) {
     return () => {};
   }, []);
   
+  // 코인 로고 프리로드 (앱 시작 시 한번만)
+  useEffect(() => {
+    const preloadAllLogos = async () => {
+      try {
+        console.log('🖼️ 코인 로고 프리로드 시작...');
+        await preloadLogos(ALL_SYMBOLS);
+        console.log('✅ 코인 로고 프리로드 완료');
+      } catch (error) {
+        console.warn('⚠️ 코인 로고 프리로드 실패:', error);
+      }
+    };
+    
+    // 3초 후에 백그라운드에서 프리로드 (앱 로딩에 영향 없도록)
+    const timeout = setTimeout(preloadAllLogos, 3000);
+    
+    return () => clearTimeout(timeout);
+  }, []);
+
   // REST API Ticker 데이터 자동 업데이트 (실제 데이터)
   useEffect(() => {
     let tickerInterval = null;
