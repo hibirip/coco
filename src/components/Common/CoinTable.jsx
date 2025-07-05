@@ -129,27 +129,9 @@ export default function CoinTable({
       {/* 테이블 헤더 */}
       {showHeader && (
         <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-text">
-              실시간 코인 시세 ({tableData.length}개)
-            </h3>
-            <div className="flex items-center gap-2 text-sm">
-              {/* 연결 상태 표시 */}
-              <div className="flex items-center gap-1">
-                <div className={`w-2 h-2 rounded-full ${connectionStatus.hasConnection ? 'bg-success' : 'bg-danger'}`}></div>
-                <span className="text-textSecondary">
-                  {connectionStatus.hasFullConnection ? '실시간' : connectionStatus.hasConnection ? '부분연결' : '연결안됨'}
-                </span>
-              </div>
-              
-              {/* 김치프리미엄 표시 여부 */}
-              {showKimchi && (
-                <span className="text-textSecondary">
-                  김프 {connectionStatus.hasFullConnection ? '활성' : '대기'}
-                </span>
-              )}
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold text-text">
+            실시간 코인 시세 ({tableData.length}개)
+          </h3>
         </div>
       )}
 
