@@ -1039,7 +1039,7 @@ export function PriceProvider({ children }) {
       
       return result;
     } catch (error) {
-      console.error('김치프리미엄 계산 오류:', error);
+      logger.error('김치프리미엄 계산 오류:', error);
       return null;
     }
   }, [state.prices, state.upbitPrices, state.exchangeRate]);
@@ -1090,7 +1090,7 @@ export function PriceProvider({ children }) {
   
   // K-line 데이터 자동 업데이트 (10분마다) - 단순화
   useEffect(() => {
-    console.log('📊 K-line 데이터 로딩 임시 비활성화');
+    logger.info('K-line 데이터 로딩 임시 비활성화');
     // 임시로 비활성화하여 앱 로딩 문제 해결
     return () => {};
   }, []);
@@ -1099,11 +1099,11 @@ export function PriceProvider({ children }) {
   useEffect(() => {
     const preloadAllLogos = async () => {
       try {
-        console.log('🖼️ 코인 로고 프리로드 시작...');
+        logger.info('코인 로고 프리로드 시작...');
         await preloadLogos(ALL_SYMBOLS);
-        console.log('✅ 코인 로고 프리로드 완료');
+        logger.info('코인 로고 프리로드 완료');
       } catch (error) {
-        console.warn('⚠️ 코인 로고 프리로드 실패:', error);
+        logger.warn('코인 로고 프리로드 실패:', error);
       }
     };
     
@@ -1119,7 +1119,7 @@ export function PriceProvider({ children }) {
     
     const fetchTickerData = async () => {
       try {
-        console.log('💰 Bitget REST API 데이터 로드 중...');
+        logger.api('Bitget REST API 데이터 로드 중...');
         
         // 초기 로드시 주요 코인만 먼저 로드 (빠른 표시)
         const isInitialLoad = Object.keys(state.prices).length === 0;
@@ -1134,7 +1134,7 @@ export function PriceProvider({ children }) {
           }
         });
         
-        console.log(`✅ Bitget 데이터 업데이트: ${updateCount}개 코인`);
+        logger.api(`Bitget 데이터 업데이트: ${updateCount}개 코인`);
         
         // 초기 로드시 나머지 코인도 로드
         if (isInitialLoad && symbolsToLoad.length < ALL_SYMBOLS.length) {
@@ -1146,12 +1146,12 @@ export function PriceProvider({ children }) {
                 updatePrice(symbol, tickerData);
               }
             });
-            console.log(`✅ 나머지 코인 데이터 로드 완료`);
+            logger.api(`나머지 코인 데이터 로드 완료`);
           }, 1000);
         }
         
       } catch (error) {
-        console.error('❌ Bitget REST API 실패:', error);
+        logger.error('Bitget REST API 실패:', error);
         addError(`Bitget API 실패: ${error.message}`);
       }
     };
@@ -1162,12 +1162,12 @@ export function PriceProvider({ children }) {
     // 1분마다 업데이트
     tickerInterval = setInterval(fetchTickerData, 60 * 1000);
     
-    console.log('🤖 Bitget REST API 자동 업데이트 활성화 (1분 간격)');
+    logger.info('Bitget REST API 자동 업데이트 활성화 (1분 간격)');
     
     return () => {
       if (tickerInterval) {
         clearInterval(tickerInterval);
-        console.log('🛑 Bitget REST API 업데이트 정리');
+        logger.info('Bitget REST API 업데이트 정리');
       }
     };
   }, [updatePrice, addError, state.prices]);
@@ -1178,24 +1178,24 @@ export function PriceProvider({ children }) {
     
     const fetchUpbitTickerData = async () => {
       try {
-        console.log('💰 업비트 REST API 데이터 로드 중...');
+        logger.api('업비트 REST API 데이터 로드 중...');
         
         // 초기 로드시 주요 코인만 먼저 로드
         const isInitialLoad = Object.keys(state.upbitPrices).length === 0;
         const upbitMarkets = isInitialLoad ? MAJOR_UPBIT_MARKETS : ALL_UPBIT_MARKETS;
         
-        console.log('📋 업비트 마켓 목록:', upbitMarkets);
+        logger.debug('업비트 마켓 목록:', upbitMarkets);
         
         if (upbitMarkets.length === 0) {
-          console.warn('⚠️ 업비트 마켓 목록이 비어있음');
+          logger.warn('업비트 마켓 목록이 비어있음');
           return;
         }
         
         // 업비트 API 호출 (빠른 배치 방식)
         const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
         
-        console.log('📡 업비트 API 빠른 호출 시작');
-        console.log('📋 유효한 마켓:', validMarkets);
+        logger.api('업비트 API 빠른 호출 시작');
+        logger.debug('유효한 마켓:', validMarkets);
         
         // 3개씩 나누어서 병렬 호출 (더 빠른 응답)
         const batchSize = 3;
@@ -1225,12 +1225,12 @@ export function PriceProvider({ children }) {
               allTickerData.push(...batchData);
             }
           } catch (error) {
-            console.warn(`⚠️ 배치 호출 실패 (${batch.join(',')}):`, error.message);
+            logger.warn(`배치 호출 실패 (${batch.join(',')}):`, error.message);
           }
         }));
         
         const tickerArray = allTickerData;
-        console.log(`📊 업비트 API 응답: ${tickerArray.length}개 마켓 (요청: ${validMarkets.length}개)`);
+        logger.api(`업비트 API 응답: ${tickerArray.length}개 마켓 (요청: ${validMarkets.length}개)`);
         
         // 데이터 변환 및 업데이트
         let updateCount = 0;
@@ -1252,11 +1252,11 @@ export function PriceProvider({ children }) {
           updateCount++;
         });
         
-        console.log(`✅ 업비트 데이터 업데이트: ${updateCount}개 마켓`);
+        logger.api(`업비트 데이터 업데이트: ${updateCount}개 마켓`);
         
       } catch (error) {
-        console.error('❌ 업비트 REST API 실패:', error);
-        console.log('🔄 Mock 데이터로 대체 시도...');
+        logger.error('업비트 REST API 실패:', error);
+        logger.info('Mock 데이터로 대체 시도...');
         
         // CORS 에러 등으로 실패 시 Mock 데이터 사용
         try {
@@ -1268,9 +1268,9 @@ export function PriceProvider({ children }) {
             mockUpdateCount++;
           });
           
-          console.log(`✅ Mock 업비트 데이터 업데이트: ${mockUpdateCount}개 마켓`);
+          logger.api(`Mock 업비트 데이터 업데이트: ${mockUpdateCount}개 마켓`);
         } catch (mockError) {
-          console.error('❌ Mock 데이터 생성도 실패:', mockError);
+          logger.error('Mock 데이터 생성도 실패:', mockError);
           addError(`업비트 API 실패: ${error.message}`);
         }
       }
@@ -1282,12 +1282,12 @@ export function PriceProvider({ children }) {
     // 1분마다 업데이트
     upbitTickerInterval = setInterval(fetchUpbitTickerData, 60 * 1000);
     
-    console.log('🤖 업비트 REST API 자동 업데이트 활성화 (1분 간격)');
+    logger.info('업비트 REST API 자동 업데이트 활성화 (1분 간격)');
     
     return () => {
       if (upbitTickerInterval) {
         clearInterval(upbitTickerInterval);
-        console.log('🛑 업비트 REST API 업데이트 정리');
+        logger.info('업비트 REST API 업데이트 정리');
       }
     };
   }, [updateUpbitPrice, addError, MAJOR_COINS]);
