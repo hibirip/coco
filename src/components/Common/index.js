@@ -6,3 +6,4 @@ export { default as CoinTable } from './CoinTable';
 export { default as MainBanner } from './MainBanner';
 export { default as SideBanner } from './SideBanner';
 export { default as LoadingSpinner } from './LoadingSpinner';
+export { default as Sparkline, SparklineWithTrend, MockSparkline } from './Sparkline';

@@ -15,9 +15,9 @@ const EXCHANGE_RATE_CONFIG = {
   PROXY_URL: 'http://localhost:8080/api/exchange-rate',
   // 구글 검색 "1달러 원화" 기준 (2025년 7월 기준)
   DEFAULT_RATE: 1380,
-  // 5시간마다 업데이트
-  CACHE_DURATION: 5 * 60 * 60 * 1000, // 5시간 (밀리초)
-  UPDATE_INTERVAL: 5 * 60 * 60 * 1000, // 5시간 자동 업데이트
+  // 1시간마다 업데이트 (더 자주)
+  CACHE_DURATION: 1 * 60 * 60 * 1000, // 1시간 (밀리초)
+  UPDATE_INTERVAL: 1 * 60 * 60 * 1000, // 1시간 자동 업데이트
   RETRY_ATTEMPTS: 3,
   TIMEOUT: 15000 // 15초 (더 여유롭게)
 };

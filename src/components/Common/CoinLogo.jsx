@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCoinLogoUrlChain } from '../../utils/coinLogosEnhanced';
+import { getCoinLogoUrl, getFallbackLogoUrl } from '../../utils/coinLogos';
 
 /**
  * 코인 로고 컴포넌트
@@ -20,8 +20,13 @@ const CoinLogo = ({
   // 심볼에서 USDT 제거
   const cleanSymbol = symbol?.replace(/USDT$/, '') || '';
   
-  // 로고 URL 체인 가져오기
-  const logoUrls = getCoinLogoUrlChain(symbol);
+  // 로고 URL 체인 생성 (다단계 대체)
+  const logoUrls = [
+    getCoinLogoUrl(symbol),      // 1순위: CryptoCompare
+    getFallbackLogoUrl(cleanSymbol), // 2순위: 검증된 대체 로고들
+    `https://via.placeholder.com/64x64/3B82F6/FFFFFF?text=${cleanSymbol.slice(0, 2)}` // 3순위: 플레이스홀더
+  ].filter(Boolean); // 빈 값 제거
+  
   const currentUrl = logoUrls[currentUrlIndex];
   
   // 심볼 변경 시 상태 초기화

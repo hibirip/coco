@@ -11,8 +11,8 @@ export default {
         text: "#ffffff", // 화이트 텍스트
         textSecondary: "#a0a0a0", // 보조 텍스트
         border: "#2a2a2a", // 보더 색상
-        success: "#ff4757", // 상승 (레드)
-        danger: "#3ECF8E" // 하락 (그린)
+        success: "#3ECF8E", // 상승 (그린) - 해외 기준
+        danger: "#ff4757" // 하락 (레드) - 해외 기준
       },
       screens: {
         'xs': '475px',

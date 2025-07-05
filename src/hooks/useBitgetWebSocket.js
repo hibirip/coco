@@ -11,12 +11,12 @@ const BITGET_WS_CONFIG = {
   URL: 'wss://ws.bitget.com/spot/v1/stream', // Spot market WebSocket URL
   FALLBACK_URL: 'wss://stream.binance.com:9443/ws/btcusdt@ticker', // Fallback for testing
   USE_FALLBACK: false, // 개발/테스트 모드에서 true로 설정
-  USE_MOCK: true, // Mock 데이터 사용 여부
+  USE_MOCK: false, // 실제 WebSocket 연결 사용
   RECONNECT_INTERVAL: 1000, // 초기 재연결 간격 (1초)
-  MAX_RECONNECT_ATTEMPTS: 5,
+  MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
   PING_INTERVAL: 30000, // 30초마다 ping
-  CONNECTION_TIMEOUT: 15000, // 15초 연결 타임아웃 (증가)
-  MESSAGE_TIMEOUT: 10000 // 10초 메시지 응답 타임아웃 (증가)
+  CONNECTION_TIMEOUT: 15000, // 15초로 복원
+  MESSAGE_TIMEOUT: 10000 // 10초로 복원
 };
 
 // WebSocket 연결 상태
@@ -113,16 +113,16 @@ export function useBitgetWebSocket(options = {}) {
    */
   const generateMockData = useCallback((symbol) => {
     const basePrice = {
-      'BTCUSDT': 45000,
-      'ETHUSDT': 2800,
-      'XRPUSDT': 0.65,
-      'ADAUSDT': 0.42,
-      'SOLUSDT': 95,
-      'DOTUSDT': 6.5,
-      'LINKUSDT': 14.5,
-      'MATICUSDT': 0.85,
-      'UNIUSDT': 7.2,
-      'AVAXUSDT': 38
+      'BTCUSDT': 108000,  // 현재 실제 가격에 가깝게
+      'ETHUSDT': 2516,    // 현재 실제 가격에 가깝게
+      'XRPUSDT': 2.22,    // 현재 실제 가격에 가깝게
+      'ADAUSDT': 0.85,
+      'SOLUSDT': 148,     // 현재 실제 가격에 가깝게
+      'DOTUSDT': 3.35,    // 현재 실제 가격에 가깝게
+      'LINKUSDT': 13.2,   // 현재 실제 가격에 가깝게
+      'MATICUSDT': 0.48,
+      'UNIUSDT': 6.98,    // 현재 실제 가격에 가깝게
+      'AVAXUSDT': 17.86   // 현재 실제 가격에 가깝게
     }[symbol] || 100;
 
     const variance = 0.02; // 2% 변동
@@ -213,13 +213,13 @@ export function useBitgetWebSocket(options = {}) {
   const sendSubscribe = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       try {
-        // Bitget Spot WebSocket 구독 메시지 형식 (수정된 형식)
+        // Bitget Spot WebSocket 구독 메시지 형식 (올바른 형식으로 수정)
         const subscribeMessage = {
           op: 'subscribe',
           args: symbolsToSubscribe.map(symbol => ({
-            instType: 'SP', // Spot market type
+            instType: 'SPOT', // SPOT으로 변경
             channel: 'ticker',
-            instId: symbol.replace('USDT', '-USDT') // BTC-USDT 형식으로 변경
+            instId: symbol // BTCUSDT 그대로 사용
           }))
         };
 

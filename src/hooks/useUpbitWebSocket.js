@@ -11,10 +11,10 @@ import { usePrices } from '../contexts/PriceContext';
 const UPBIT_WS_CONFIG = {
   URL: 'wss://api.upbit.com/websocket/v1',
   RECONNECT_INTERVAL: 3000, // 3초 재연결 간격
-  MAX_RECONNECT_ATTEMPTS: 5,
-  CONNECTION_TIMEOUT: 10000, // 10초 연결 타임아웃
-  USE_MOCK: false, // 업비트는 일반적으로 잘 연결됨
-  MOCK_INTERVAL: 15000 // Mock 데이터 15초 간격
+  MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
+  CONNECTION_TIMEOUT: 10000, // 10초로 복원
+  USE_MOCK: false, // 실제 WebSocket 연결 사용
+  MOCK_INTERVAL: 15000 // Mock 데이터 15초 간격으로 복원
 };
 
 // WebSocket 연결 상태
@@ -123,16 +123,16 @@ export function useUpbitWebSocket(options = {}) {
    */
   const generateMockUpbitData = useCallback((market) => {
     const basePrice = {
-      'KRW-BTC': 65000000,
-      'KRW-ETH': 3500000,
-      'KRW-XRP': 800,
-      'KRW-ADA': 550,
-      'KRW-SOL': 120000,
-      'KRW-DOT': 8500,
-      'KRW-LINK': 18000,
-      'KRW-MATIC': 1100,
-      'KRW-UNI': 9000,
-      'KRW-AVAX': 48000
+      'KRW-BTC': 147800000,  // 현재 실제 가격에 가깝게
+      'KRW-ETH': 3439000,    // 현재 실제 가격에 가깝게
+      'KRW-XRP': 3037,       // 현재 실제 가격에 가깝게
+      'KRW-ADA': 1150,
+      'KRW-SOL': 203000,     // 148 USD * 1380 환율
+      'KRW-DOT': 4623,       // 3.35 USD * 1380 환율
+      'KRW-LINK': 18216,     // 13.2 USD * 1380 환율
+      'KRW-MATIC': 662,
+      'KRW-UNI': 9632,       // 6.98 USD * 1380 환율
+      'KRW-AVAX': 24647      // 17.86 USD * 1380 환율
     }[market] || 10000;
 
     const variance = 0.015; // 1.5% 변동

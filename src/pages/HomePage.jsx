@@ -38,6 +38,7 @@ export default function HomePage() {
           limit={10}
           showKimchi={true}
           showFavorites={false}
+          showHeader={false}
           className="mb-4"
         />
       </div>

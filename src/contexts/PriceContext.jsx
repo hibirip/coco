@@ -6,6 +6,9 @@
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { calculateKimchi } from '../utils/formatters';
 import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exchangeRate';
+import { getBatchKlineData, klineToSparklineData } from '../services/bitgetKline';
+import { getBatchTickerData } from '../services/bitgetTicker';
+import { getBatchUpbitTickerData } from '../services/upbitTicker';
 
 // 주요 10개 코인 (홈페이지용)
 export const MAJOR_COINS = {
@@ -54,7 +57,7 @@ export const MAJOR_COINS = {
   MATIC: {
     symbol: 'MATICUSDT',
     name: 'Polygon',
-    upbitMarket: 'KRW-MATIC',
+    upbitMarket: null, // 업비트에 상장되지 않음
     priority: 8
   },
   UNI: {
@@ -71,12 +74,12 @@ export const MAJOR_COINS = {
   }
 };
 
-// 전체 Bitget 코인 리스트 (시세 페이지용)
+// 전체 Bitget 코인 리스트 (시세 페이지용) - 100개
 export const ALL_COINS = {
   // 주요 10개 코인
   ...MAJOR_COINS,
   
-  // 실제 업비트에 상장된 추가 코인들만 포함
+  // 추가 90개 코인 (업비트 상장 + 주요 해외 코인)
   DOGE: {
     symbol: 'DOGEUSDT',
     name: 'Dogecoin',
@@ -131,10 +134,10 @@ export const ALL_COINS = {
     upbitMarket: 'KRW-ALGO',
     priority: 19
   },
-  VET: {
-    symbol: 'VETUSDT',
-    name: 'VeChain',
-    upbitMarket: 'KRW-VET',
+  HBAR: {
+    symbol: 'HBARUSDT',
+    name: 'Hedera',
+    upbitMarket: 'KRW-HBAR',
     priority: 20
   },
   ICP: {
@@ -143,480 +146,479 @@ export const ALL_COINS = {
     upbitMarket: 'KRW-ICP',
     priority: 21
   },
-  FTM: {
-    symbol: 'FTMUSDT',
-    name: 'Fantom',
-    upbitMarket: 'KRW-FTM',
+  VET: {
+    symbol: 'VETUSDT',
+    name: 'VeChain',
+    upbitMarket: 'KRW-VET',
     priority: 22
-  },
-  SAND: {
-    symbol: 'SANDUSDT',
-    name: 'The Sandbox',
-    upbitMarket: 'KRW-SAND',
-    priority: 23
-  },
-  MANA: {
-    symbol: 'MANAUSDT',
-    name: 'Decentraland',
-    upbitMarket: 'KRW-MANA',
-    priority: 24
-  },
-  AXS: {
-    symbol: 'AXSUSDT',
-    name: 'Axie Infinity',
-    upbitMarket: 'KRW-AXS',
-    priority: 25
-  },
-  CHZ: {
-    symbol: 'CHZUSDT',
-    name: 'Chiliz',
-    upbitMarket: 'KRW-CHZ',
-    priority: 26
-  },
-  APT: {
-    symbol: 'APTUSDT',
-    name: 'Aptos',
-    upbitMarket: 'KRW-APT',
-    priority: 27
-  },
-  ARB: {
-    symbol: 'ARBUSDT',
-    name: 'Arbitrum',
-    upbitMarket: 'KRW-ARB',
-    priority: 28
-  },
-  OP: {
-    symbol: 'OPUSDT',
-    name: 'Optimism',
-    upbitMarket: 'KRW-OP',
-    priority: 29
-  },
-  PEPE: {
-    symbol: 'PEPEUSDT',
-    name: 'Pepe',
-    upbitMarket: 'KRW-PEPE',
-    priority: 30
-  },
-  STX: {
-    symbol: 'STXUSDT',
-    name: 'Stacks',
-    upbitMarket: 'KRW-STX',
-    priority: 31
-  },
-  HBAR: {
-    symbol: 'HBARUSDT',
-    name: 'Hedera',
-    upbitMarket: 'KRW-HBAR',
-    priority: 32
-  },
-  FLOW: {
-    symbol: 'FLOWUSDT',
-    name: 'Flow',
-    upbitMarket: 'KRW-FLOW',
-    priority: 33
-  },
-  XTZ: {
-    symbol: 'XTZUSDT',
-    name: 'Tezos',
-    upbitMarket: 'KRW-XTZ',
-    priority: 34
-  },
-  AAVE: {
-    symbol: 'AAVEUSDT',
-    name: 'Aave',
-    upbitMarket: 'KRW-AAVE',
-    priority: 35
-  },
-  
-  // 추가 65개 인기 코인들 (비트겟 기준)
-  BNB: {
-    symbol: 'BNBUSDT',
-    name: 'BNB',
-    upbitMarket: null, // 업비트 미상장
-    priority: 36
-  },
-  SUI: {
-    symbol: 'SUIUSDT',
-    name: 'Sui',
-    upbitMarket: 'KRW-SUI',
-    priority: 37
-  },
-  INJ: {
-    symbol: 'INJUSDT',
-    name: 'Injective',
-    upbitMarket: 'KRW-INJ',
-    priority: 38
-  },
-  SEI: {
-    symbol: 'SEIUSDT',
-    name: 'Sei',
-    upbitMarket: 'KRW-SEI',
-    priority: 39
-  },
-  TON: {
-    symbol: 'TONUSDT',
-    name: 'Toncoin',
-    upbitMarket: 'KRW-TON',
-    priority: 40
-  },
-  IMX: {
-    symbol: 'IMXUSDT',
-    name: 'Immutable X',
-    upbitMarket: 'KRW-IMX',
-    priority: 41
-  },
-  LDO: {
-    symbol: 'LDOUSDT',
-    name: 'Lido DAO',
-    upbitMarket: 'KRW-LDO',
-    priority: 42
-  },
-  MKR: {
-    symbol: 'MKRUSDT',
-    name: 'Maker',
-    upbitMarket: 'KRW-MKR',
-    priority: 43
-  },
-  COMP: {
-    symbol: 'COMPUSDT',
-    name: 'Compound',
-    upbitMarket: 'KRW-COMP',
-    priority: 44
-  },
-  CRV: {
-    symbol: 'CRVUSDT',
-    name: 'Curve DAO',
-    upbitMarket: 'KRW-CRV',
-    priority: 45
-  },
-  SUSHI: {
-    symbol: 'SUSHIUSDT',
-    name: 'SushiSwap',
-    upbitMarket: 'KRW-SUSHI',
-    priority: 46
-  },
-  YFI: {
-    symbol: 'YFIUSDT',
-    name: 'yearn.finance',
-    upbitMarket: 'KRW-YFI',
-    priority: 47
-  },
-  BAT: {
-    symbol: 'BATUSDT',
-    name: 'Basic Attention',
-    upbitMarket: 'KRW-BAT',
-    priority: 48
-  },
-  ZRX: {
-    symbol: 'ZRXUSDT',
-    name: '0x Protocol',
-    upbitMarket: 'KRW-ZRX',
-    priority: 49
-  },
-  EGLD: {
-    symbol: 'EGLDUSDT',
-    name: 'MultiversX',
-    upbitMarket: 'KRW-EGLD',
-    priority: 50
-  },
-  AVAIL: {
-    symbol: 'AVAILUSDT',
-    name: 'Avail',
-    upbitMarket: null,
-    priority: 51
-  },
-  JTO: {
-    symbol: 'JTOUSDT',
-    name: 'Jito',
-    upbitMarket: null,
-    priority: 52
-  },
-  WIF: {
-    symbol: 'WIFUSDT',
-    name: 'dogwifhat',
-    upbitMarket: null,
-    priority: 53
-  },
-  BONK: {
-    symbol: 'BONKUSDT',
-    name: 'Bonk',
-    upbitMarket: null,
-    priority: 54
-  },
-  BOME: {
-    symbol: 'BOMEUSDT',
-    name: 'BOOK OF MEME',
-    upbitMarket: null,
-    priority: 55
-  },
-  W: {
-    symbol: 'WUSDT',
-    name: 'Wormhole',
-    upbitMarket: null,
-    priority: 56
-  },
-  ENA: {
-    symbol: 'ENAUSDT',
-    name: 'Ethena',
-    upbitMarket: null,
-    priority: 57
-  },
-  ORDI: {
-    symbol: 'ORDIUSDT',
-    name: 'ORDI',
-    upbitMarket: null,
-    priority: 58
-  },
-  SATS: {
-    symbol: 'SATSUSDT',
-    name: '1000SATS',
-    upbitMarket: null,
-    priority: 59
-  },
-  RATS: {
-    symbol: 'RATSUSDT',
-    name: '1000RATS',
-    upbitMarket: null,
-    priority: 60
-  },
-  NOT: {
-    symbol: 'NOTUSDT',
-    name: 'Notcoin',
-    upbitMarket: null,
-    priority: 61
-  },
-  FLOKI: {
-    symbol: 'FLOKIUSDT',
-    name: 'FLOKI',
-    upbitMarket: 'KRW-FLOKI',
-    priority: 62
-  },
-  BRETT: {
-    symbol: 'BRETTUSDT',
-    name: 'Brett',
-    upbitMarket: null,
-    priority: 63
-  },
-  DOGS: {
-    symbol: 'DOGSUSDT',
-    name: 'DOGS',
-    upbitMarket: null,
-    priority: 64
-  },
-  POPCAT: {
-    symbol: 'POPCATUSDT',
-    name: 'Popcat',
-    upbitMarket: null,
-    priority: 65
-  },
-  PENDLE: {
-    symbol: 'PENDLEUSDT',
-    name: 'Pendle',
-    upbitMarket: null,
-    priority: 66
-  },
-  JUP: {
-    symbol: 'JUPUSDT',
-    name: 'Jupiter',
-    upbitMarket: null,
-    priority: 67
-  },
-  PYTH: {
-    symbol: 'PYTHUSDT',
-    name: 'Pyth Network',
-    upbitMarket: null,
-    priority: 68
-  },
-  WLD: {
-    symbol: 'WLDUSDT',
-    name: 'Worldcoin',
-    upbitMarket: null,
-    priority: 69
-  },
-  ONDO: {
-    symbol: 'ONDOUSDT',
-    name: 'Ondo',
-    upbitMarket: null,
-    priority: 70
-  },
-  RENDER: {
-    symbol: 'RENDERUSDT',
-    name: 'Render Token',
-    upbitMarket: null,
-    priority: 71
-  },
-  FET: {
-    symbol: 'FETUSDT',
-    name: 'Fetch.ai',
-    upbitMarket: null,
-    priority: 72
-  },
-  GRT: {
-    symbol: 'GRTUSDT',
-    name: 'The Graph',
-    upbitMarket: 'KRW-GRT',
-    priority: 73
-  },
-  THETA: {
-    symbol: 'THETAUSDT',
-    name: 'THETA',
-    upbitMarket: 'KRW-THETA',
-    priority: 74
   },
   FIL: {
     symbol: 'FILUSDT',
     name: 'Filecoin',
     upbitMarket: 'KRW-FIL',
-    priority: 75
+    priority: 23
   },
-  MEME: {
-    symbol: 'MEMEUSDT',
-    name: 'Memecoin',
-    upbitMarket: null,
-    priority: 76
+  SAND: {
+    symbol: 'SANDUSDT',
+    name: 'The Sandbox',
+    upbitMarket: 'KRW-SAND',
+    priority: 24
   },
-  JASMY: {
-    symbol: 'JASMYUSDT',
-    name: 'JasmyCoin',
-    upbitMarket: 'KRW-JASMY',
-    priority: 77
+  MANA: {
+    symbol: 'MANAUSDT',
+    name: 'Decentraland',
+    upbitMarket: 'KRW-MANA',
+    priority: 25
   },
-  KAS: {
-    symbol: 'KASUSDT',
-    name: 'Kaspa',
-    upbitMarket: null,
-    priority: 78
+  THETA: {
+    symbol: 'THETAUSDT',
+    name: 'Theta Network',
+    upbitMarket: 'KRW-THETA',
+    priority: 26
   },
-  TAO: {
-    symbol: 'TAOUSDT',
-    name: 'Bittensor',
-    upbitMarket: null,
-    priority: 79
+  XTZ: {
+    symbol: 'XTZUSDT',
+    name: 'Tezos',
+    upbitMarket: 'KRW-XTZ',
+    priority: 27
   },
-  RUNE: {
-    symbol: 'RUNEUSDT',
-    name: 'THORChain',
-    upbitMarket: null,
-    priority: 80
+  EOS: {
+    symbol: 'EOSUSDT',
+    name: 'EOS',
+    upbitMarket: 'KRW-EOS',
+    priority: 28
   },
-  AR: {
-    symbol: 'ARUSDT',
-    name: 'Arweave',
-    upbitMarket: 'KRW-AR',
-    priority: 81
+  KSM: {
+    symbol: 'KSMUSDT',
+    name: 'Kusama',
+    upbitMarket: 'KRW-KSM',
+    priority: 29
   },
-  STRK: {
-    symbol: 'STRKUSDT',
-    name: 'Starknet',
-    upbitMarket: null,
-    priority: 82
+  FLOW: {
+    symbol: 'FLOWUSDT',
+    name: 'Flow',
+    upbitMarket: 'KRW-FLOW',
+    priority: 30
   },
-  TIA: {
-    symbol: 'TIAUSDT',
-    name: 'Celestia',
-    upbitMarket: null,
-    priority: 83
+  CHZ: {
+    symbol: 'CHZUSDT',
+    name: 'Chiliz',
+    upbitMarket: 'KRW-CHZ',
+    priority: 31
   },
-  MANTA: {
-    symbol: 'MANTAUSDT',
-    name: 'Manta Network',
-    upbitMarket: null,
-    priority: 84
+  XLM: {
+    symbol: 'XLMUSDT',
+    name: 'Stellar',
+    upbitMarket: 'KRW-XLM',
+    priority: 32
   },
-  ALT: {
-    symbol: 'ALTUSDT',
-    name: 'AltLayer',
-    upbitMarket: null,
-    priority: 85
+  AAVE: {
+    symbol: 'AAVEUSDT',
+    name: 'Aave',
+    upbitMarket: 'KRW-AAVE',
+    priority: 33
   },
-  PIXEL: {
-    symbol: 'PIXELUSDT',
-    name: 'Pixels',
-    upbitMarket: null,
-    priority: 86
+  CRV: {
+    symbol: 'CRVUSDT',
+    name: 'Curve DAO Token',
+    upbitMarket: 'KRW-CRV',
+    priority: 34
   },
-  DYM: {
-    symbol: 'DYMUSDT',
-    name: 'Dymension',
-    upbitMarket: null,
-    priority: 87
+  COMP: {
+    symbol: 'COMPUSDT',
+    name: 'Compound',
+    upbitMarket: 'KRW-COMP',
+    priority: 35
   },
-  PORTAL: {
-    symbol: 'PORTALUSDT',
-    name: 'Portal',
-    upbitMarket: null,
-    priority: 88
+  YFI: {
+    symbol: 'YFIUSDT',
+    name: 'yearn.finance',
+    upbitMarket: 'KRW-YFI',
+    priority: 36
   },
-  AEVO: {
-    symbol: 'AEVOUSDT',
-    name: 'Aevo',
-    upbitMarket: null,
-    priority: 89
+  SNX: {
+    symbol: 'SNXUSDT',
+    name: 'Synthetix',
+    upbitMarket: 'KRW-SNX',
+    priority: 37
   },
-  METIS: {
-    symbol: 'METISUSDT',
-    name: 'Metis',
-    upbitMarket: null,
-    priority: 90
+  MKR: {
+    symbol: 'MKRUSDT',
+    name: 'Maker',
+    upbitMarket: 'KRW-MKR',
+    priority: 38
   },
-  BLUR: {
-    symbol: 'BLURUSDT',
-    name: 'Blur',
-    upbitMarket: null,
-    priority: 91
+  SUSHI: {
+    symbol: 'SUSHIUSDT',
+    name: 'SushiSwap',
+    upbitMarket: 'KRW-SUSHI',
+    priority: 39
   },
-  AGIX: {
-    symbol: 'AGIXUSDT',
-    name: 'SingularityNET',
-    upbitMarket: null,
-    priority: 92
+  BAT: {
+    symbol: 'BATUSDT',
+    name: 'Basic Attention Token',
+    upbitMarket: 'KRW-BAT',
+    priority: 40
   },
-  OCEAN: {
-    symbol: 'OCEANUSDT',
-    name: 'Ocean Protocol',
-    upbitMarket: null,
-    priority: 93
+  ZRX: {
+    symbol: 'ZRXUSDT',
+    name: '0x',
+    upbitMarket: 'KRW-ZRX',
+    priority: 41
   },
-  LPT: {
-    symbol: 'LPTUSDT',
-    name: 'Livepeer',
-    upbitMarket: null,
-    priority: 94
+  OMG: {
+    symbol: 'OMGUSDT',
+    name: 'OMG Network',
+    upbitMarket: 'KRW-OMG',
+    priority: 42
   },
-  API3: {
-    symbol: 'API3USDT',
-    name: 'API3',
-    upbitMarket: null,
-    priority: 95
+  QTUM: {
+    symbol: 'QTUMUSDT',
+    name: 'Qtum',
+    upbitMarket: 'KRW-QTUM',
+    priority: 43
   },
-  ENS: {
-    symbol: 'ENSUSDT',
-    name: 'Ethereum Name Service',
-    upbitMarket: 'KRW-ENS',
-    priority: 96
+  ZIL: {
+    symbol: 'ZILUSDT',
+    name: 'Zilliqa',
+    upbitMarket: 'KRW-ZIL',
+    priority: 44
   },
-  LOOM: {
-    symbol: 'LOOMUSDT',
-    name: 'Loom Network',
-    upbitMarket: 'KRW-LOOM',
-    priority: 97
+  ONT: {
+    symbol: 'ONTUSDT',
+    name: 'Ontology',
+    upbitMarket: 'KRW-ONT',
+    priority: 45
+  },
+  ICX: {
+    symbol: 'ICXUSDT',
+    name: 'ICON',
+    upbitMarket: 'KRW-ICX',
+    priority: 46
+  },
+  ZEC: {
+    symbol: 'ZECUSDT',
+    name: 'Zcash',
+    upbitMarket: 'KRW-ZEC',
+    priority: 47
+  },
+  DASH: {
+    symbol: 'DASHUSDT',
+    name: 'Dash',
+    upbitMarket: 'KRW-DASH',
+    priority: 48
+  },
+  WAVES: {
+    symbol: 'WAVESUSDT',
+    name: 'Waves',
+    upbitMarket: 'KRW-WAVES',
+    priority: 49
+  },
+  LSK: {
+    symbol: 'LSKUSDT',
+    name: 'Lisk',
+    upbitMarket: 'KRW-LSK',
+    priority: 50
+  },
+  STEEM: {
+    symbol: 'STEEMUSDT',
+    name: 'Steem',
+    upbitMarket: 'KRW-STEEM',
+    priority: 51
+  },
+  STRAX: {
+    symbol: 'STRAXUSDT',
+    name: 'Stratis',
+    upbitMarket: 'KRW-STRAX',
+    priority: 52
+  },
+  ARK: {
+    symbol: 'ARKUSDT',
+    name: 'Ark',
+    upbitMarket: 'KRW-ARK',
+    priority: 53
+  },
+  STORJ: {
+    symbol: 'STORJUSDT',
+    name: 'Storj',
+    upbitMarket: 'KRW-STORJ',
+    priority: 54
+  },
+  GRT: {
+    symbol: 'GRTUSDT',
+    name: 'The Graph',
+    upbitMarket: 'KRW-GRT',
+    priority: 55
+  },
+  ENJ: {
+    symbol: 'ENJUSDT',
+    name: 'Enjin Coin',
+    upbitMarket: 'KRW-ENJ',
+    priority: 56
+  },
+  AUDIO: {
+    symbol: 'AUDIOUSDT',
+    name: 'Audius',
+    upbitMarket: 'KRW-AUDIO',
+    priority: 57
   },
   MASK: {
     symbol: 'MASKUSDT',
     name: 'Mask Network',
     upbitMarket: 'KRW-MASK',
-    priority: 98
+    priority: 58
   },
-  CTSI: {
-    symbol: 'CTSIUSDT',
-    name: 'Cartesi',
-    upbitMarket: 'KRW-CTSI',
-    priority: 99
+  ANKR: {
+    symbol: 'ANKRUSDT',
+    name: 'Ankr',
+    upbitMarket: 'KRW-ANKR',
+    priority: 59
+  },
+  CVC: {
+    symbol: 'CVCUSDT',
+    name: 'Civic',
+    upbitMarket: 'KRW-CVC',
+    priority: 60
+  },
+  SRM: {
+    symbol: 'SRMUSDT',
+    name: 'Serum',
+    upbitMarket: 'KRW-SRM',
+    priority: 61
+  },
+  ARDR: {
+    symbol: 'ARDRUSDT',
+    name: 'Ardor',
+    upbitMarket: 'KRW-ARDR',
+    priority: 62
+  },
+  PLA: {
+    symbol: 'PLAUSDT',
+    name: 'PlayDapp',
+    upbitMarket: 'KRW-PLA',
+    priority: 63
   },
   REQ: {
     symbol: 'REQUSDT',
     name: 'Request',
     upbitMarket: 'KRW-REQ',
+    priority: 64
+  },
+  DNT: {
+    symbol: 'DNTUSDT',
+    name: 'district0x',
+    upbitMarket: 'KRW-DNT',
+    priority: 65
+  },
+  CRO: {
+    symbol: 'CROUSDT',
+    name: 'Cronos',
+    upbitMarket: 'KRW-CRO',
+    priority: 66
+  },
+  AXS: {
+    symbol: 'AXSUSDT',
+    name: 'Axie Infinity',
+    upbitMarket: 'KRW-AXS',
+    priority: 67
+  },
+  KNC: {
+    symbol: 'KNCUSDT',
+    name: 'Kyber Network Crystal v2',
+    upbitMarket: 'KRW-KNC',
+    priority: 68
+  },
+  LRC: {
+    symbol: 'LRCUSDT',
+    name: 'Loopring',
+    upbitMarket: 'KRW-LRC',
+    priority: 69
+  },
+  OXT: {
+    symbol: 'OXTUSDT',
+    name: 'Orchid',
+    upbitMarket: 'KRW-OXT',
+    priority: 70
+  },
+  MLK: {
+    symbol: 'MLKUSDT',
+    name: 'MiL.k',
+    upbitMarket: 'KRW-MLK',
+    priority: 71
+  },
+  WAXP: {
+    symbol: 'WAXPUSDT',
+    name: 'WAX',
+    upbitMarket: 'KRW-WAXP',
+    priority: 72
+  },
+  HIVE: {
+    symbol: 'HIVEUSDT',
+    name: 'Hive',
+    upbitMarket: 'KRW-HIVE',
+    priority: 73
+  },
+  KAVA: {
+    symbol: 'KAVAUSDT',
+    name: 'Kava',
+    upbitMarket: 'KRW-KAVA',
+    priority: 74
+  },
+  XEC: {
+    symbol: 'XECUSDT',
+    name: 'eCash',
+    upbitMarket: 'KRW-XEC',
+    priority: 75
+  },
+  BTT: {
+    symbol: 'BTTUSDT',
+    name: 'BitTorrent',
+    upbitMarket: 'KRW-BTT',
+    priority: 76
+  },
+  JST: {
+    symbol: 'JSTUSDT',
+    name: 'JUST',
+    upbitMarket: 'KRW-JST',
+    priority: 77
+  },
+  CKB: {
+    symbol: 'CKBUSDT',
+    name: 'Nervos Network',
+    upbitMarket: 'KRW-CKB',
+    priority: 78
+  },
+  SXP: {
+    symbol: 'SXPUSDT',
+    name: 'Swipe',
+    upbitMarket: 'KRW-SXP',
+    priority: 79
+  },
+  HUNT: {
+    symbol: 'HUNTUSDT',
+    name: 'HUNT',
+    upbitMarket: 'KRW-HUNT',
+    priority: 80
+  },
+  PYR: {
+    symbol: 'PYRUSDT',
+    name: 'Vulcan Forged PYR',
+    upbitMarket: 'KRW-PYR',
+    priority: 81
+  },
+  WEMIX: {
+    symbol: 'WEMIXUSDT',
+    name: 'WEMIX',
+    upbitMarket: 'KRW-WEMIX',
+    priority: 82
+  },
+  FCT2: {
+    symbol: 'FCT2USDT',
+    name: 'FirmaChain',
+    upbitMarket: 'KRW-FCT2',
+    priority: 83
+  },
+  AQT: {
+    symbol: 'AQTUSDT',
+    name: 'Alpha Quark Token',
+    upbitMarket: 'KRW-AQT',
+    priority: 84
+  },
+  GLM: {
+    symbol: 'GLMUSDT',
+    name: 'Golem',
+    upbitMarket: 'KRW-GLM',
+    priority: 85
+  },
+  SSX: {
+    symbol: 'SSXUSDT',
+    name: 'SOMESING',
+    upbitMarket: 'KRW-SSX',
+    priority: 86
+  },
+  META: {
+    symbol: 'METAUSDT',
+    name: 'Metadium',
+    upbitMarket: 'KRW-META',
+    priority: 87
+  },
+  FCT: {
+    symbol: 'FCTUSDT',
+    name: 'Factom',
+    upbitMarket: 'KRW-FCT',
+    priority: 88
+  },
+  CBK: {
+    symbol: 'CBKUSDT',
+    name: 'Cobak Token',
+    upbitMarket: 'KRW-CBK',
+    priority: 89
+  },
+  BORA: {
+    symbol: 'BORAUSDT',
+    name: 'BORA',
+    upbitMarket: 'KRW-BORA',
+    priority: 90
+  },
+  // 해외 주요 코인 10개 (업비트 미상장)
+  BNB: {
+    symbol: 'BNBUSDT',
+    name: 'BNB',
+    upbitMarket: null,
+    priority: 91
+  },
+  TON: {
+    symbol: 'TONUSDT',
+    name: 'Toncoin',
+    upbitMarket: null,
+    priority: 92
+  },
+  RNDR: {
+    symbol: 'RNDRUSDT',
+    name: 'Render Token',
+    upbitMarket: null,
+    priority: 93
+  },
+  FTM: {
+    symbol: 'FTMUSDT',
+    name: 'Fantom',
+    upbitMarket: null,
+    priority: 94
+  },
+  RUNE: {
+    symbol: 'RUNEUSDT',
+    name: 'THORChain',
+    upbitMarket: null,
+    priority: 95
+  },
+  CAKE: {
+    symbol: 'CAKEUSDT',
+    name: 'PancakeSwap',
+    upbitMarket: null,
+    priority: 96
+  },
+  GALA: {
+    symbol: 'GALAUSDT',
+    name: 'Gala',
+    upbitMarket: null,
+    priority: 97
+  },
+  IMX: {
+    symbol: 'IMXUSDT',
+    name: 'Immutable X',
+    upbitMarket: null,
+    priority: 98
+  },
+  ROSE: {
+    symbol: 'ROSEUSDT',
+    name: 'Oasis Network',
+    upbitMarket: null,
+    priority: 99
+  },
+  XMR: {
+    symbol: 'XMRUSDT',
+    name: 'Monero',
+    upbitMarket: null,
     priority: 100
   }
 };
@@ -637,6 +639,10 @@ const initialState = {
   prices: {},
   upbitPrices: {},
   
+  // K-line 데이터 (스파크라인용)
+  klineData: {},
+  klineLastUpdated: null,
+  
   // 연결 상태
   isConnected: false,
   isConnecting: false,
@@ -655,7 +661,7 @@ const initialState = {
   
   // 통계
   stats: {
-    totalCoins: MAJOR_SYMBOLS.length,
+    totalCoins: ALL_SYMBOLS.length,
     connectedCoins: 0,
     kimchiPremiumCount: 0
   }
@@ -672,6 +678,8 @@ const ACTIONS = {
   UPDATE_EXCHANGE_RATE: 'UPDATE_EXCHANGE_RATE',
   SET_PRICES_BULK: 'SET_PRICES_BULK',
   SET_UPBIT_PRICES_BULK: 'SET_UPBIT_PRICES_BULK',
+  UPDATE_KLINE_DATA: 'UPDATE_KLINE_DATA',
+  SET_KLINE_DATA_BULK: 'SET_KLINE_DATA_BULK',
   ADD_ERROR: 'ADD_ERROR',
   CLEAR_ERRORS: 'CLEAR_ERRORS',
   RESET_STATE: 'RESET_STATE',
@@ -777,6 +785,26 @@ function priceReducer(state, action) {
           ...action.payload
         },
         lastUpdated: Date.now()
+      };
+      
+    case ACTIONS.UPDATE_KLINE_DATA:
+      return {
+        ...state,
+        klineData: {
+          ...state.klineData,
+          [action.payload.symbol]: action.payload.data
+        },
+        klineLastUpdated: Date.now()
+      };
+      
+    case ACTIONS.SET_KLINE_DATA_BULK:
+      return {
+        ...state,
+        klineData: {
+          ...state.klineData,
+          ...action.payload
+        },
+        klineLastUpdated: Date.now()
       };
       
     case ACTIONS.ADD_ERROR:
@@ -920,6 +948,25 @@ export function PriceProvider({ children }) {
     });
   }, []);
   
+  // K-line 데이터 업데이트 (개별)
+  const updateKlineData = useCallback((symbol, klineData) => {
+    dispatch({
+      type: ACTIONS.UPDATE_KLINE_DATA,
+      payload: {
+        symbol,
+        data: klineData
+      }
+    });
+  }, []);
+  
+  // K-line 데이터 업데이트 (대량)
+  const setKlineDataBulk = useCallback((klineDataMap) => {
+    dispatch({
+      type: ACTIONS.SET_KLINE_DATA_BULK,
+      payload: klineDataMap
+    });
+  }, []);
+  
   // 에러 추가
   const addError = useCallback((message) => {
     dispatch({
@@ -1018,78 +1065,188 @@ export function PriceProvider({ children }) {
     return premiums;
   }, [calculateKimchiPremium]);
   
-  // 환율 자동 업데이트 시작 (컴포넌트 마운트 시)
+  // 환율 자동 업데이트 시작 (컴포넌트 마운트 시) - 단순화
   useEffect(() => {
-    let exchangeRateInterval = null;
-    
-    // 초기 환율 로드
-    const initExchangeRate = async () => {
-      try {
-        console.log('💱 초기 환율 로드 시작...');
-        console.log('💱 getUSDKRWRate 함수 타입:', typeof getUSDKRWRate);
-        
-        const rateData = await getUSDKRWRate(false); // 캐시 우선
-        console.log('💱 환율 API 응답:', rateData);
-        
-        if (rateData && rateData.rate) {
-          dispatch({
-            type: ACTIONS.UPDATE_EXCHANGE_RATE,
-            payload: rateData.rate
-          });
-          console.log(`✅ 초기 환율 설정: ${rateData.rate} (${rateData.source})`);
-        } else {
-          console.warn('💱 환율 데이터가 비어있음, 기본값 사용');
-          dispatch({
-            type: ACTIONS.UPDATE_EXCHANGE_RATE,
-            payload: 1380 // 구글 검색 기준
-          });
-        }
-      } catch (error) {
-        console.error('❌ 초기 환율 로드 실패:', error);
-        console.error('❌ 에러 상세:', error.stack);
-        // 기본값 설정
-        dispatch({
-          type: ACTIONS.UPDATE_EXCHANGE_RATE,
-          payload: 1380 // 구글 검색 기준
-        });
-        console.log('💱 응급 기본값 설정: 1380');
-      }
-    };
-    
-    // 자동 업데이트 시작 (5시간 간격)
-    const startExchangeRateUpdates = () => {
-      // 환율 업데이트 콜백 함수
-      const handleExchangeRateUpdate = (newRate) => {
-        dispatch({
-          type: ACTIONS.UPDATE_EXCHANGE_RATE,
-          payload: newRate
-        });
-        console.log(`💱 환율 자동 업데이트: ${newRate}`);
-      };
-      
-      exchangeRateInterval = startAutoUpdate(handleExchangeRateUpdate);
-      console.log('🤖 환율 자동 업데이트 활성화 (5시간 간격)');
-    };
-    
-    // 즉시 기본값 설정 (API 호출 전)
-    console.log('💱 즉시 기본값 설정: 1380');
+    console.log('💱 환율 기본값 설정: 1380');
     dispatch({
       type: ACTIONS.UPDATE_EXCHANGE_RATE,
       payload: 1380
     });
     
-    // 초기화 실행
-    initExchangeRate();
-    startExchangeRateUpdates();
-    
-    // 정리 함수
-    return () => {
-      if (exchangeRateInterval) {
-        stopAutoUpdate(exchangeRateInterval);
-        console.log('🛑 환율 자동 업데이트 정리');
+    // 간단한 환율 로드 (에러 처리 강화)
+    const loadExchangeRate = async () => {
+      try {
+        const rateData = await getUSDKRWRate(false);
+        if (rateData && rateData.rate && rateData.rate > 1000) {
+          dispatch({
+            type: ACTIONS.UPDATE_EXCHANGE_RATE,
+            payload: rateData.rate
+          });
+          console.log(`✅ 환율 업데이트: ${rateData.rate}`);
+        }
+      } catch (error) {
+        console.warn('⚠️ 환율 로드 실패, 기본값 유지:', error.message);
       }
     };
-  }, []); // 빈 배열: 컴포넌트 마운트 시 한 번만 실행
+    
+    // 5초 후에 환율 로드 시도
+    const timeout = setTimeout(loadExchangeRate, 5000);
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, []);
+  
+  // K-line 데이터 자동 업데이트 (10분마다) - 단순화
+  useEffect(() => {
+    console.log('📊 K-line 데이터 로딩 임시 비활성화');
+    // 임시로 비활성화하여 앱 로딩 문제 해결
+    return () => {};
+  }, []);
+  
+  // REST API Ticker 데이터 자동 업데이트 (실제 데이터)
+  useEffect(() => {
+    let tickerInterval = null;
+    
+    const fetchTickerData = async () => {
+      try {
+        console.log('💰 Bitget REST API 데이터 로드 중...');
+        
+        const tickerDataMap = await getBatchTickerData(ALL_SYMBOLS);
+        let updateCount = 0;
+        Object.entries(tickerDataMap).forEach(([symbol, tickerData]) => {
+          if (tickerData) {
+            updatePrice(symbol, tickerData);
+            updateCount++;
+          }
+        });
+        
+        console.log(`✅ Bitget 데이터 업데이트: ${updateCount}개 코인`);
+        
+      } catch (error) {
+        console.error('❌ Bitget REST API 실패:', error);
+        addError(`Bitget API 실패: ${error.message}`);
+      }
+    };
+    
+    // 즉시 로드
+    fetchTickerData();
+    
+    // 1분마다 업데이트
+    tickerInterval = setInterval(fetchTickerData, 60 * 1000);
+    
+    console.log('🤖 Bitget REST API 자동 업데이트 활성화 (1분 간격)');
+    
+    return () => {
+      if (tickerInterval) {
+        clearInterval(tickerInterval);
+        console.log('🛑 Bitget REST API 업데이트 정리');
+      }
+    };
+  }, [updatePrice, addError]);
+  
+  // 업비트 REST API Ticker 데이터 자동 업데이트
+  useEffect(() => {
+    let upbitTickerInterval = null;
+    
+    const fetchUpbitTickerData = async () => {
+      try {
+        console.log('💰 업비트 REST API 데이터 로드 중...');
+        
+        // 전체 코인들의 업비트 마켓 가져오기
+        const upbitMarkets = ALL_UPBIT_MARKETS;
+        
+        console.log('📋 업비트 마켓 목록:', upbitMarkets);
+        
+        if (upbitMarkets.length === 0) {
+          console.warn('⚠️ 업비트 마켓 목록이 비어있음');
+          return;
+        }
+        
+        // 업비트 API 호출 (빠른 배치 방식)
+        const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
+        
+        console.log('📡 업비트 API 빠른 호출 시작');
+        console.log('📋 유효한 마켓:', validMarkets);
+        
+        // 3개씩 나누어서 병렬 호출 (더 빠른 응답)
+        const batchSize = 3;
+        const batches = [];
+        for (let i = 0; i < validMarkets.length; i += batchSize) {
+          batches.push(validMarkets.slice(i, i + batchSize));
+        }
+        
+        const allTickerData = [];
+        
+        // 배치를 병렬로 호출
+        await Promise.all(batches.map(async (batch) => {
+          try {
+            const marketsParam = batch.join(',');
+            const url = `https://api.upbit.com/v1/ticker?markets=${marketsParam}`;
+            
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; Coco/1.0)'
+              }
+            });
+            
+            if (response.ok) {
+              const batchData = await response.json();
+              allTickerData.push(...batchData);
+            }
+          } catch (error) {
+            console.warn(`⚠️ 배치 호출 실패 (${batch.join(',')}):`, error.message);
+          }
+        }));
+        
+        const tickerArray = allTickerData;
+        console.log(`📊 업비트 API 응답: ${tickerArray.length}개 마켓 (요청: ${validMarkets.length}개)`);
+        
+        // 데이터 변환 및 업데이트
+        let updateCount = 0;
+        tickerArray.forEach(ticker => {
+          const transformedTicker = {
+            market: ticker.market,
+            trade_price: parseFloat(ticker.trade_price || 0),
+            change: parseFloat(ticker.change_price || 0),
+            change_rate: parseFloat(ticker.change_rate || 0),
+            change_percent: (ticker.change_rate || 0) * 100,
+            acc_trade_volume_24h: parseFloat(ticker.acc_trade_volume_24h || 0),
+            high_price: parseFloat(ticker.high_price || 0),
+            low_price: parseFloat(ticker.low_price || 0),
+            timestamp: ticker.timestamp || Date.now(),
+            source: 'upbit-rest-api-direct'
+          };
+          
+          updateUpbitPrice(ticker.market, transformedTicker);
+          updateCount++;
+        });
+        
+        console.log(`✅ 업비트 데이터 업데이트: ${updateCount}개 마켓`);
+        
+      } catch (error) {
+        console.error('❌ 업비트 REST API 실패:', error);
+        addError(`업비트 API 실패: ${error.message}`);
+      }
+    };
+    
+    // 즉시 시작 (Bitget과 동시에)
+    fetchUpbitTickerData();
+    
+    // 1분마다 업데이트
+    upbitTickerInterval = setInterval(fetchUpbitTickerData, 60 * 1000);
+    
+    console.log('🤖 업비트 REST API 자동 업데이트 활성화 (1분 간격)');
+    
+    return () => {
+      if (upbitTickerInterval) {
+        clearInterval(upbitTickerInterval);
+        console.log('🛑 업비트 REST API 업데이트 정리');
+      }
+    };
+  }, [updateUpbitPrice, addError, MAJOR_COINS]);
   
   // 통계 업데이트 (자동)
   useEffect(() => {
@@ -1121,6 +1278,8 @@ export function PriceProvider({ children }) {
     updateExchangeRate,
     setPricesBulk,
     setUpbitPricesBulk,
+    updateKlineData,
+    setKlineDataBulk,
     addError,
     clearErrors,
     resetState,

@@ -1,10 +1,38 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import SideBanner from './SideBanner';
+import { useBitgetWebSocket } from '../../hooks/useBitgetWebSocket';
+import { useUpbitWebSocket } from '../../hooks/useUpbitWebSocket';
 
 const Layout = () => {
   const location = useLocation();
+  
+  // WebSocket 연결 시작
+  const bitgetWS = useBitgetWebSocket({ enabled: true });
+  const upbitWS = useUpbitWebSocket({ enabled: true });
+  
+  // WebSocket 상태 로깅 (개발 모드에서만)
+  useEffect(() => {
+    console.log('📊 Layout WebSocket 상태:', {
+      bitget: {
+        connected: bitgetWS.isConnected,
+        connecting: bitgetWS.isConnecting,
+        dataReceived: bitgetWS.dataReceived,
+        readyState: bitgetWS.readyState
+      },
+      upbit: {
+        connected: upbitWS.isConnected,
+        connecting: upbitWS.isConnecting,
+        dataReceived: upbitWS.dataReceived,
+        readyState: upbitWS.readyState
+      }
+    });
+  }, [
+    bitgetWS.isConnected, bitgetWS.isConnecting, bitgetWS.dataReceived,
+    upbitWS.isConnected, upbitWS.isConnecting, upbitWS.dataReceived
+  ]);
   
   // 코인 상세 페이지인지 체크
   const isCoinDetailPage = location.pathname.startsWith('/coin/');

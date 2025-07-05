@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>업비트 API 테스트</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0c0c0c; color: white; }
+        .result { margin: 10px 0; padding: 10px; background: #232425; border-radius: 4px; }
+        .success { background: #3ECF8E; color: black; }
+        .error { background: #ff4757; }
+        button { background: #3ECF8E; color: black; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        pre { background: #0f0f0f; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>업비트 API 연결 테스트</h1>
+    
+    <button onclick="testUpbitDirect()">업비트 API 직접 호출</button>
+    <button onclick="testUpbitService()">업비트 서비스 호출</button>
+    <button onclick="testBothAPIs()">두 API 비교</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testUpbitDirect() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="result">업비트 API 직접 호출 중...</div>';
+            
+            try {
+                const response = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH,KRW-XRP');
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML += '<div class="result success">✅ 업비트 API 직접 호출 성공</div>';
+                    results.innerHTML += '<pre>' + JSON.stringify(data.slice(0, 1), null, 2) + '</pre>';
+                } else {
+                    results.innerHTML += '<div class="result error">❌ 업비트 API 응답 오류: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ 업비트 API 호출 실패: ' + error.message + '</div>';
+            }
+        }
+
+        async function testUpbitService() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="result">업비트 서비스 호출 중...</div>';
+            
+            try {
+                // 업비트 서비스 함수 import (실제로는 모듈에서 가져와야 함)
+                // 여기서는 직접 구현
+                const markets = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'];
+                const marketsParam = markets.join(',');
+                const url = `https://api.upbit.com/v1/ticker?markets=${marketsParam}`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (compatible; Coco-Upbit-Ticker/1.0)'
+                    }
+                });
+                
+                if (response.ok) {
+                    const tickerArray = await response.json();
+                    results.innerHTML += '<div class="result success">✅ 업비트 서비스 호출 성공: ' + tickerArray.length + '개 마켓</div>';
+                    
+                    // 데이터 변환 테스트
+                    const transformedData = {};
+                    tickerArray.forEach(ticker => {
+                        const changePercent = (ticker.change_rate || 0) * 100;
+                        transformedData[ticker.market] = {
+                            market: ticker.market,
+                            trade_price: parseFloat(ticker.trade_price || 0),
+                            change: parseFloat(ticker.change_price || 0),
+                            change_rate: parseFloat(ticker.change_rate || 0),
+                            change_percent: changePercent,
+                            timestamp: ticker.timestamp || Date.now(),
+                            source: 'upbit-rest-api'
+                        };
+                    });
+                    
+                    results.innerHTML += '<pre>' + JSON.stringify(transformedData, null, 2) + '</pre>';
+                } else {
+                    results.innerHTML += '<div class="result error">❌ 업비트 서비스 응답 오류: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ 업비트 서비스 호출 실패: ' + error.message + '</div>';
+            }
+        }
+
+        async function testBothAPIs() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="result">Bitget + 업비트 API 테스트 중...</div>';
+            
+            // Bitget 테스트
+            try {
+                const bitgetResponse = await fetch('/api/bitget/api/v2/spot/market/tickers');
+                if (bitgetResponse.ok) {
+                    const bitgetData = await bitgetResponse.json();
+                    const btcData = bitgetData.data.find(coin => coin.symbol === 'BTCUSDT');
+                    if (btcData) {
+                        results.innerHTML += '<div class="result success">✅ Bitget BTC 가격: $' + btcData.lastPr + '</div>';
+                    }
+                } else {
+                    results.innerHTML += '<div class="result error">❌ Bitget API 실패</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ Bitget API 오류: ' + error.message + '</div>';
+            }
+            
+            // 업비트 테스트
+            try {
+                const upbitResponse = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC');
+                if (upbitResponse.ok) {
+                    const upbitData = await upbitResponse.json();
+                    if (upbitData.length > 0) {
+                        results.innerHTML += '<div class="result success">✅ 업비트 BTC 가격: ₩' + upbitData[0].trade_price.toLocaleString() + '</div>';
+                        
+                        // 김치프리미엄 계산 시뮬레이션
+                        const exchangeRate = 1362; // 현재 환율
+                        
+                        // Bitget 데이터 다시 가져오기
+                        const bitgetResponse2 = await fetch('/api/bitget/api/v2/spot/market/tickers');
+                        if (bitgetResponse2.ok) {
+                            const bitgetData2 = await bitgetResponse2.json();
+                            const btcData2 = bitgetData2.data.find(coin => coin.symbol === 'BTCUSDT');
+                            if (btcData2) {
+                                const bitgetPriceKRW = parseFloat(btcData2.lastPr) * exchangeRate;
+                                const upbitPrice = upbitData[0].trade_price;
+                                const premium = ((upbitPrice - bitgetPriceKRW) / bitgetPriceKRW) * 100;
+                                
+                                results.innerHTML += '<div class="result ' + (premium > 0 ? 'success' : 'error') + '">';
+                                results.innerHTML += '🏆 김치프리미엄: ' + (premium > 0 ? '+' : '') + premium.toFixed(2) + '%';
+                                results.innerHTML += '<br/>업비트: ₩' + upbitPrice.toLocaleString();
+                                results.innerHTML += '<br/>Bitget: ₩' + bitgetPriceKRW.toLocaleString() + ' ($' + btcData2.lastPr + ' × ' + exchangeRate + ')';
+                                results.innerHTML += '</div>';
+                            }
+                        }
+                    }
+                } else {
+                    results.innerHTML += '<div class="result error">❌ 업비트 API 실패</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ 업비트 API 오류: ' + error.message + '</div>';
+            }
+        }
+
+        // 페이지 로드 시 자동 테스트
+        console.log('업비트 API 테스트 페이지 로드됨');
+    </script>
+</body>
+</html>
