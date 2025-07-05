@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: coco-proxy-server
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGINS
+        value: https://coindex.onrender.com,https://coco-price-tracker.netlify.app,http://localhost:5173,http://localhost:3000
