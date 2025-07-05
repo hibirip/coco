@@ -10,11 +10,11 @@ import { logger } from '../utils/logger';
 // WebSocket 설정
 const BINANCE_WS_CONFIG = {
   URL: 'wss://stream.binance.com:9443/ws/', // Binance WebSocket URL
-  RECONNECT_INTERVAL: 1000, // 초기 재연결 간격 (1초)
-  MAX_RECONNECT_ATTEMPTS: 5, // 최대 재연결 시도 횟수
+  RECONNECT_INTERVAL: 2000, // 초기 재연결 간격 (2초)
+  MAX_RECONNECT_ATTEMPTS: 10, // 최대 재연결 시도 횟수 증가
   PING_INTERVAL: 30000, // 30초마다 ping
-  CONNECTION_TIMEOUT: 15000, // 15초 연결 타임아웃
-  MESSAGE_TIMEOUT: 10000 // 10초 메시지 타임아웃
+  CONNECTION_TIMEOUT: 10000, // 10초 연결 타임아웃
+  MESSAGE_TIMEOUT: 15000 // 15초 메시지 타임아웃
 };
 
 // WebSocket 연결 상태
@@ -75,9 +75,9 @@ export function useBinanceWebSocket(options = {}) {
       // 기존 연결 정리
       cleanup();
 
-      // 테스트를 위해 먼저 BTCUSDT만 구독
-      const testSymbol = 'BTCUSDT';
-      const url = `wss://stream.binance.com:9443/ws/${testSymbol.toLowerCase()}@ticker`;
+      // 바이낸스 WebSocket 테스트용 - 단일 스트림
+      const testSymbol = 'btcusdt';
+      const url = `wss://stream.binance.com:9443/ws/${testSymbol}@ticker`;
       
       logger.api(`Binance WebSocket URL: ${url}`);
       wsRef.current = new WebSocket(url);

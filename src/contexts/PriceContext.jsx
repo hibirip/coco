@@ -1159,10 +1159,10 @@ export function PriceProvider({ children }) {
     // 즉시 로드
     fetchTickerData();
     
-    // 15초마다 업데이트 (더 빠른 실시간성)
-    tickerInterval = setInterval(fetchTickerData, 15 * 1000);
+    // 10초마다 업데이트 (더 빠른 실시간성)
+    tickerInterval = setInterval(fetchTickerData, 10 * 1000);
     
-    logger.info('Binance REST API 자동 업데이트 활성화 (15초 간격)');
+    logger.info('Binance REST API 자동 업데이트 활성화 (10초 간격)');
     
     return () => {
       if (tickerInterval) {

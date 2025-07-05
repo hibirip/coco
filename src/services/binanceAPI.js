@@ -7,7 +7,10 @@ import { logger } from '../utils/logger';
 
 // Binance REST API 설정
 const BINANCE_API_CONFIG = {
-  BASE_URL: 'https://api.binance.com',
+  // 배포환경에서는 CORS 프록시 사용
+  BASE_URL: import.meta.env.DEV ? 
+    'https://api.binance.com' : 
+    'https://api.allorigins.win/get?url=https://api.binance.com',
   TICKER_24HR_ENDPOINT: '/api/v3/ticker/24hr',
   TICKER_PRICE_ENDPOINT: '/api/v3/ticker/price',
   CACHE_TTL: 30 * 1000, // 30초 캐시
@@ -59,7 +62,15 @@ async function fetchBinanceTickerData(symbol) {
       symbol: symbol.toUpperCase()
     });
     
-    const url = `${BINANCE_API_CONFIG.BASE_URL}${BINANCE_API_CONFIG.TICKER_24HR_ENDPOINT}?${params}`;
+    let url;
+    if (import.meta.env.DEV) {
+      // 개발환경: 직접 호출
+      url = `${BINANCE_API_CONFIG.BASE_URL}${BINANCE_API_CONFIG.TICKER_24HR_ENDPOINT}?${params}`;
+    } else {
+      // 배포환경: allorigins 프록시 사용
+      const targetUrl = encodeURIComponent(`https://api.binance.com${BINANCE_API_CONFIG.TICKER_24HR_ENDPOINT}?${params}`);
+      url = `${BINANCE_API_CONFIG.BASE_URL}&url=${targetUrl}`;
+    }
     
     logger.api(`Binance Ticker API 요청: ${symbol}`);
     
@@ -83,7 +94,18 @@ async function fetchBinanceTickerData(symbol) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    let data;
+    if (import.meta.env.DEV) {
+      // 개발환경: 직접 JSON 응답
+      data = await response.json();
+    } else {
+      // 배포환경: allorigins JSON wrapper 파싱
+      const responseData = await response.json();
+      if (!responseData.contents) {
+        throw new Error('allorigins 응답에 contents가 없음');
+      }
+      data = JSON.parse(responseData.contents);
+    }
     
     logger.api(`Binance Ticker 데이터 수신: ${symbol}`);
     return data;
@@ -99,7 +121,15 @@ async function fetchBinanceTickerData(symbol) {
  */
 async function fetchAllBinanceTickersData() {
   try {
-    const url = `${BINANCE_API_CONFIG.BASE_URL}${BINANCE_API_CONFIG.TICKER_24HR_ENDPOINT}`;
+    let url;
+    if (import.meta.env.DEV) {
+      // 개발환경: 직접 호출
+      url = `${BINANCE_API_CONFIG.BASE_URL}${BINANCE_API_CONFIG.TICKER_24HR_ENDPOINT}`;
+    } else {
+      // 배포환경: allorigins 프록시 사용
+      const targetUrl = encodeURIComponent(`https://api.binance.com${BINANCE_API_CONFIG.TICKER_24HR_ENDPOINT}`);
+      url = `${BINANCE_API_CONFIG.BASE_URL}&url=${targetUrl}`;
+    }
     
     logger.api('Binance All Tickers API 요청');
     
@@ -123,7 +153,18 @@ async function fetchAllBinanceTickersData() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    let data;
+    if (import.meta.env.DEV) {
+      // 개발환경: 직접 JSON 응답
+      data = await response.json();
+    } else {
+      // 배포환경: allorigins JSON wrapper 파싱
+      const responseData = await response.json();
+      if (!responseData.contents) {
+        throw new Error('allorigins 응답에 contents가 없음');
+      }
+      data = JSON.parse(responseData.contents);
+    }
     
     logger.api(`Binance All Tickers 데이터 수신: ${data.length}개`);
     return data;
