@@ -6,8 +6,8 @@
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { calculateKimchi } from '../utils/formatters';
 import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exchangeRate';
-import { getBatchKlineData, klineToSparklineData } from '../services/bitgetKline';
-import { getBatchTickerData } from '../services/bitgetTicker';
+// import { getBatchKlineData, klineToSparklineData } from '../services/bitgetKline';
+import { getBatchTickerData } from '../services/binanceAPI';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
@@ -1119,7 +1119,7 @@ export function PriceProvider({ children }) {
     
     const fetchTickerData = async () => {
       try {
-        logger.api('Bitget REST API 데이터 로드 중...');
+        logger.api('Binance REST API 데이터 로드 중...');
         
         // 초기 로드시 주요 코인만 먼저 로드 (빠른 표시)
         const isInitialLoad = Object.keys(state.prices).length === 0;
@@ -1134,7 +1134,7 @@ export function PriceProvider({ children }) {
           }
         });
         
-        logger.api(`Bitget 데이터 업데이트: ${updateCount}개 코인`);
+        logger.api(`Binance 데이터 업데이트: ${updateCount}개 코인`);
         
         // 초기 로드시 나머지 코인도 로드
         if (isInitialLoad && symbolsToLoad.length < ALL_SYMBOLS.length) {
@@ -1276,7 +1276,7 @@ export function PriceProvider({ children }) {
       }
     };
     
-    // 즉시 시작 (Bitget과 동시에)
+    // 즉시 시작 (Binance와 동시에)
     fetchUpbitTickerData();
     
     // 1분마다 업데이트

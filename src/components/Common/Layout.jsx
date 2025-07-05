@@ -3,24 +3,23 @@ import { useEffect } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import SideBanner from './SideBanner';
-import { useBitgetWebSocket } from '../../hooks/useBitgetWebSocket';
+import { useBinanceWebSocket } from '../../hooks/useBinanceWebSocket';
 import { useUpbitWebSocket } from '../../hooks/useUpbitWebSocket';
 
 const Layout = () => {
   const location = useLocation();
   
   // WebSocket 연결 시작
-  const bitgetWS = useBitgetWebSocket({ enabled: true });
+  const binanceWS = useBinanceWebSocket({ enabled: true });
   const upbitWS = useUpbitWebSocket({ enabled: true });
   
   // WebSocket 상태 로깅 (개발 모드에서만)
   useEffect(() => {
     console.log('📊 Layout WebSocket 상태:', {
-      bitget: {
-        connected: bitgetWS.isConnected,
-        connecting: bitgetWS.isConnecting,
-        dataReceived: bitgetWS.dataReceived,
-        readyState: bitgetWS.readyState
+      binance: {
+        connected: binanceWS.isConnected,
+        connecting: binanceWS.isConnecting,
+        reconnectAttempts: binanceWS.reconnectAttempts
       },
       upbit: {
         connected: upbitWS.isConnected,
@@ -30,7 +29,7 @@ const Layout = () => {
       }
     });
   }, [
-    bitgetWS.isConnected, bitgetWS.isConnecting, bitgetWS.dataReceived,
+    binanceWS.isConnected, binanceWS.isConnecting, binanceWS.reconnectAttempts,
     upbitWS.isConnected, upbitWS.isConnecting, upbitWS.dataReceived
   ]);
   
