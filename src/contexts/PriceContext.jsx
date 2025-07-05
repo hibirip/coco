@@ -627,6 +627,9 @@ export const ALL_COINS = {
 // 심볼 배열 추출
 export const MAJOR_SYMBOLS = Object.values(MAJOR_COINS).map(coin => coin.symbol);
 export const UPBIT_MARKETS = Object.values(MAJOR_COINS).map(coin => coin.upbitMarket);
+export const MAJOR_UPBIT_MARKETS = Object.values(MAJOR_COINS)
+  .map(coin => coin.upbitMarket)
+  .filter(market => market !== null);
 
 // 전체 코인 배열 추출 (시세 페이지용)
 export const ALL_SYMBOLS = Object.values(ALL_COINS).map(coin => coin.symbol);
