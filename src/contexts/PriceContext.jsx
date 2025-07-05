@@ -10,6 +10,7 @@ import { getBatchKlineData, klineToSparklineData } from '../services/bitgetKline
 import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
+import { logger } from '../utils/logger';
 
 // 주요 10개 코인 (홈페이지용)
 export const MAJOR_COINS = {
@@ -739,10 +740,9 @@ function priceReducer(state, action) {
     case ACTIONS.UPDATE_UPBIT_PRICE:
       // 디버깅: BTC만 로그 출력
       if (action.payload.market === 'KRW-BTC') {
-        console.log(`🔍 PriceContext 리듀서 UPDATE_UPBIT_PRICE (${action.payload.market}):`, {
+        logger.debug(`PriceContext UPDATE_UPBIT_PRICE (${action.payload.market}):`, {
           market: action.payload.market,
-          newData: action.payload.data,
-          currentState: state.upbitPrices[action.payload.market]
+          newData: action.payload.data
         });
       }
       
@@ -760,7 +760,7 @@ function priceReducer(state, action) {
       };
       
     case ACTIONS.UPDATE_EXCHANGE_RATE:
-      console.log('🔍 PriceContext 리듀서 UPDATE_EXCHANGE_RATE:', {
+      logger.debug('PriceContext UPDATE_EXCHANGE_RATE:', {
         oldRate: state.exchangeRate,
         newRate: action.payload
       });
@@ -994,13 +994,13 @@ export function PriceProvider({ children }) {
   // 김치프리미엄 계산
   const calculateKimchiPremium = useCallback((symbol) => {
     if (!state.exchangeRate) {
-      console.log(`⚠️ 김치프리미엄 계산 불가: 환율 없음 (${symbol})`);
+      logger.debug(`김치프리미엄 계산 불가: 환율 없음 (${symbol})`);
       return null;
     }
     
     const coin = Object.values(ALL_COINS).find(coin => coin.symbol === symbol);
     if (!coin) {
-      console.log(`⚠️ 김치프리미엄 계산 불가: 코인 정보 없음 (${symbol})`);
+      logger.debug(`김치프리미엄 계산 불가: 코인 정보 없음 (${symbol})`);
       return null;
     }
     
@@ -1016,17 +1016,11 @@ export function PriceProvider({ children }) {
     if (!bitgetPrice?.price || !upbitPrice?.trade_price) {
       // 디버깅 정보 출력 (BTC만)
       if (symbol === 'BTCUSDT') {
-        console.log(`⚠️ 김치프리미엄 계산 불가 (${symbol}):`, {
+        logger.debug(`김치프리미엄 계산 불가 (${symbol}):`, {
           bitgetPrice: bitgetPrice?.price,
-          bitgetPriceObject: bitgetPrice,
           upbitPrice: upbitPrice?.trade_price,
-          upbitPriceObject: upbitPrice,
           exchangeRate: state.exchangeRate,
-          upbitMarket: coin.upbitMarket,
-          hasBitgetData: !!bitgetPrice,
-          hasUpbitData: !!upbitPrice,
-          allBitgetPrices: Object.keys(state.prices),
-          allUpbitPrices: Object.keys(state.upbitPrices)
+          upbitMarket: coin.upbitMarket
         });
       }
       return null;
@@ -1037,10 +1031,7 @@ export function PriceProvider({ children }) {
       
       // 디버깅 정보 출력 (BTC만)
       if (symbol === 'BTCUSDT') {
-        console.log(`✅ 김치프리미엄 계산 성공 (${symbol}):`, {
-          upbitPrice: upbitPrice.trade_price,
-          bitgetPrice: bitgetPrice.price,
-          exchangeRate: state.exchangeRate,
+        logger.debug(`김치프리미엄 계산 성공 (${symbol}):`, {
           premium: result.premium,
           formatted: result.formatted
         });
@@ -1069,7 +1060,7 @@ export function PriceProvider({ children }) {
   
   // 환율 자동 업데이트 시작 (컴포넌트 마운트 시) - 단순화
   useEffect(() => {
-    console.log('💱 환율 기본값 설정: 1380');
+    logger.info('환율 기본값 설정: 1380');
     dispatch({
       type: ACTIONS.UPDATE_EXCHANGE_RATE,
       payload: 1380
@@ -1084,10 +1075,10 @@ export function PriceProvider({ children }) {
             type: ACTIONS.UPDATE_EXCHANGE_RATE,
             payload: rateData.rate
           });
-          console.log(`✅ 환율 업데이트: ${rateData.rate}`);
+          logger.info(`환율 업데이트: ${rateData.rate}`);
         }
       } catch (error) {
-        console.warn('⚠️ 환율 로드 실패, 기본값 유지:', error.message);
+        logger.warn('환율 로드 실패, 기본값 유지:', error.message);
       }
     };
     
