@@ -12,13 +12,14 @@ import {
   clearUpbitCache,
   getUpbitCacheStatus 
 } from '../services/upbit';
+import { logger } from '../utils/logger';
 
 // 훅 설정
 const HOOK_CONFIG = {
-  REFRESH_INTERVAL: 5000, // 5초 (실시간 가격이므로 짧게)
-  ERROR_RETRY_INTERVAL: 10000, // 10초 (에러 시 재시도)
-  MAX_RETRY_COUNT: 3,
-  BACKGROUND_REFRESH_THRESHOLD: 30000 // 30초 (백그라운드 복귀 시 새로고침)
+  REFRESH_INTERVAL: 30000, // 30초 (요청 부하 감소)
+  ERROR_RETRY_INTERVAL: 30000, // 30초 (에러 시 재시도)
+  MAX_RETRY_COUNT: 2, // 재시도 횟수 감소
+  BACKGROUND_REFRESH_THRESHOLD: 60000 // 60초 (백그라운드 복귀 시 새로고침)
 };
 
 /**
@@ -71,7 +72,7 @@ export function useUpbitPrices(options = {}) {
       setLoading(true);
       setError(null);
 
-      console.log(`🔄 업비트 가격 로드 시작 (강제새로고침: ${forceRefresh})`);
+      logger.performance(`업비트 가격 로드 시작 (강제새로고침: ${forceRefresh})`);
       
       let priceData;
       
@@ -94,15 +95,15 @@ export function useUpbitPrices(options = {}) {
       setError(null);
       setRetryCount(0); // 성공 시 재시도 카운트 리셋
       
-      console.log(`✅ 업비트 가격 로드 완료: ${Object.keys(priceData).length}개 마켓`);
+      logger.performance(`업비트 가격 로드 완료: ${Object.keys(priceData).length}개 마켓`);
       
     } catch (err) {
       if (err.name === 'AbortError') {
-        console.log('업비트 가격 요청이 취소되었습니다');
+        logger.debug('업비트 가격 요청이 취소되었습니다');
         return;
       }
       
-      console.error('업비트 가격 로드 실패:', err);
+      logger.error('업비트 가격 로드 실패:', err);
       setError(err.message || '업비트 가격을 불러올 수 없습니다');
       setRetryCount(prev => prev + 1);
       
@@ -117,12 +118,12 @@ export function useUpbitPrices(options = {}) {
    */
   const loadMarkets = useCallback(async () => {
     try {
-      console.log('📋 업비트 마켓 목록 로드 중...');
+      logger.performance('업비트 마켓 목록 로드 중...');
       const marketsResponse = await getUpbitMarkets();
       setMarketsData(marketsResponse);
-      console.log(`✅ 업비트 마켓 로드 완료: ${marketsResponse.length}개`);
+      logger.performance(`업비트 마켓 로드 완료: ${marketsResponse.length}개`);
     } catch (err) {
-      console.error('업비트 마켓 로드 실패:', err);
+      logger.error('업비트 마켓 로드 실패:', err);
     }
   }, []);
 
@@ -130,7 +131,7 @@ export function useUpbitPrices(options = {}) {
    * 가격 강제 새로고침
    */
   const refresh = useCallback(async () => {
-    console.log('🔄 업비트 가격 강제 새로고침 요청');
+    logger.debug('업비트 가격 강제 새로고침 요청');
     await loadPrices(true);
   }, [loadPrices]);
 
@@ -175,11 +176,11 @@ export function useUpbitPrices(options = {}) {
     }
 
     refreshTimerRef.current = setInterval(async () => {
-      console.log('⏰ 자동 업비트 가격 새로고침 (5초 경과)');
+      logger.performance('자동 업비트 가격 새로고침 (30초 경과)');
       await loadPrices(false); // 캐시 사용
     }, HOOK_CONFIG.REFRESH_INTERVAL);
 
-    console.log('⏰ 업비트 자동 새로고침 타이머 설정됨 (5초 간격)');
+    logger.debug('업비트 자동 새로고침 타이머 설정됨 (30초 간격)');
   }, [autoRefresh, loadPrices]);
 
   /**
@@ -189,9 +190,9 @@ export function useUpbitPrices(options = {}) {
     if (document.visibilityState === 'visible' && lastUpdated) {
       const timeSinceUpdate = Date.now() - lastUpdated;
       
-      // 30초 이상 지났으면 백그라운드 새로고침
+      // 60초 이상 지났으면 백그라운드 새로고침
       if (timeSinceUpdate > HOOK_CONFIG.BACKGROUND_REFRESH_THRESHOLD) {
-        console.log('👁️ 백그라운드에서 복귀, 업비트 가격 새로고침');
+        logger.debug('백그라운드에서 복귀, 업비트 가격 새로고침');
         loadPrices(false);
       }
     }
@@ -200,7 +201,7 @@ export function useUpbitPrices(options = {}) {
   // 에러 재시도 로직
   useEffect(() => {
     if (error && retryCount < HOOK_CONFIG.MAX_RETRY_COUNT) {
-      console.log(`🔄 업비트 API 에러 후 재시도 (${retryCount}/${HOOK_CONFIG.MAX_RETRY_COUNT})`);
+      logger.debug(`업비트 API 에러 후 재시도 (${retryCount}/${HOOK_CONFIG.MAX_RETRY_COUNT})`);
       
       errorRetryTimerRef.current = setTimeout(() => {
         loadPrices(false);

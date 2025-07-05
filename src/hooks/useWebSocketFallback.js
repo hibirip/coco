@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 
 // Fallback 설정
 const FALLBACK_CONFIG = {
-  ENABLE_FALLBACK: true, // WebSocket 실패 시 REST API 사용
+  ENABLE_FALLBACK: false, // WebSocket 실패 시 REST API 사용 비활성화
   FALLBACK_INTERVAL: 5000, // 5초마다 REST API 호출
   MAX_FAILED_ATTEMPTS: 3, // 최대 실패 횟수
   RETRY_DELAY: 10000, // 10초 후 WebSocket 재시도
@@ -73,7 +73,7 @@ export function useWebSocketFallback({
 
   // Fallback 활성화
   const activateFallback = useCallback(() => {
-    if (!enabled || isFallbackActive || !restApiFetcher) {
+    if (!enabled || !FALLBACK_CONFIG.ENABLE_FALLBACK || isFallbackActive || !restApiFetcher) {
       return;
     }
 

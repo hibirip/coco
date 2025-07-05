@@ -14,8 +14,8 @@ const LOG_LEVELS = {
   DEBUG: 3
 };
 
-// 프로덕션 환경에서는 ERROR와 WARN만 출력
-const currentLogLevel = isProduction ? LOG_LEVELS.WARN : LOG_LEVELS.DEBUG;
+// 프로덕션 환경에서는 ERROR만 출력
+const currentLogLevel = isProduction ? LOG_LEVELS.ERROR : LOG_LEVELS.DEBUG;
 
 /**
  * 조건부 로거 - 개발 환경에서만 출력
@@ -28,7 +28,7 @@ export const logger = {
     }
   },
 
-  // 경고는 프로덕션에서도 출력
+  // 경고는 개발 환경에서만 출력
   warn: (...args) => {
     if (currentLogLevel >= LOG_LEVELS.WARN) {
       console.warn('[WARN]', ...args);
@@ -57,12 +57,14 @@ export const logger = {
   },
 
   api: (...args) => {
+    // Production에서 완전 비활성화
     if (isDevelopment) {
       console.log('🌐 API:', ...args);
     }
   },
 
   price: (...args) => {
+    // Production에서 완전 비활성화
     if (isDevelopment) {
       console.log('💰 Price:', ...args);
     }
@@ -74,8 +76,9 @@ export const logger = {
     }
   },
 
-  // 성능에 민감한 영역용 (샘플링 로그)
+  // 성능 로그 완전 비활성화 (Production)
   performance: (...args) => {
+    // Production에서 완전 비활성화
     if (isDevelopment && Math.random() < 0.1) { // 10% 확률로만 출력
       console.log('⚡ Performance:', ...args);
     }
@@ -93,17 +96,15 @@ export const batchLogger = {
   },
   
   flush: () => {
-    if (batchLogger.logs.length === 0) return;
+    if (batchLogger.logs.length === 0 || !isDevelopment) return;
     
     const summary = batchLogger.logs.reduce((acc, log) => {
       acc[log.level] = (acc[log.level] || 0) + 1;
       return acc;
     }, {});
     
-    if (isDevelopment) {
-      console.log('📊 Batch Log Summary:', summary);
-      console.log('📋 Details:', batchLogger.logs);
-    }
+    console.log('📊 Batch Log Summary:', summary);
+    console.log('📋 Details:', batchLogger.logs);
     
     batchLogger.logs = [];
   }

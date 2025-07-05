@@ -4,6 +4,7 @@
  */
 
 import { API_CONFIG } from '../config/api';
+import { logger } from '../utils/logger';
 
 // 업비트 API 설정
 const UPBIT_CONFIG = {
@@ -120,7 +121,7 @@ async function fetchUpbitAPI(endpoint, params = {}, retryCount = 0) {
       }
     }
 
-    console.log(`📡 업비트 API 호출 (${retryCount + 1}/${UPBIT_CONFIG.RETRY_ATTEMPTS}):`, url.pathname);
+    logger.performance(`업비트 API 호출 (${retryCount + 1}/${UPBIT_CONFIG.RETRY_ATTEMPTS}): ${url.pathname}`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_CONFIG.TIMEOUT);
@@ -140,17 +141,17 @@ async function fetchUpbitAPI(endpoint, params = {}, retryCount = 0) {
     }
     
     const data = await response.json();
-    console.log(`✅ 업비트 API 응답: ${response.status} (${Array.isArray(data) ? data.length : 1}개 항목)`);
+    logger.performance(`업비트 API 응답: ${response.status} (${Array.isArray(data) ? data.length : 1}개 항목)`);
     
     return data;
     
   } catch (error) {
-    console.error(`❌ 업비트 API 호출 실패 (${retryCount + 1}회):`, error.message);
+    logger.error(`업비트 API 호출 실패 (${retryCount + 1}회): ${error.message}`);
     
     // 재시도 로직
     if (retryCount < UPBIT_CONFIG.RETRY_ATTEMPTS - 1) {
       const delay = Math.pow(2, retryCount) * 1000; // 지수 백오프
-      console.log(`🔄 ${delay}ms 후 재시도...`);
+      logger.debug(`${delay}ms 후 재시도...`);
       
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchUpbitAPI(endpoint, params, retryCount + 1);
@@ -169,7 +170,7 @@ export async function getUpbitMarkets() {
     const cacheKey = 'upbit_markets';
     const cached = getCachedData(cacheKey);
     if (cached) {
-      console.log('✅ 캐시된 업비트 마켓 사용');
+      logger.debug('캐시된 업비트 마켓 사용');
       return cached;
     }
     
@@ -184,13 +185,13 @@ export async function getUpbitMarkets() {
       market.market && market.market.startsWith('KRW-')
     );
     
-    console.log(`📊 업비트 KRW 마켓: ${krwMarkets.length}개`);
+    logger.performance(`업비트 KRW 마켓: ${krwMarkets.length}개`);
     
     setCachedData(cacheKey, krwMarkets);
     return krwMarkets;
     
   } catch (error) {
-    console.error('업비트 마켓 조회 오류:', error);
+    logger.error('업비트 마켓 조회 오류:', error);
     throw new Error(`업비트 마켓 조회 실패: ${error.message}`);
   }
 }
@@ -213,7 +214,7 @@ export async function getUpbitTickers(markets) {
     const cacheKey = `upbit_tickers_${marketsParam.replace(/,/g, '_')}`;
     const cached = getCachedData(cacheKey);
     if (cached) {
-      console.log(`✅ 캐시된 업비트 현재가 사용 (${limitedMarkets.length}개)`);
+      logger.debug(`캐시된 업비트 현재가 사용 (${limitedMarkets.length}개)`);
       return cached;
     }
     
@@ -225,13 +226,13 @@ export async function getUpbitTickers(markets) {
       throw new Error('업비트 현재가 응답이 배열이 아닙니다');
     }
     
-    console.log(`📊 업비트 현재가 조회: ${tickers.length}개`);
+    logger.performance(`업비트 현재가 조회: ${tickers.length}개`);
     
     setCachedData(cacheKey, tickers);
     return tickers;
     
   } catch (error) {
-    console.error('업비트 현재가 조회 오류:', error);
+    logger.error('업비트 현재가 조회 오류:', error);
     throw new Error(`업비트 현재가 조회 실패: ${error.message}`);
   }
 }
@@ -249,7 +250,7 @@ export async function getUpbitTickerSingle(market) {
     }
     return tickers[0];
   } catch (error) {
-    console.error(`업비트 ${market} 현재가 조회 오류:`, error);
+    logger.error(`업비트 ${market} 현재가 조회 오류:`, error);
     throw error;
   }
 }

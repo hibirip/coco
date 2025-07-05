@@ -5,7 +5,6 @@
 
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
-import { fetchWithCorsProxy } from '../config/cors';
 
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
@@ -57,15 +56,13 @@ export async function getBatchUpbitTickerData(markets) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
     
-    const response = await fetchWithCorsProxy(url, {
+    const response = await fetch(url, {
       method: 'GET',
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
-      },
-      mode: 'cors',
-      credentials: 'omit'
+      }
     });
     
     clearTimeout(timeoutId);
@@ -141,7 +138,7 @@ export function transformUpbitTickerData(tickerData) {
       source: 'upbit-rest-api'
     };
   } catch (error) {
-    console.error('❌ 업비트 ticker 데이터 변환 실패:', error, tickerData);
+    logger.error('업비트 ticker 데이터 변환 실패:', error, tickerData);
     return null;
   }
 }
@@ -161,7 +158,7 @@ export async function getUpbitTickerData(market) {
  */
 export function clearUpbitTickerCache() {
   tickerCache.clear();
-  console.log('🗑️ 업비트 ticker 캐시 초기화');
+  logger.debug('업비트 ticker 캐시 초기화');
 }
 
 // 기본 export

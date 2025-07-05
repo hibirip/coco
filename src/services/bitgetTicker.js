@@ -5,7 +5,6 @@
 
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
-import { fetchWithCorsProxy } from '../config/cors';
 
 // Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
@@ -71,15 +70,13 @@ async function fetchBitgetTickerData(symbol) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
     
-    const response = await fetchWithCorsProxy(url, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      signal: controller.signal,
-      mode: 'cors',
-      credentials: 'omit'
+      signal: controller.signal
     });
     
     clearTimeout(timeoutId);
@@ -119,15 +116,13 @@ async function fetchAllBitgetTickersData() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
     
-    const response = await fetchWithCorsProxy(url, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      signal: controller.signal,
-      mode: 'cors',
-      credentials: 'omit'
+      signal: controller.signal
     });
     
     clearTimeout(timeoutId);

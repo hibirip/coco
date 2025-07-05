@@ -1,13 +1,10 @@
 /**
- * API 설정 - 중앙화된 API 엔드포인트 관리
- * 환경에 따라 적절한 URL을 반환
+ * API 설정 - Express 서버 통합 API 관리
+ * 모든 환경에서 Express 서버(localhost:8080)를 통해 API 호출
  */
 
-// API 기본 URL 설정
-// 개발 환경: 비어있으면 Vite 프록시 사용 (상대 경로)
-// 운영 환경: 환경 변수에서 설정된 URL 사용
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const IS_PRODUCTION = import.meta.env.PROD;
+// Express 서버 URL (모든 환경에서 동일)
+const EXPRESS_SERVER_URL = 'http://localhost:8080';
 
 // API 타입별 경로 설정
 const API_PATHS = {
@@ -20,7 +17,7 @@ const API_PATHS = {
 /**
  * API 엔드포인트 생성
  * @param {string} apiType - API 타입 (BITGET, UPBIT, EXCHANGE_RATE, NEWS)
- * @returns {string} 완성된 API URL
+ * @returns {string} Express 서버를 통한 API URL
  */
 export function getApiEndpoint(apiType) {
   const path = API_PATHS[apiType];
@@ -28,12 +25,8 @@ export function getApiEndpoint(apiType) {
     throw new Error(`Unknown API type: ${apiType}`);
   }
 
-  // 운영 환경에서는 항상 CORS 프록시를 통해 접근
-  // 직접 API 호출은 CORS 에러를 발생시킴
-
-  // API_BASE_URL이 비어있으면 상대 경로 반환 (Vite 프록시 사용)
-  // API_BASE_URL이 있으면 절대 경로 반환 (운영 환경)
-  return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+  // 모든 환경에서 Express 서버를 통해 API 호출
+  return `${EXPRESS_SERVER_URL}${path}`;
 }
 
 /**
@@ -83,22 +76,5 @@ export const API_CONFIG = {
   }
 };
 
-/**
- * API URL 로깅 (디버깅용)
- */
-export function logApiConfig() {
-  console.log('=== API Configuration ===');
-  console.log('API_BASE_URL:', API_BASE_URL || '(Using Vite Proxy)');
-  console.log('Bitget:', API_CONFIG.BITGET.BASE_URL);
-  console.log('Upbit:', API_CONFIG.UPBIT.BASE_URL);
-  console.log('Exchange Rate:', API_CONFIG.EXCHANGE_RATE.BASE_URL);
-  console.log('News:', API_CONFIG.NEWS.BASE_URL);
-  console.log('========================');
-}
-
-// 개발 환경에서만 설정 로깅
-if (import.meta.env.DEV) {
-  logApiConfig();
-}
 
 export default API_CONFIG;

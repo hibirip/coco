@@ -326,12 +326,12 @@ export function useBitgetWebSocket({
     }
   }, [updatePriceData]);
 
-  // WebSocket Fallback Hook 사용
+  // WebSocket Fallback Hook 사용 (비활성화)
   const fallback = useWebSocketFallback({
     wsConnected: isConnected,
     restApiFetcher,
     symbols,
-    enabled: enabled && !isConnected
+    enabled: false // 중복 요청 방지를 위해 완전 비활성화
   });
 
   // 메시지 수신 타임아웃 감지
