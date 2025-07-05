@@ -3,7 +3,7 @@
  * 실시간 가격 데이터 표시, 김치프리미엄 옵션, 즐겨찾기 기능
  */
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrices } from '../../contexts';
 import { 
