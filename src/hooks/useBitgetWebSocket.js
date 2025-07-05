@@ -63,7 +63,7 @@ export function useBitgetWebSocket({
       
       // Ping 응답 처리
       if (data.event === 'pong') {
-        logger.debug('Bitget WebSocket: Pong 수신');
+        logger.performance('Bitget WebSocket: Pong 수신');
         return;
       }
       
@@ -125,7 +125,8 @@ export function useBitgetWebSocket({
               setLastDataReceived(new Date().toLocaleTimeString());
               setDataCount(prev => prev + 1);
               
-              logger.debug(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
+              // 성능 로그 - 10% 확률로만 출력
+              logger.performance(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
             } else {
               logger.warn(`Bitget WebSocket: 변환된 데이터가 유효하지 않음 (${tickerData.instId})`);
             }
@@ -199,7 +200,7 @@ export function useBitgetWebSocket({
         pingIntervalRef.current = setInterval(() => {
           if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ op: 'ping' }));
-            logger.debug('Bitget WebSocket: Ping 전송');
+            logger.performance('Bitget WebSocket: Ping 전송');
           }
         }, BITGET_WS_CONFIG.PING_INTERVAL);
       };
