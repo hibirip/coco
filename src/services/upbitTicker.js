@@ -10,7 +10,7 @@ const UPBIT_API_CONFIG = {
   // 개발환경은 직접 호출, 배포환경은 allorigins 사용 (가장 안정적)
   BASE_URL: import.meta.env.DEV ? 
     'https://api.upbit.com' : 
-    'https://api.allorigins.win/get?url=https://api.upbit.com',
+    'https://api.allorigins.win/get',
   TICKER_ENDPOINT: '/v1/ticker',
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
   CACHE_DURATION: 5000, // 5초 캐시
@@ -135,7 +135,7 @@ export async function getBatchUpbitTickerData(markets) {
     } else {
       // 배포환경: allorigins를 통한 프록시 (JSON 응답 형태)
       const targetUrl = encodeURIComponent(`https://api.upbit.com${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}`);
-      url = `${UPBIT_API_CONFIG.BASE_URL}=${targetUrl}`;
+      url = `${UPBIT_API_CONFIG.BASE_URL}?url=${targetUrl}`;
     }
     
     const controller = new AbortController();

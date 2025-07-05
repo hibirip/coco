@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 // Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
   // 개발환경에서는 proxy 사용, 배포환경에서는 allorigins 사용
-  BASE_URL: import.meta.env.DEV ? '/api/bitget' : 'https://api.allorigins.win/get?url=https://api.bitget.com',
+  BASE_URL: import.meta.env.DEV ? '/api/bitget' : 'https://api.allorigins.win/get',
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
   TICKERS_ENDPOINT: '/api/v2/spot/market/tickers',
   SINGLE_TICKER_ENDPOINT: '/api/v2/spot/market/ticker',
@@ -69,7 +69,7 @@ async function fetchBitgetTickerData(symbol) {
     } else {
       // 배포환경: allorigins 사용
       const targetUrl = encodeURIComponent(`https://api.bitget.com${BITGET_TICKER_CONFIG.SINGLE_TICKER_ENDPOINT}?${params}`);
-      url = `${BITGET_TICKER_CONFIG.BASE_URL}=${targetUrl}`;
+      url = `${BITGET_TICKER_CONFIG.BASE_URL}?url=${targetUrl}`;
     }
     
     logger.api(`Bitget Ticker API 요청: ${symbol}`);
@@ -209,7 +209,7 @@ async function fetchAllBitgetTickersData() {
     } else {
       // 배포환경: allorigins 사용
       const targetUrl = encodeURIComponent(`https://api.bitget.com${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`);
-      url = `${BITGET_TICKER_CONFIG.BASE_URL}=${targetUrl}`;
+      url = `${BITGET_TICKER_CONFIG.BASE_URL}?url=${targetUrl}`;
     }
     
     logger.api('Bitget All Tickers API 요청');
