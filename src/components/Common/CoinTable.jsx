@@ -204,13 +204,6 @@ export default function CoinTable({
   const isBitgetFullyConnected = useMemo(() => {
     const priceDataCount = Object.keys(prices).length;
     
-    // 디버깅 정보 출력 (모든 환경에서 동일)
-    console.log('🔍 Bitget 연결 상태 체크:', {
-      priceDataCount,
-      exchangeRate,
-      tableDataLength: tableData.length
-    });
-    
     // 매우 관대한 조건: 가격 데이터가 1개라도 있으면 OK
     return priceDataCount > 0;
   }, [prices, exchangeRate, tableData.length]);
@@ -224,7 +217,6 @@ export default function CoinTable({
     
     // 2초 후에는 무조건 로딩 상태 해제 (더 빠른 타임아웃)
     const timeout = setTimeout(() => {
-      console.log('⏰ 타임아웃으로 로딩 상태 해제');
       setIsInitialLoading(false);
     }, 2000);
     

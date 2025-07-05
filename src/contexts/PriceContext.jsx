@@ -535,7 +535,7 @@ export const ALL_COINS = {
   SSX: {
     symbol: 'SSXUSDT',
     name: 'SOMESING',
-    upbitMarket: 'KRW-SSX',
+    upbitMarket: null, // 업비트에 상장되지 않음
     priority: 86
   },
   META: {
@@ -547,7 +547,7 @@ export const ALL_COINS = {
   FCT: {
     symbol: 'FCTUSDT',
     name: 'Factom',
-    upbitMarket: 'KRW-FCT',
+    upbitMarket: null, // 업비트에서 제거됨
     priority: 88
   },
   CBK: {

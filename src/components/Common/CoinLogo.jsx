@@ -28,8 +28,8 @@ const CoinLogo = ({
   // 로고 URL 체인 생성 (다단계 대체)
   const logoUrls = [
     getCoinLogoUrl(symbol),      // 1순위: CoinMarketCap
-    getFallbackLogoUrl(cleanSymbol), // 2순위: 검증된 대체 로고들
-    `https://via.placeholder.com/64x64/3B82F6/FFFFFF?text=${cleanSymbol.slice(0, 2)}` // 3순위: 플레이스홀더
+    getFallbackLogoUrl(cleanSymbol) // 2순위: 검증된 대체 로고들
+    // 3순위는 CSS 폴백으로 처리 (네트워크 요청 없음)
   ].filter(Boolean); // 빈 값 제거
   
   // 심볼 변경 시 캐시 확인 및 상태 초기화
