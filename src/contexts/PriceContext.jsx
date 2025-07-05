@@ -1074,7 +1074,7 @@ export function PriceProvider({ children }) {
       payload: 1380
     });
     
-    // 간단한 환율 로드 (에러 처리 강화)
+    // 간단한 환율 로드 (에러 처리 강화) - 즉시 로드
     const loadExchangeRate = async () => {
       try {
         const rateData = await getUSDKRWRate(false);
@@ -1090,12 +1090,10 @@ export function PriceProvider({ children }) {
       }
     };
     
-    // 5초 후에 환율 로드 시도
-    const timeout = setTimeout(loadExchangeRate, 5000);
+    // 즉시 환율 로드 시도
+    loadExchangeRate();
     
-    return () => {
-      clearTimeout(timeout);
-    };
+    return () => {};
   }, []);
   
   // K-line 데이터 자동 업데이트 (10분마다) - 단순화
@@ -1131,7 +1129,11 @@ export function PriceProvider({ children }) {
       try {
         console.log('💰 Bitget REST API 데이터 로드 중...');
         
-        const tickerDataMap = await getBatchTickerData(ALL_SYMBOLS);
+        // 초기 로드시 주요 코인만 먼저 로드 (빠른 표시)
+        const isInitialLoad = Object.keys(state.prices).length === 0;
+        const symbolsToLoad = isInitialLoad ? MAJOR_SYMBOLS : ALL_SYMBOLS;
+        
+        const tickerDataMap = await getBatchTickerData(symbolsToLoad);
         let updateCount = 0;
         Object.entries(tickerDataMap).forEach(([symbol, tickerData]) => {
           if (tickerData) {
@@ -1141,6 +1143,20 @@ export function PriceProvider({ children }) {
         });
         
         console.log(`✅ Bitget 데이터 업데이트: ${updateCount}개 코인`);
+        
+        // 초기 로드시 나머지 코인도 로드
+        if (isInitialLoad && symbolsToLoad.length < ALL_SYMBOLS.length) {
+          setTimeout(async () => {
+            const remainingSymbols = ALL_SYMBOLS.filter(s => !MAJOR_SYMBOLS.includes(s));
+            const remainingData = await getBatchTickerData(remainingSymbols);
+            Object.entries(remainingData).forEach(([symbol, tickerData]) => {
+              if (tickerData) {
+                updatePrice(symbol, tickerData);
+              }
+            });
+            console.log(`✅ 나머지 코인 데이터 로드 완료`);
+          }, 1000);
+        }
         
       } catch (error) {
         console.error('❌ Bitget REST API 실패:', error);
@@ -1162,7 +1178,7 @@ export function PriceProvider({ children }) {
         console.log('🛑 Bitget REST API 업데이트 정리');
       }
     };
-  }, [updatePrice, addError]);
+  }, [updatePrice, addError, state.prices]);
   
   // 업비트 REST API Ticker 데이터 자동 업데이트
   useEffect(() => {
@@ -1172,8 +1188,9 @@ export function PriceProvider({ children }) {
       try {
         console.log('💰 업비트 REST API 데이터 로드 중...');
         
-        // 전체 코인들의 업비트 마켓 가져오기
-        const upbitMarkets = ALL_UPBIT_MARKETS;
+        // 초기 로드시 주요 코인만 먼저 로드
+        const isInitialLoad = Object.keys(state.upbitPrices).length === 0;
+        const upbitMarkets = isInitialLoad ? MAJOR_UPBIT_MARKETS : ALL_UPBIT_MARKETS;
         
         console.log('📋 업비트 마켓 목록:', upbitMarkets);
         

@@ -15,6 +15,7 @@ import {
 } from '../../utils';
 import { CoinLogoWithInfo } from './CoinLogo';
 import { SparklineWithTrend, MockSparkline } from './Sparkline';
+import LoadingSpinner from './LoadingSpinner';
 
 /**
  * CoinTable 컴포넌트
@@ -42,6 +43,7 @@ export default function CoinTable({
   const [favorites, setFavorites] = useState(new Set());
   const [sortBy, setSortBy] = useState('priority');
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' 또는 'desc'
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // PriceContext에서 데이터 가져오기
   const {
@@ -179,6 +181,21 @@ export default function CoinTable({
     hasFullConnection: isConnected && upbitIsConnected && exchangeRate
   }), [isConnected, upbitIsConnected, exchangeRate]);
 
+  // 초기 로딩 상태 관리
+  useEffect(() => {
+    // 데이터가 하나라도 있으면 로딩 완료
+    if (tableData.length > 0 || (customData && customData.length > 0)) {
+      setIsInitialLoading(false);
+    }
+    
+    // 3초 후에는 무조건 로딩 상태 해제 (타임아웃)
+    const timeout = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 3000);
+    
+    return () => clearTimeout(timeout);
+  }, [tableData.length, customData]);
+
   return (
     <div className={`bg-section rounded-lg overflow-hidden ${className}`}>
       {/* 검색 컨트롤 */}
@@ -263,7 +280,20 @@ export default function CoinTable({
             </tr>
           </thead>
           <tbody>
-            {tableData.length > 0 ? (
+            {isInitialLoading ? (
+              // 초기 로딩 화면
+              <tr>
+                <td 
+                  colSpan={showFavorites && showKimchi ? 8 : showFavorites || showKimchi ? 7 : 6}
+                  className="px-4 py-16"
+                >
+                  <LoadingSpinner 
+                    size="lg" 
+                    text="코인 시세 데이터를 불러오는 중..." 
+                  />
+                </td>
+              </tr>
+            ) : tableData.length > 0 ? (
               tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
                 <tr 
                   key={symbol}
@@ -501,7 +531,15 @@ export default function CoinTable({
 
         {/* 모바일 카드 리스트 */}
         <div className="md:hidden space-y-2">
-          {tableData.length > 0 ? (
+          {isInitialLoading ? (
+            // 모바일 로딩 화면
+            <div className="py-16">
+              <LoadingSpinner 
+                size="lg" 
+                text="코인 시세 데이터를 불러오는 중..." 
+              />
+            </div>
+          ) : tableData.length > 0 ? (
             tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
               <div 
                 key={symbol}
