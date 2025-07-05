@@ -75,11 +75,32 @@ export function useBitgetWebSocket({
       
       // 실제 가격 데이터 처리 (Bitget v2 API 형식)
       if (data.action === 'snapshot' || data.action === 'update') {
-        const tickerArray = data.data;
-        if (!Array.isArray(tickerArray) || tickerArray.length === 0) return;
+        let tickerArray = data.data;
         
-        tickerArray.forEach(tickerData => {
-          if (!tickerData || !tickerData.instId) return;
+        // 데이터 형식 확인 및 정규화
+        if (!tickerArray) {
+          logger.warn('Bitget WebSocket: 데이터가 비어있음');
+          return;
+        }
+        
+        // 단일 객체인 경우 배열로 변환
+        if (!Array.isArray(tickerArray)) {
+          tickerArray = [tickerArray];
+        }
+        
+        if (tickerArray.length === 0) {
+          logger.debug('Bitget WebSocket: 비어있는 데이터 배열');
+          return;
+        }
+        
+        // 안전한 배열 처리
+        for (let i = 0; i < tickerArray.length; i++) {
+          const tickerData = tickerArray[i];
+          
+          if (!tickerData || !tickerData.instId) {
+            logger.debug(`Bitget WebSocket: 잘못된 데이터 형식 (index: ${i})`);
+            continue;
+          }
           
           try {
             // Bitget WebSocket 데이터 형식 변환
@@ -105,11 +126,13 @@ export function useBitgetWebSocket({
               setDataCount(prev => prev + 1);
               
               logger.debug(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
+            } else {
+              logger.warn(`Bitget WebSocket: 변환된 데이터가 유효하지 않음 (${tickerData.instId})`);
             }
           } catch (transformError) {
             logger.warn(`Bitget WebSocket 데이터 변환 오류 (${tickerData.instId}):`, transformError);
           }
-        });
+        }
       }
       
     } catch (error) {

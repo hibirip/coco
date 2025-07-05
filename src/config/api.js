@@ -7,6 +7,7 @@
 // 개발 환경: 비어있으면 Vite 프록시 사용 (상대 경로)
 // 운영 환경: 환경 변수에서 설정된 URL 사용
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const IS_PRODUCTION = import.meta.env.PROD;
 
 // API 타입별 경로 설정
 const API_PATHS = {
@@ -25,6 +26,22 @@ export function getApiEndpoint(apiType) {
   const path = API_PATHS[apiType];
   if (!path) {
     throw new Error(`Unknown API type: ${apiType}`);
+  }
+
+  // 운영 환경에서 프록시 서버가 없는 경우 직접 API 호출
+  if (IS_PRODUCTION && !API_BASE_URL) {
+    switch (apiType) {
+      case 'BITGET':
+        return 'https://api.bitget.com';
+      case 'UPBIT':
+        return 'https://api.upbit.com';
+      case 'EXCHANGE_RATE':
+        return 'https://api.exchangerate-api.com/v4/latest/USD';
+      case 'NEWS':
+        return 'https://api.coinness.com/v2';
+      default:
+        return path;
+    }
   }
 
   // API_BASE_URL이 비어있으면 상대 경로 반환 (Vite 프록시 사용)

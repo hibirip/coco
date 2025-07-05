@@ -294,6 +294,21 @@ export async function getTickerData(symbol) {
       return cachedData;
     }
     
+    // 운영 환경에서는 Mock 데이터 사용
+    if (BITGET_TICKER_CONFIG.USE_MOCK) {
+      logger.info(`Mock 데이터 사용 (${symbol})`);
+      const mockData = generateMockTickerData();
+      const tickerData = mockData.find(ticker => ticker.symbol === symbol.toUpperCase());
+      
+      if (tickerData) {
+        const transformedData = transformBitgetTickerData(tickerData);
+        if (transformedData) {
+          setCachedData(symbol, transformedData);
+          return transformedData;
+        }
+      }
+    }
+    
     // 전체 티커에서 단일 심볼 찾기 (단일 API가 작동하지 않으므로)
     const allTickersData = await fetchAllBitgetTickersData();
     const tickerData = allTickersData.find(ticker => ticker.symbol === symbol.toUpperCase());
@@ -316,6 +331,20 @@ export async function getTickerData(symbol) {
     
   } catch (error) {
     logger.error(`Ticker 데이터 가져오기 실패 (${symbol}):`, error.message);
+    
+    // 오류 시 Mock 데이터로 폴백
+    logger.warn(`Mock 데이터로 폴백 (${symbol})`);
+    const mockData = generateMockTickerData();
+    const tickerData = mockData.find(ticker => ticker.symbol === symbol.toUpperCase());
+    
+    if (tickerData) {
+      const transformedData = transformBitgetTickerData(tickerData);
+      if (transformedData) {
+        setCachedData(symbol, transformedData);
+        return transformedData;
+      }
+    }
+    
     throw error;
   }
 }
