@@ -5,13 +5,13 @@
 
 import { logger } from '../utils/logger';
 
-// Bitget Kline API 설정
+// Bitget Kline API 설정 - 로컬과 배포환경 100% 동일하게 설정
 const BITGET_KLINE_CONFIG = {
-  // 개발환경에서는 proxy 사용, 배포환경에서는 CORS 프록시 사용
-  BASE_URL: import.meta.env.DEV ? '/api/bitget' : 'https://api.allorigins.win/get',
+  // 모든 환경에서 프록시 사용 (로컬 기준)
+  BASE_URL: '/api/bitget',
   KLINE_ENDPOINT: '/api/v2/spot/market/candles',
   CACHE_TTL: 5 * 60 * 1000, // 5분 캐시
-  REQUEST_TIMEOUT: 10000, // 10초 타임아웃
+  REQUEST_TIMEOUT: 3000, // 3초 타임아웃 (로컬과 동일)
   INTERVALS: {
     '1h': '1H',
     '4h': '4H', 
@@ -74,15 +74,8 @@ async function fetchBitgetKlineData(symbol, interval = '1h', limit = 24) {
       limit: limit.toString()
     });
     
-    let url;
-    if (import.meta.env.DEV) {
-      // 개발환경: 프록시 사용
-      url = `${BITGET_KLINE_CONFIG.BASE_URL}${BITGET_KLINE_CONFIG.KLINE_ENDPOINT}?${params}`;
-    } else {
-      // 배포환경: allorigins 사용
-      const targetUrl = encodeURIComponent(`https://api.bitget.com${BITGET_KLINE_CONFIG.KLINE_ENDPOINT}?${params}`);
-      url = `${BITGET_KLINE_CONFIG.BASE_URL}?url=${targetUrl}`;
-    }
+    // 모든 환경에서 동일한 프록시 사용 (로컬 기준)
+    const url = `${BITGET_KLINE_CONFIG.BASE_URL}${BITGET_KLINE_CONFIG.KLINE_ENDPOINT}?${params}`;
     
     logger.api(`Bitget Kline API 요청: ${symbol} (${interval})`);
     
@@ -106,19 +99,8 @@ async function fetchBitgetKlineData(symbol, interval = '1h', limit = 24) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    let data;
-    
-    if (import.meta.env.DEV) {
-      // 개발환경: 직접 JSON 응답
-      data = await response.json();
-    } else {
-      // 배포환경: allorigins JSON wrapper 파싱
-      const responseData = await response.json();
-      if (!responseData.contents) {
-        throw new Error('allorigins 응답에 contents가 없음');
-      }
-      data = JSON.parse(responseData.contents);
-    }
+    // 모든 환경에서 동일한 방식으로 JSON 파싱 (로컬 기준)
+    const data = await response.json();
     
     if (data.code !== '00000' || !data.data) {
       throw new Error(`API Error: ${data.msg || 'Unknown error'}`);

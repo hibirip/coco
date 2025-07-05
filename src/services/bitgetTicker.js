@@ -5,10 +5,10 @@
 
 import { logger } from '../utils/logger';
 
-// Bitget REST API 설정
+// Bitget REST API 설정 - 로컬과 배포환경 100% 동일하게 설정
 const BITGET_TICKER_CONFIG = {
-  // 개발환경에서는 proxy 사용, 배포환경에서는 CORS 프록시 사용
-  BASE_URL: import.meta.env.DEV ? '/api/bitget' : 'https://api.allorigins.win/get',
+  // 모든 환경에서 프록시 사용 (로컬 기준)
+  BASE_URL: '/api/bitget',
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
   TICKERS_ENDPOINT: '/api/v2/spot/market/tickers',
   SINGLE_TICKER_ENDPOINT: '/api/v2/spot/market/ticker',
@@ -62,15 +62,8 @@ async function fetchBitgetTickerData(symbol) {
       symbol: symbol.toUpperCase()
     });
     
-    let url;
-    if (import.meta.env.DEV) {
-      // 개발환경: 프록시 사용
-      url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.SINGLE_TICKER_ENDPOINT}?${params}`;
-    } else {
-      // 배포환경: allorigins 사용
-      const targetUrl = encodeURIComponent(`https://api.bitget.com${BITGET_TICKER_CONFIG.SINGLE_TICKER_ENDPOINT}?${params}`);
-      url = `${BITGET_TICKER_CONFIG.BASE_URL}?url=${targetUrl}`;
-    }
+    // 모든 환경에서 동일한 프록시 사용 (로컬 기준)
+    const url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.SINGLE_TICKER_ENDPOINT}?${params}`;
     
     logger.api(`Bitget Ticker API 요청: ${symbol}`);
     
@@ -94,19 +87,8 @@ async function fetchBitgetTickerData(symbol) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    let data;
-    
-    if (import.meta.env.DEV) {
-      // 개발환경: 직접 JSON 응답
-      data = await response.json();
-    } else {
-      // 배포환경: allorigins JSON wrapper 파싱
-      const responseData = await response.json();
-      if (!responseData.contents) {
-        throw new Error('allorigins 응답에 contents가 없음');
-      }
-      data = JSON.parse(responseData.contents);
-    }
+    // 모든 환경에서 동일한 방식으로 JSON 파싱 (로컬 기준)
+    const data = await response.json();
     
     if (data.code !== '00000' || !data.data) {
       throw new Error(`API Error: ${data.msg || 'Unknown error'}`);
@@ -202,15 +184,8 @@ async function fetchAllBitgetTickersData() {
   }
   
   try {
-    let url;
-    if (import.meta.env.DEV) {
-      // 개발환경: 프록시 사용
-      url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`;
-    } else {
-      // 배포환경: allorigins 사용
-      const targetUrl = encodeURIComponent(`https://api.bitget.com${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`);
-      url = `${BITGET_TICKER_CONFIG.BASE_URL}?url=${targetUrl}`;
-    }
+    // 모든 환경에서 동일한 프록시 사용 (로컬 기준)
+    const url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`;
     
     logger.api('Bitget All Tickers API 요청');
     
@@ -234,19 +209,8 @@ async function fetchAllBitgetTickersData() {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    let data;
-    
-    if (import.meta.env.DEV) {
-      // 개발환경: 직접 JSON 응답
-      data = await response.json();
-    } else {
-      // 배포환경: allorigins JSON wrapper 파싱
-      const responseData = await response.json();
-      if (!responseData.contents) {
-        throw new Error('allorigins 응답에 contents가 없음');
-      }
-      data = JSON.parse(responseData.contents);
-    }
+    // 모든 환경에서 동일한 방식으로 JSON 파싱 (로컬 기준)
+    const data = await response.json();
     
     if (data.code !== '00000' || !data.data) {
       throw new Error(`API Error: ${data.msg || 'Unknown error'}`);

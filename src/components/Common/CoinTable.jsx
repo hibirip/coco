@@ -204,14 +204,12 @@ export default function CoinTable({
   const isBitgetFullyConnected = useMemo(() => {
     const priceDataCount = Object.keys(prices).length;
     
-    // 디버깅 정보 출력 (개발 모드에서만)
-    if (import.meta.env.DEV) {
-      console.log('🔍 Bitget 연결 상태 체크:', {
-        priceDataCount,
-        exchangeRate,
-        tableDataLength: tableData.length
-      });
-    }
+    // 디버깅 정보 출력 (모든 환경에서 동일)
+    console.log('🔍 Bitget 연결 상태 체크:', {
+      priceDataCount,
+      exchangeRate,
+      tableDataLength: tableData.length
+    });
     
     // 매우 관대한 조건: 가격 데이터가 1개라도 있으면 OK
     return priceDataCount > 0;

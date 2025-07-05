@@ -1202,8 +1202,8 @@ export function PriceProvider({ children }) {
     // 즉시 로드
     fetchTickerData();
     
-    // 배포환경에서는 5초마다 업데이트 (WebSocket 대신 빠른 폴링)
-    const updateInterval = import.meta.env.DEV ? 10 * 1000 : 5 * 1000;
+    // 모든 환경에서 동일한 간격으로 업데이트 (로컬 기준)
+    const updateInterval = 10 * 1000; // 10초 간격으로 통일
     tickerInterval = setInterval(fetchTickerData, updateInterval);
     
     logger.info(`Bitget REST API 자동 업데이트 활성화 (${updateInterval/1000}초 간격)`);
@@ -1211,7 +1211,7 @@ export function PriceProvider({ children }) {
     return () => {
       if (tickerInterval) {
         clearInterval(tickerInterval);
-        logger.info('Binance REST API 업데이트 정리');
+        logger.info('Bitget REST API 업데이트 정리');
       }
     };
   }, [updatePrice, addError, state.prices]);
@@ -1323,8 +1323,8 @@ export function PriceProvider({ children }) {
     // 즉시 시작 (Binance와 동시에)
     fetchUpbitTickerData();
     
-    // 배포환경에서는 더 자주 업데이트
-    const upbitUpdateInterval = import.meta.env.DEV ? 60 * 1000 : 15 * 1000;
+    // 모든 환경에서 동일한 간격으로 업데이트 (로컬 기준)
+    const upbitUpdateInterval = 60 * 1000; // 60초 간격으로 통일
     upbitTickerInterval = setInterval(fetchUpbitTickerData, upbitUpdateInterval);
     
     logger.info(`업비트 REST API 자동 업데이트 활성화 (${upbitUpdateInterval/1000}초 간격)`);
