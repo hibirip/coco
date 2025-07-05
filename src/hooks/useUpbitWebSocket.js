@@ -13,8 +13,8 @@ const UPBIT_WS_CONFIG = {
   RECONNECT_INTERVAL: 3000, // 3초 재연결 간격
   MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
   CONNECTION_TIMEOUT: 10000, // 10초로 복원
-  USE_MOCK: false, // 실제 WebSocket 연결 사용
-  MOCK_INTERVAL: 15000 // Mock 데이터 15초 간격으로 복원
+  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 모드 사용 (WebSocket도 CORS 문제)
+  MOCK_INTERVAL: 3000 // Mock 데이터 3초 간격으로 빠르게
 };
 
 // WebSocket 연결 상태
@@ -122,23 +122,24 @@ export function useUpbitWebSocket(options = {}) {
    * Mock 데이터 생성
    */
   const generateMockUpbitData = useCallback((market) => {
+    // 비트겟 Mock 데이터와 연동된 가격 (환율 1380 기준 + 김치프리미엄)
     const basePrice = {
-      'KRW-BTC': 147800000,  // 현재 실제 가격에 가깝게
-      'KRW-ETH': 3439000,    // 현재 실제 가격에 가깝게
-      'KRW-XRP': 3037,       // 현재 실제 가격에 가깝게
-      'KRW-ADA': 1150,
-      'KRW-SOL': 203000,     // 148 USD * 1380 환율
-      'KRW-DOT': 4623,       // 3.35 USD * 1380 환율
-      'KRW-LINK': 18216,     // 13.2 USD * 1380 환율
-      'KRW-MATIC': 662,
-      'KRW-UNI': 9632,       // 6.98 USD * 1380 환율
-      'KRW-AVAX': 24647      // 17.86 USD * 1380 환율
+      'KRW-BTC': 60500000,  // Bitget $42,750 * 1380 * 1.024 (2.4% 김프)
+      'KRW-ETH': 3480000,   // Bitget $2,465 * 1380 * 1.023 (2.3% 김프)
+      'KRW-XRP': 730,       // Bitget $0.514 * 1380 * 1.03 (3% 김프)
+      'KRW-ADA': 535,       // Bitget $0.377 * 1380 * 1.029 (2.9% 김프)
+      'KRW-SOL': 132000,    // Bitget $94.2 * 1380 * 1.015 (1.5% 김프)
+      'KRW-DOT': 8700,      // Bitget $6.16 * 1380 * 1.024 (2.4% 김프)
+      'KRW-LINK': 20300,    // Bitget $14.35 * 1380 * 1.025 (2.5% 김프)
+      'KRW-MATIC': 1490,    // 약 2% 김프
+      'KRW-UNI': 9500,      // 약 2.2% 김프
+      'KRW-AVAX': 49000     // 약 2% 김프
     }[market] || 10000;
 
-    const variance = 0.015; // 1.5% 변동
+    const variance = 0.01; // 1% 변동 (작게)
     const randomChange = (Math.random() - 0.5) * variance;
     const currentPrice = basePrice * (1 + randomChange);
-    const change = basePrice * (Math.random() - 0.5) * 0.08; // 8% 범위 변동
+    const change = basePrice * (Math.random() - 0.5) * 0.06; // 6% 범위 변동
     const changePercent = (change / basePrice) * 100;
 
     return {

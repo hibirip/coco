@@ -11,7 +11,7 @@ const BITGET_WS_CONFIG = {
   URL: 'wss://ws.bitget.com/spot/v1/stream', // Spot market WebSocket URL
   FALLBACK_URL: 'wss://stream.binance.com:9443/ws/btcusdt@ticker', // Fallback for testing
   USE_FALLBACK: false, // 개발/테스트 모드에서 true로 설정
-  USE_MOCK: false, // 실제 WebSocket 연결 사용
+  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 모드 사용
   RECONNECT_INTERVAL: 1000, // 초기 재연결 간격 (1초)
   MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
   PING_INTERVAL: 30000, // 30초마다 ping
