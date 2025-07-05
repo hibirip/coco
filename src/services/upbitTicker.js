@@ -5,6 +5,7 @@
 
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
+import { fetchWithCorsProxy } from '../config/cors';
 
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
@@ -13,84 +14,12 @@ const UPBIT_API_CONFIG = {
   TICKER_ENDPOINT: API_CONFIG.UPBIT.TICKER,
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
   CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
-  TIMEOUT: 8000, // 8초 타임아웃
-  MOCK_UPDATE_INTERVAL: 60000 // Mock 데이터 1분 간격 업데이트
+  TIMEOUT: 8000 // 8초 타임아웃
 };
 
 // 캐시 저장소
 const tickerCache = new Map();
 
-// 안정적인 업비트 Mock 데이터 캐시
-let stableUpbitMockData = null;
-let lastUpbitMockUpdate = 0;
-
-/**
- * 안정적인 업비트 Mock 데이터 생성 (배포환경용)
- * 1분마다만 업데이트되어 빠른 변화 방지
- */
-function generateMockUpbitData(markets) {
-  // 1분마다만 Mock 데이터 업데이트 (빠른 변화 방지)
-  const now = Date.now();
-  if (stableUpbitMockData && (now - lastUpbitMockUpdate) < UPBIT_API_CONFIG.MOCK_UPDATE_INTERVAL) {
-    return stableUpbitMockData;
-  }
-
-  // 현재 시간을 시드로 사용해서 같은 분 내에서는 동일한 값 생성
-  const timeSeed = Math.floor(now / UPBIT_API_CONFIG.MOCK_UPDATE_INTERVAL);
-
-  // 환율 1380 기준으로 김치프리미엄이 발생하도록 가격 설정 (실제 시세에 가깝게)
-  const mockPrices = {
-    'KRW-BTC': 149000000, // 실제 비트코인 시세에 가깝게 (약 $108,000 * 1380)
-    'KRW-ETH': 3470000,   // 실제 이더리움 시세에 가깝게 (약 $2,516 * 1380)
-    'KRW-XRP': 3065,      // 실제 리플 시세에 가깝게 (약 $2.22 * 1380)
-    'KRW-ADA': 1173,      // 실제 에이다 시세에 가깝게 (약 $0.85 * 1380)
-    'KRW-SOL': 204240,    // 실제 솔라나 시세에 가깝게 (약 $148 * 1380)
-    'KRW-DOT': 4623,      // 실제 폴카닷 시세에 가깝게 (약 $3.35 * 1380)
-    'KRW-LINK': 18216,    // 실제 체인링크 시세에 가깝게 (약 $13.2 * 1380)
-    'KRW-UNI': 9500,      // 유니스와프
-    'KRW-AVAX': 49000,    // 아발란체
-    'KRW-DOGE': 96.6,     // 도지코인 (약 $0.07 * 1380)
-    'KRW-SHIB': 0.0152,   // 시바이누 (약 $0.000011 * 1380)
-    'KRW-TRX': 262.2,     // 트론 (약 $0.19 * 1380)
-    // 추가 코인들
-    'KRW-LTC': 125000,
-    'KRW-BCH': 680000,
-    'KRW-ETC': 38500,
-    'KRW-ATOM': 15200,
-    'KRW-NEAR': 8900,
-    'KRW-ALGO': 250,
-    'KRW-HBAR': 145
-  };
-
-  stableUpbitMockData = markets.reduce((acc, market, index) => {
-    const basePrice = mockPrices[market] || 10000;
-    // 시드 기반 안정적 변동 (1분마다만 변화)
-    const marketSeed = (timeSeed + index) % 1000;
-    const priceVariation = ((marketSeed / 1000) - 0.5) * 0.015; // ±0.75% 변동
-    const price = basePrice * (1 + priceVariation);
-    // 전일대비 변동 시드 기반
-    const change = ((marketSeed / 500) - 1) * 0.03; // ±1.5% 변동
-    
-    acc[market] = {
-      market,
-      trade_price: Math.round(price),
-      change_price: Math.round(price * change),
-      change_rate: change,
-      change_percent: change * 100,
-      acc_trade_volume_24h: (marketSeed + 1) * 1000000,
-      high_price: Math.round(price * 1.05),
-      low_price: Math.round(price * 0.95),
-      timestamp: now,
-      source: 'upbit-mock-api'
-    };
-    return acc;
-  }, {});
-  
-  lastUpbitMockUpdate = now;
-  logger.info(`새로운 안정적 업비트 Mock 데이터 생성: ${markets.length}개 마켓`);
-  
-  return stableUpbitMockData;
-}
 
 /**
  * 업비트 API에서 ticker 데이터 가져오기
@@ -103,11 +32,6 @@ export async function getBatchUpbitTickerData(markets) {
     return {};
   }
 
-  // 배포환경에서는 Mock 데이터 사용
-  if (UPBIT_API_CONFIG.USE_MOCK) {
-    logger.info('업비트 Mock 데이터 사용 (배포환경)');
-    return generateMockUpbitData(markets);
-  }
 
   const cacheKey = markets.sort().join(',');
   const now = Date.now();
@@ -122,7 +46,7 @@ export async function getBatchUpbitTickerData(markets) {
   }
 
   try {
-    logger.api(`업비트 ticker API 호출: ${markets.length}개 마켓`);
+    logger.performance(`업비트 ticker API 호출: ${markets.length}개 마켓`);
     
     // 마켓 파라미터 생성
     const marketsParam = markets.join(',');
@@ -133,7 +57,7 @@ export async function getBatchUpbitTickerData(markets) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
     
-    const response = await fetch(url, {
+    const response = await fetchWithCorsProxy(url, {
       method: 'GET',
       signal: controller.signal,
       headers: {
@@ -153,16 +77,17 @@ export async function getBatchUpbitTickerData(markets) {
     // 모든 환경에서 동일한 방식으로 JSON 파싱 (로컬 기준)
     const tickerArray = await response.json();
     
-    logger.api(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
+    logger.performance(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
     
     // 데이터 변환
     const transformedData = {};
-    tickerArray.forEach(ticker => {
+    for (let i = 0; i < tickerArray.length; i++) {
+      const ticker = tickerArray[i];
       const transformedTicker = transformUpbitTickerData(ticker);
       if (transformedTicker) {
         transformedData[ticker.market] = transformedTicker;
       }
-    });
+    }
     
     // 캐시 저장
     tickerCache.set(cacheKey, {
@@ -170,7 +95,7 @@ export async function getBatchUpbitTickerData(markets) {
       timestamp: now
     });
     
-    logger.api(`업비트 ticker 데이터 변환 완료: ${Object.keys(transformedData).length}개 마켓`);
+    logger.performance(`업비트 ticker 데이터 변환 완료: ${Object.keys(transformedData).length}개 마켓`);
     return transformedData;
     
   } catch (error) {

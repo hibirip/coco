@@ -112,11 +112,13 @@ async function fetchUpbitAPI(endpoint, params = {}, retryCount = 0) {
     const url = new URL(`${UPBIT_CONFIG.PROXY_URL}${endpoint}`);
     
     // 쿼리 매개변수 추가
-    Object.keys(params).forEach(key => {
+    const paramKeys = Object.keys(params);
+    for (let i = 0; i < paramKeys.length; i++) {
+      const key = paramKeys[i];
       if (params[key] !== undefined) {
         url.searchParams.append(key, params[key]);
       }
-    });
+    }
 
     console.log(`📡 업비트 API 호출 (${retryCount + 1}/${UPBIT_CONFIG.RETRY_ATTEMPTS}):`, url.pathname);
     
@@ -294,7 +296,8 @@ export function transformTickersToObject(tickers) {
   
   const result = {};
   
-  tickers.forEach(ticker => {
+  for (let i = 0; i < tickers.length; i++) {
+    const ticker = tickers[i];
     if (ticker.market) {
       result[ticker.market] = {
         market: ticker.market,
@@ -308,7 +311,7 @@ export function transformTickersToObject(tickers) {
         source: 'upbit'
       };
     }
-  });
+  }
   
   return result;
 }

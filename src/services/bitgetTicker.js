@@ -263,7 +263,8 @@ export async function getBatchTickerData(symbols) {
     const tickerDataMap = {};
     let successCount = 0;
     
-    symbols.forEach(symbol => {
+    for (let i = 0; i < symbols.length; i++) {
+      const symbol = symbols[i];
       const tickerData = allTickersData.find(ticker => ticker.symbol === symbol.toUpperCase());
       
       if (tickerData) {
@@ -276,7 +277,7 @@ export async function getBatchTickerData(symbols) {
       } else {
         logger.warn(`Ticker 데이터 없음: ${symbol}`);
       }
-    });
+    }
     
     logger.performance(`배치 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
     return tickerDataMap;
@@ -298,14 +299,15 @@ export async function getBatchTickerData(symbols) {
     const tickerDataMap = {};
     let successCount = 0;
     
-    results.forEach(({ symbol, data, error }) => {
+    for (let i = 0; i < results.length; i++) {
+      const { symbol, data, error } = results[i];
       if (data && !error) {
         tickerDataMap[symbol] = data;
         successCount++;
       } else {
         logger.warn(`Ticker 데이터 실패 (${symbol}): ${error}`);
       }
-    });
+    }
     
     logger.performance(`개별 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
     return tickerDataMap;

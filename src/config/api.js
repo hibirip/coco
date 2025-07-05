@@ -28,21 +28,8 @@ export function getApiEndpoint(apiType) {
     throw new Error(`Unknown API type: ${apiType}`);
   }
 
-  // 운영 환경에서 프록시 서버가 없는 경우 직접 API 호출
-  if (IS_PRODUCTION && !API_BASE_URL) {
-    switch (apiType) {
-      case 'BITGET':
-        return 'https://api.bitget.com';
-      case 'UPBIT':
-        return 'https://api.upbit.com';
-      case 'EXCHANGE_RATE':
-        return 'https://api.exchangerate-api.com/v4/latest/USD';
-      case 'NEWS':
-        return 'https://api.coinness.com/v2';
-      default:
-        return path;
-    }
-  }
+  // 운영 환경에서는 항상 CORS 프록시를 통해 접근
+  // 직접 API 호출은 CORS 에러를 발생시킴
 
   // API_BASE_URL이 비어있으면 상대 경로 반환 (Vite 프록시 사용)
   // API_BASE_URL이 있으면 절대 경로 반환 (운영 환경)
