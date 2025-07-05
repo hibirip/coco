@@ -206,32 +206,6 @@ export default function PricesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* 페이지 헤더 */}
-      <div className="bg-section p-6 rounded-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-primary mb-2">실시간 코인시세</h1>
-            <p className="text-textSecondary">
-              {stats.totalCoins}개 코인의 실시간 가격과 김치프리미엄을 확인하세요
-            </p>
-          </div>
-          
-          {/* 연결 상태 표시 */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success' : 'bg-danger'}`}></div>
-              <span className="text-textSecondary">Bitget</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${upbitIsConnected ? 'bg-success' : 'bg-danger'}`}></div>
-              <span className="text-textSecondary">업비트</span>
-            </div>
-            <div className="text-textSecondary">
-              환율: {exchangeRate ? formatKRW(exchangeRate) : '로딩중'}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* 시장 동향 차트 */}
       <MarketOverview className="mb-6" />
