@@ -507,9 +507,9 @@ export default function CoinTable({
                   <div className="space-y-3">
                     <p className="text-lg">표시할 코인 데이터가 없습니다</p>
                     <div className="text-sm space-y-1">
-                      <p>연결 상태:</p>
-                      <p>• Binance WebSocket: {isConnected ? '✅ 연결됨' : '❌ 연결안됨'}</p>
-                      <p>• 업비트 WebSocket: {upbitIsConnected ? '✅ 연결됨' : '❌ 연결안됨'}</p>
+                      <p>데이터 상태:</p>
+                      <p>• Binance API: {Object.keys(prices).length > 0 ? '✅ 정상' : '❌ 로딩중'}</p>
+                      <p>• 업비트 API: {Object.keys(upbitPrices).length > 0 ? '✅ 정상' : '❌ 로딩중'}</p>
                       <p>• 환율 정보: {exchangeRate ? `✅ ${formatKRW(exchangeRate)}` : '❌ 없음'}</p>
                       <p>• 수신된 가격 데이터: {Object.keys(prices).length}개 (Binance), {Object.keys(upbitPrices).length}개 (업비트)</p>
                       {Object.keys(prices).length > 0 && (
@@ -520,7 +520,7 @@ export default function CoinTable({
                       )}
                     </div>
                     <p className="text-sm text-warning">
-                      WebSocket 연결이 안되어 있다면 Mock 모드로 전환됩니다. 잠시 기다려주세요.
+                      배포환경에서는 REST API를 통해 5초마다 가격 데이터를 업데이트합니다.
                     </p>
                   </div>
                 </td>

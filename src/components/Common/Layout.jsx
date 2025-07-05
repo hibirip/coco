@@ -9,9 +9,9 @@ import { useUpbitWebSocket } from '../../hooks/useUpbitWebSocket';
 const Layout = () => {
   const location = useLocation();
   
-  // WebSocket 연결 시작
-  const binanceWS = useBinanceWebSocket({ enabled: true });
-  const upbitWS = useUpbitWebSocket({ enabled: true });
+  // WebSocket 연결 시작 - 배포환경에서는 WebSocket 비활성화
+  const binanceWS = useBinanceWebSocket({ enabled: import.meta.env.DEV });
+  const upbitWS = useUpbitWebSocket({ enabled: import.meta.env.DEV });
   
   // WebSocket 상태 로깅 (개발 모드에서만)
   useEffect(() => {
