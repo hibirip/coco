@@ -13,6 +13,7 @@ import {
   getChangeColorClass,
   getCoinLogoUrl 
 } from '../../utils';
+import { CoinLogoWithInfo } from './CoinLogo';
 
 /**
  * CoinTable 컴포넌트
@@ -164,8 +165,7 @@ export default function CoinTable({
               {showFavorites && (
                 <th className="px-4 py-3 w-12">★</th>
               )}
-              <th className="px-4 py-3 min-w-[80px]">로고</th>
-              <th className="px-4 py-3 min-w-[120px]">이름</th>
+              <th className="px-4 py-3 min-w-[200px]">코인</th>
               {showKimchi && (
                 <th className="px-4 py-3 text-center min-w-[80px]">김프</th>
               )}
@@ -199,34 +199,15 @@ export default function CoinTable({
                     </td>
                   )}
 
-                  {/* 로고 */}
+                  {/* 코인 (로고 + 이름) */}
                   <td className="px-4 py-3">
-                    <div className="relative w-10 h-10">
-                      <img 
-                        src={getCoinLogoUrl(symbol)}
-                        alt={`${symbol} logo`}
-                        className="w-10 h-10 object-contain"
-                        onError={(e) => {
-                          // 로고 로드 실패 시 대체 디자인 표시
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = `
-                            <div class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                              <span class="text-primary text-sm font-bold">
-                                ${symbol.replace('USDT', '').slice(0, 2)}
-                              </span>
-                            </div>
-                          `;
-                        }}
-                      />
-                    </div>
-                  </td>
-
-                  {/* 이름 */}
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-text">{coin.name}</p>
-                      <p className="text-sm text-textSecondary">{symbol.replace('USDT', '')}</p>
-                    </div>
+                    <CoinLogoWithInfo 
+                      symbol={symbol}
+                      name={coin.name}
+                      size={32}
+                      showSymbol={true}
+                      showName={true}
+                    />
                   </td>
 
                   {/* 김치프리미엄 */}
@@ -338,7 +319,7 @@ export default function CoinTable({
               // 데이터 없음 상태
               <tr>
                 <td 
-                  colSpan={showFavorites && showKimchi ? 8 : showFavorites || showKimchi ? 7 : 6}
+                  colSpan={showFavorites && showKimchi ? 7 : showFavorites || showKimchi ? 6 : 5}
                   className="px-4 py-8 text-center text-textSecondary"
                 >
                   <div className="space-y-2">
