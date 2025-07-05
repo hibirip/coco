@@ -125,8 +125,10 @@ export function useBitgetWebSocket({
               setLastDataReceived(new Date().toLocaleTimeString());
               setDataCount(prev => prev + 1);
               
-              // 성능 로그 - 10% 확률로만 출력
-              logger.performance(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
+              // 성능 로그 - 1% 확률로만 출력 (로그 스팸 방지)
+              if (Math.random() < 0.01) {
+                logger.performance(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
+              }
             } else {
               logger.warn(`Bitget WebSocket: 변환된 데이터가 유효하지 않음 (${tickerData.instId})`);
             }

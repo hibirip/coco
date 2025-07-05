@@ -860,10 +860,6 @@ const PriceContext = createContext(null);
 export function PriceProvider({ children }) {
   const [state, dispatch] = useReducer(priceReducer, initialState);
   
-  logger.debug('PriceProvider 렌더링:', {
-    exchangeRate: state.exchangeRate
-  });
-  
   // 연결 상태 설정
   const setConnectionStatus = useCallback((isConnected) => {
     dispatch({
@@ -1029,13 +1025,6 @@ export function PriceProvider({ children }) {
     try {
       const result = calculateKimchi(upbitPrice.trade_price, bitgetPrice.price, state.exchangeRate);
       
-      // 디버깅 정보 출력 (BTC만)
-      if (symbol === 'BTCUSDT') {
-        logger.debug(`김치프리미엄 계산 성공 (${symbol}):`, {
-          premium: result.premium,
-          formatted: result.formatted
-        });
-      }
       
       return result;
     } catch (error) {
