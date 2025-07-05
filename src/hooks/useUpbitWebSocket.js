@@ -13,8 +13,8 @@ const UPBIT_WS_CONFIG = {
   RECONNECT_INTERVAL: 3000, // 3초 재연결 간격
   MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
   CONNECTION_TIMEOUT: 10000, // 10초로 복원
-  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 모드 사용 (WebSocket도 CORS 문제)
-  MOCK_INTERVAL: 3000 // Mock 데이터 3초 간격으로 빠르게
+  USE_MOCK: false, // Mock WebSocket 비활성화 (REST API만 사용)
+  MOCK_INTERVAL: 30000 // Mock 데이터 30초 간격으로 변경
 };
 
 // WebSocket 연결 상태
