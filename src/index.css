@@ -47,4 +47,23 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
+  
+  /* Mobile compact spacing utilities */
+  @media (max-width: 768px) {
+    .mobile-compact {
+      @apply p-3 !important;
+    }
+    
+    .mobile-compact-padding {
+      @apply px-3 py-2 !important;
+    }
+    
+    .mobile-compact-spacing {
+      @apply space-y-3 !important;
+    }
+    
+    .mobile-compact-gap {
+      @apply gap-3 !important;
+    }
+  }
 }

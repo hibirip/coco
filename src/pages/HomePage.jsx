@@ -16,23 +16,14 @@ export default function HomePage() {
 
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="container mx-auto px-3 py-4 space-y-4 md:px-4 md:py-8 md:space-y-6">
       {/* 메인 배너 섹션 */}
       <MainBanner />
 
       {/* 인기 코인 섹션 */}
-      <div className="bg-section p-6 rounded-lg">
+      <div className="bg-section p-4 md:p-6 rounded-lg">
         {/* 섹션 헤더 */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-              <span className="text-primary text-lg">🔥</span>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-primary">인기 코인</h2>
-              <p className="text-sm text-textSecondary">실시간 상위 10개 코인 시세</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-end mb-6">
           <Link 
             to="/prices" 
             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
@@ -52,9 +43,32 @@ export default function HomePage() {
       </div>
 
       {/* 각 페이지 프리뷰 섹션 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        {/* MockTradingPage 프리뷰 */}
+        <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+              <span className="text-green-400 text-lg">💰</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text">모의투자</h3>
+              <p className="text-sm text-textSecondary">가상 투자 연습</p>
+            </div>
+          </div>
+          <p className="text-textSecondary mb-4">
+            1,000만원 가상 자금으로 실전 같은 투자 경험을 쌓아보세요.
+          </p>
+          <Link 
+            to="/mock-trading" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <span className="text-sm font-medium">바로가기</span>
+            <span>→</span>
+          </Link>
+        </div>
+
         {/* PricesPage 프리뷰 */}
-        <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+        <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
               <span className="text-blue-400 text-lg">📊</span>
@@ -77,7 +91,7 @@ export default function HomePage() {
         </div>
 
         {/* KimchiPage 프리뷰 */}
-        <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+        <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
               <span className="text-red-400 text-lg">🌶️</span>
@@ -100,7 +114,7 @@ export default function HomePage() {
         </div>
 
         {/* NewsPage 프리뷰 */}
-        <div className="bg-section p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
+        <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
               <span className="text-purple-400 text-lg">📰</span>
@@ -124,10 +138,10 @@ export default function HomePage() {
       </div>
 
       {/* 실시간 데이터 상태 확인 */}
-      <div className="bg-section p-6 rounded-lg">
+      <div className="bg-section p-4 md:p-6 rounded-lg">
         <h2 className="text-xl font-bold text-primary mb-4">실시간 데이터 상태</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-card p-4 rounded-lg">
+          <div className="bg-card p-3 md:p-4 rounded-lg">
             <h3 className="font-medium text-text mb-2">환율 정보</h3>
             <div className="space-y-1 text-sm">
               <p>현재 환율: <span className="text-primary font-medium">
@@ -139,7 +153,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="bg-card p-4 rounded-lg">
+          <div className="bg-card p-3 md:p-4 rounded-lg">
             <h3 className="font-medium text-text mb-2">가격 데이터</h3>
             <div className="space-y-1 text-sm">
               <p>Bitget: <span className="text-primary">{Object.keys(prices).length}개</span></p>
@@ -150,7 +164,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="bg-card p-4 rounded-lg">
+          <div className="bg-card p-3 md:p-4 rounded-lg">
             <h3 className="font-medium text-text mb-2">김치프리미엄</h3>
             <div className="space-y-1 text-sm">
               <p>계산 가능: <span className="text-primary">{stats.kimchiPremiumCount}개</span></p>

@@ -42,13 +42,13 @@ const Footer = () => {
 
   return (
     <footer className="bg-section border-t border-border">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-3 py-6 md:px-4 md:py-12">
         {/* 메인 푸터 콘텐츠 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-6 md:mb-8">
           {Object.entries(footerSections).map(([key, section]) => (
             <div key={key}>
-              <h3 className="text-text font-semibold mb-4">{section.title}</h3>
-              <ul className="space-y-3">
+              <h3 className="text-text font-semibold mb-3 md:mb-4">{section.title}</h3>
+              <ul className="space-y-2 md:space-y-3">
                 {section.links.map((link) => (
                   <li key={link.name}>
                     <Link
@@ -65,9 +65,9 @@ const Footer = () => {
         </div>
 
         {/* 투자 유의사항 */}
-        <div className="border-t border-border pt-8 mb-8">
-          <div className="bg-card p-6 rounded-lg">
-            <h4 className="text-text font-semibold mb-4 flex items-center">
+        <div className="border-t border-border pt-6 md:pt-8 mb-6 md:mb-8">
+          <div className="bg-card p-4 md:p-6 rounded-lg">
+            <h4 className="text-text font-semibold mb-3 md:mb-4 flex items-center">
               <span className="text-danger mr-2">⚠️</span>
               투자 유의사항
             </h4>
@@ -89,11 +89,11 @@ const Footer = () => {
         </div>
 
         {/* 하단 카피라이트 */}
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center">
+        <div className="border-t border-border pt-6 md:pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="text-textSecondary text-sm mb-4 md:mb-0">
             © 2024 Coindex. All rights reserved.
           </div>
-          <div className="flex space-x-6">
+          <div className="flex space-x-4 md:space-x-6">
             <Link to="/terms" className="text-textSecondary text-sm hover:text-primary transition-colors">
               이용약관
             </Link>

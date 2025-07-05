@@ -1,4 +1,5 @@
 export { default as HomePage } from './HomePage';
+export { default as MockTradingPage } from './MockTradingPage';
 export { default as PricesPage } from './PricesPage';
 export { default as CoinDetailPage } from './CoinDetailPage';
 export { default as NewsPage } from './NewsPage';

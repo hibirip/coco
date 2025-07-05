@@ -8,6 +8,7 @@ import { useToast } from './hooks';
 
 // React.lazy로 페이지 컴포넌트들을 동적 import
 const HomePage = lazy(() => import('./pages/HomePage'));
+const MockTradingPage = lazy(() => import('./pages/MockTradingPage'));
 const PricesPage = lazy(() => import('./pages/PricesPage'));
 const CoinDetailPage = lazy(() => import('./pages/CoinDetailPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
@@ -26,6 +27,11 @@ function App() {
             <Route index element={
               <Suspense fallback={<LoadingSpinner />}>
                 <HomePage />
+              </Suspense>
+            } />
+            <Route path="mock-trading" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <MockTradingPage />
               </Suspense>
             } />
             <Route path="prices" element={

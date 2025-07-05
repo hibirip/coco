@@ -79,7 +79,7 @@ const COINGECKO_COIN_IDS = {
   OCEAN: 'ocean-protocol',
   ANKR: 'ankr',
   GRT: 'the-graph',
-  1INCH: '1inch',
+  '1INCH': '1inch',
   CELO: 'celo',
   MASK: 'mask-network',
   LRC: 'loopring',
