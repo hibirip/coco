@@ -7,9 +7,9 @@ import { logger } from '../utils/logger';
 
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
-  BASE_URL: 'https://api.upbit.com',
+  BASE_URL: 'https://corsproxy.io/?https://api.upbit.com',
   TICKER_ENDPOINT: '/v1/ticker',
-  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용 (CORS 문제)
+  USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
   CACHE_DURATION: 5000, // 5초 캐시
   TIMEOUT: 8000, // 8초 타임아웃
   MOCK_UPDATE_INTERVAL: 60000 // Mock 데이터 1분 간격 업데이트
