@@ -3,11 +3,13 @@
  * WebSocket 백업용 REST API 호출
  */
 
+import { logger } from '../utils/logger';
+
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
   BASE_URL: 'https://api.upbit.com',
   TICKER_ENDPOINT: '/v1/ticker',
-  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용 (CORS 문제 회피)
+  USE_MOCK: false, // Mock 모드 비활성화 - 실제 API 사용
   CACHE_DURATION: 5000, // 5초 캐시
   TIMEOUT: 8000 // 8초 타임아웃
 };
@@ -73,13 +75,13 @@ function generateMockUpbitData(markets) {
  */
 export async function getBatchUpbitTickerData(markets) {
   if (!markets || markets.length === 0) {
-    console.warn('⚠️ 업비트 ticker: 마켓 목록이 비어있음');
+    logger.warn('업비트 ticker: 마켓 목록이 비어있음');
     return {};
   }
 
   // 배포환경에서는 Mock 데이터 사용
   if (UPBIT_API_CONFIG.USE_MOCK) {
-    console.log('📊 업비트 Mock 데이터 사용 (배포환경)');
+    logger.info('업비트 Mock 데이터 사용 (배포환경)');
     return generateMockUpbitData(markets);
   }
 
@@ -90,13 +92,13 @@ export async function getBatchUpbitTickerData(markets) {
   if (tickerCache.has(cacheKey)) {
     const cached = tickerCache.get(cacheKey);
     if (now - cached.timestamp < UPBIT_API_CONFIG.CACHE_DURATION) {
-      console.log(`✅ 업비트 ticker 캐시 사용: ${markets.length}개 마켓`);
+      logger.debug(`업비트 ticker 캐시 사용: ${markets.length}개 마켓`);
       return cached.data;
     }
   }
 
   try {
-    console.log(`📡 업비트 ticker API 호출: ${markets.length}개 마켓`);
+    logger.api(`업비트 ticker API 호출: ${markets.length}개 마켓`);
     
     // 마켓 파라미터 생성
     const marketsParam = markets.join(',');
@@ -121,7 +123,7 @@ export async function getBatchUpbitTickerData(markets) {
     }
     
     const tickerArray = await response.json();
-    console.log(`📊 업비트 ticker 응답: ${tickerArray.length}개 항목`);
+    logger.api(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
     
     // 데이터 변환
     const transformedData = {};
@@ -138,21 +140,21 @@ export async function getBatchUpbitTickerData(markets) {
       timestamp: now
     });
     
-    console.log(`✅ 업비트 ticker 데이터 변환 완료: ${Object.keys(transformedData).length}개 마켓`);
+    logger.api(`업비트 ticker 데이터 변환 완료: ${Object.keys(transformedData).length}개 마켓`);
     return transformedData;
     
   } catch (error) {
-    console.error('❌ 업비트 ticker API 실패:', error.message);
+    logger.error('업비트 ticker API 실패:', error.message);
     
     // 캐시에서 이전 데이터 반환
     if (tickerCache.has(cacheKey)) {
       const cached = tickerCache.get(cacheKey);
-      console.log('🔄 업비트 ticker 캐시 데이터 반환 (API 실패)');
+      logger.debug('업비트 ticker 캐시 데이터 반환 (API 실패)');
       return cached.data;
     }
     
     // 마지막 수단: Mock 데이터 반환
-    console.log('📊 API 실패로 업비트 Mock 데이터 사용');
+    logger.warn('API 실패로 업비트 Mock 데이터 사용');
     return generateMockUpbitData(markets);
   }
 }
@@ -164,7 +166,7 @@ export async function getBatchUpbitTickerData(markets) {
  */
 export function transformUpbitTickerData(tickerData) {
   if (!tickerData || !tickerData.market) {
-    console.warn('⚠️ 업비트 ticker 데이터가 비어있음:', tickerData);
+    logger.warn('업비트 ticker 데이터가 비어있음:', tickerData);
     return null;
   }
 

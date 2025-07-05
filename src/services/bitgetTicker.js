@@ -3,11 +3,13 @@
  * REST API를 통해 실시간 가격 정보를 가져옴 (WebSocket 보완용)
  */
 
+import { logger } from '../utils/logger';
+
 // Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
   // 개발환경에서는 proxy 사용, 배포환경에서는 Mock 모드 사용 (CORS 문제 때문)
   BASE_URL: '/api/bitget',
-  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용 (CORS 방지)
+  USE_MOCK: false, // Mock 모드 비활성화 - 실제 API 사용
   TICKERS_ENDPOINT: '/api/v2/spot/market/tickers',
   SINGLE_TICKER_ENDPOINT: '/api/v2/spot/market/ticker',
   CACHE_TTL: 30 * 1000, // 30초 캐시
@@ -61,7 +63,7 @@ async function fetchBitgetTickerData(symbol) {
     
     const url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.SINGLE_TICKER_ENDPOINT}?${params}`;
     
-    console.log(`📊 Bitget Ticker API 요청: ${symbol}`);
+    logger.api(`Bitget Ticker API 요청: ${symbol}`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
@@ -87,11 +89,11 @@ async function fetchBitgetTickerData(symbol) {
       throw new Error(`API Error: ${data.msg || 'Unknown error'}`);
     }
     
-    console.log(`✅ Bitget Ticker 데이터 수신: ${symbol}`);
+    logger.api(`Bitget Ticker 데이터 수신: ${symbol}`);
     return data.data;
     
   } catch (error) {
-    console.error(`❌ Bitget Ticker API 오류 (${symbol}):`, error.message);
+    logger.error(`Bitget Ticker API 오류 (${symbol}):`, error.message);
     throw error;
   }
 }
@@ -152,14 +154,14 @@ function generateMockTickerData() {
 async function fetchAllBitgetTickersData() {
   // 배포환경에서는 Mock 데이터 사용
   if (BITGET_TICKER_CONFIG.USE_MOCK) {
-    console.log('📊 Mock 데이터 사용 (배포환경)');
+    logger.info('Mock 데이터 사용 (배포환경)');
     return generateMockTickerData();
   }
   
   try {
     const url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`;
     
-    console.log('📊 Bitget All Tickers API 요청');
+    logger.api('Bitget All Tickers API 요청');
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
@@ -185,13 +187,13 @@ async function fetchAllBitgetTickersData() {
       throw new Error(`API Error: ${data.msg || 'Unknown error'}`);
     }
     
-    console.log(`✅ Bitget All Tickers 데이터 수신: ${data.data.length}개`);
+    logger.api(`Bitget All Tickers 데이터 수신: ${data.data.length}개`);
     return data.data;
     
   } catch (error) {
-    console.error('❌ Bitget All Tickers API 오류:', error.message);
+    logger.error('Bitget All Tickers API 오류:', error.message);
     // API 실패시 Mock 데이터로 폴백
-    console.log('📊 API 실패로 Mock 데이터 사용');
+    logger.warn('API 실패로 Mock 데이터 사용');
     return generateMockTickerData();
   }
 }
@@ -243,7 +245,7 @@ export function transformBitgetTickerData(tickerData) {
       source: 'bitget-rest'
     };
   } catch (error) {
-    console.error('❌ Ticker 데이터 변환 오류:', error);
+    logger.error('Ticker 데이터 변환 오류:', error);
     return null;
   }
 }
@@ -258,7 +260,7 @@ export async function getTickerData(symbol) {
     // 캐시 확인
     const cachedData = getCachedData(symbol);
     if (cachedData) {
-      console.log(`🔄 캐시된 Ticker 데이터 사용: ${symbol}`);
+      logger.debug(`캐시된 Ticker 데이터 사용: ${symbol}`);
       return cachedData;
     }
     
@@ -283,7 +285,7 @@ export async function getTickerData(symbol) {
     return transformedData;
     
   } catch (error) {
-    console.error(`❌ Ticker 데이터 가져오기 실패 (${symbol}):`, error.message);
+    logger.error(`Ticker 데이터 가져오기 실패 (${symbol}):`, error.message);
     throw error;
   }
 }
@@ -294,7 +296,7 @@ export async function getTickerData(symbol) {
  * @returns {Promise<Object>} 심볼별 티커 데이터 객체
  */
 export async function getBatchTickerData(symbols) {
-  console.log(`📊 배치 Ticker 데이터 요청: ${symbols.length}개 심볼`);
+  logger.api(`배치 Ticker 데이터 요청: ${symbols.length}개 심볼`);
   
   try {
     // 모든 티커 데이터 한 번에 가져오기 (더 효율적)
@@ -315,18 +317,18 @@ export async function getBatchTickerData(symbols) {
           successCount++;
         }
       } else {
-        console.warn(`⚠️ Ticker 데이터 없음: ${symbol}`);
+        logger.warn(`Ticker 데이터 없음: ${symbol}`);
       }
     });
     
-    console.log(`✅ 배치 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
+    logger.api(`배치 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
     return tickerDataMap;
     
   } catch (error) {
-    console.error('❌ 배치 Ticker 데이터 오류:', error);
+    logger.error('배치 Ticker 데이터 오류:', error);
     
     // 실패 시 개별 요청으로 대체
-    console.log('🔄 개별 Ticker 요청으로 대체 시도');
+    logger.info('개별 Ticker 요청으로 대체 시도');
     
     const promises = symbols.map(symbol => 
       getTickerData(symbol)
@@ -344,11 +346,11 @@ export async function getBatchTickerData(symbols) {
         tickerDataMap[symbol] = data;
         successCount++;
       } else {
-        console.warn(`⚠️ Ticker 데이터 실패 (${symbol}): ${error}`);
+        logger.warn(`Ticker 데이터 실패 (${symbol}): ${error}`);
       }
     });
     
-    console.log(`✅ 개별 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
+    logger.api(`개별 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
     return tickerDataMap;
   }
 }
@@ -358,7 +360,7 @@ export async function getBatchTickerData(symbols) {
  */
 export function clearTickerCache() {
   tickerCache.clear();
-  console.log('🧹 Ticker 캐시 정리 완료');
+  logger.debug('Ticker 캐시 정리 완료');
 }
 
 /**
