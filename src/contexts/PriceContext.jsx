@@ -1156,65 +1156,8 @@ export function PriceProvider({ children }) {
     return () => clearTimeout(timeout);
   }, []);
 
-  // REST API Ticker 데이터 자동 업데이트 (실제 데이터)
-  useEffect(() => {
-    let tickerInterval = null;
-    
-    const fetchTickerData = async () => {
-      try {
-        logger.api('Bitget REST API 데이터 로드 중...');
-        
-        // 초기 로드시 주요 코인만 먼저 로드 (빠른 표시)
-        const isInitialLoad = Object.keys(state.prices).length === 0;
-        const symbolsToLoad = isInitialLoad ? MAJOR_SYMBOLS : ALL_SYMBOLS;
-        
-        const tickerDataMap = await getBatchTickerData(symbolsToLoad);
-        let updateCount = 0;
-        Object.entries(tickerDataMap).forEach(([symbol, tickerData]) => {
-          if (tickerData) {
-            updatePrice(symbol, tickerData);
-            updateCount++;
-          }
-        });
-        
-        logger.api(`Bitget 데이터 업데이트: ${updateCount}개 코인`);
-        
-        // 초기 로드시 나머지 코인도 로드
-        if (isInitialLoad && symbolsToLoad.length < ALL_SYMBOLS.length) {
-          setTimeout(async () => {
-            const remainingSymbols = ALL_SYMBOLS.filter(s => !MAJOR_SYMBOLS.includes(s));
-            const remainingData = await getBatchTickerData(remainingSymbols);
-            Object.entries(remainingData).forEach(([symbol, tickerData]) => {
-              if (tickerData) {
-                updatePrice(symbol, tickerData);
-              }
-            });
-            logger.api(`나머지 코인 데이터 로드 완료`);
-          }, 200);
-        }
-        
-      } catch (error) {
-        logger.error('Bitget REST API 실패:', error);
-        addError(`Bitget API 실패: ${error.message}`);
-      }
-    };
-    
-    // 즉시 로드
-    fetchTickerData();
-    
-    // 모든 환경에서 동일한 간격으로 업데이트 (로컬 기준)
-    const updateInterval = 10 * 1000; // 10초 간격으로 통일
-    tickerInterval = setInterval(fetchTickerData, updateInterval);
-    
-    logger.info(`Bitget REST API 자동 업데이트 활성화 (${updateInterval/1000}초 간격)`);
-    
-    return () => {
-      if (tickerInterval) {
-        clearInterval(tickerInterval);
-        logger.info('Bitget REST API 업데이트 정리');
-      }
-    };
-  }, [updatePrice, addError, state.prices]);
+  // Bitget REST API는 WebSocket이 처리하므로 비활성화
+  // (중복 요청 방지)
   
   // 업비트 REST API Ticker 데이터 자동 업데이트
   useEffect(() => {
@@ -1241,39 +1184,22 @@ export function PriceProvider({ children }) {
         logger.api('업비트 API 빠른 호출 시작');
         logger.debug('유효한 마켓:', validMarkets);
         
-        // 3개씩 나누어서 병렬 호출 (더 빠른 응답)
-        const batchSize = 3;
-        const batches = [];
-        for (let i = 0; i < validMarkets.length; i += batchSize) {
-          batches.push(validMarkets.slice(i, i + batchSize));
+        // Express 서버를 통한 단순한 호출
+        const marketsParam = validMarkets.join(',');
+        const url = `http://localhost:8080/api/upbit/v1/ticker?markets=${marketsParam}`;
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const allTickerData = [];
-        
-        // 배치를 병렬로 호출
-        await Promise.all(batches.map(async (batch) => {
-          try {
-            const marketsParam = batch.join(',');
-            const url = `https://api.upbit.com/v1/ticker?markets=${marketsParam}`;
-            
-            const response = await fetch(url, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; Coco/1.0)'
-              }
-            });
-            
-            if (response.ok) {
-              const batchData = await response.json();
-              allTickerData.push(...batchData);
-            }
-          } catch (error) {
-            logger.warn(`배치 호출 실패 (${batch.join(',')}):`, error.message);
-          }
-        }));
-        
-        const tickerArray = allTickerData;
+        const tickerArray = await response.json();
         logger.api(`업비트 API 응답: ${tickerArray.length}개 마켓 (요청: ${validMarkets.length}개)`);
         
         // 데이터 변환 및 업데이트

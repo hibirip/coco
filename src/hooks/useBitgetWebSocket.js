@@ -38,7 +38,7 @@ export function useBitgetWebSocket({
   enabled = true, 
   symbols = MAJOR_SYMBOLS 
 } = {}) {
-  const { updatePriceData } = usePrices();
+  const { updatePrice } = usePrices();
   
   // WebSocket 관련 상태
   const [isConnected, setIsConnected] = useState(false);
@@ -120,7 +120,7 @@ export function useBitgetWebSocket({
             
             if (transformedData && transformedData.price > 0) {
               // PriceContext 업데이트
-              updatePriceData(transformedData.symbol, transformedData);
+              updatePrice(transformedData.symbol, transformedData);
               
               setLastDataReceived(new Date().toLocaleTimeString());
               setDataCount(prev => prev + 1);
@@ -139,7 +139,7 @@ export function useBitgetWebSocket({
     } catch (error) {
       logger.error('Bitget WebSocket 메시지 파싱 오류:', error);
     }
-  }, [updatePriceData]);
+  }, [updatePrice]);
 
   // WebSocket 연결 함수
   const connect = useCallback(() => {
@@ -316,15 +316,15 @@ export function useBitgetWebSocket({
   const restApiFetcher = useCallback(async (symbol) => {
     try {
       const data = await getTickerData(symbol);
-      if (data && updatePriceData) {
-        updatePriceData(symbol, data);
+      if (data && updatePrice) {
+        updatePrice(symbol, data);
       }
       return data;
     } catch (error) {
       logger.warn(`Bitget REST API 실패 (${symbol}):`, error.message);
       throw error;
     }
-  }, [updatePriceData]);
+  }, [updatePrice]);
 
   // WebSocket Fallback Hook 사용 (비활성화)
   const fallback = useWebSocketFallback({
