@@ -126,14 +126,6 @@ export default function CoinTable({
 
   return (
     <div className={`bg-section rounded-lg overflow-hidden ${className}`}>
-      {/* 테이블 헤더 */}
-      {showHeader && (
-        <div className="p-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-text">
-            실시간 코인 시세 ({tableData.length}개)
-          </h3>
-        </div>
-      )}
 
       {/* 테이블 내용 */}
       <div className="overflow-hidden">
