@@ -3,6 +3,8 @@
  * 김치프리미엄 계산을 위한 실시간 환율 정보 제공
  */
 
+import { API_CONFIG } from '../config/api';
+
 // 환율 API 설정
 const EXCHANGE_RATE_CONFIG = {
   // 구글 검색 기준 환율 (다양한 소스 활용)
@@ -11,14 +13,14 @@ const EXCHANGE_RATE_CONFIG = {
     'https://open.er-api.com/v6/latest/USD',
     'https://api.fxratesapi.com/latest?base=USD&symbols=KRW'
   ],
-  // 프록시 서버 (로컬 개발용)
-  PROXY_URL: 'http://localhost:8080/api/exchange-rate',
+  // 프록시 서버
+  PROXY_URL: API_CONFIG.EXCHANGE_RATE.BASE_URL,
   // 구글 검색 "1달러 원화" 기준 (2025년 7월 기준)
   DEFAULT_RATE: 1380,
-  // 1시간마다 업데이트 (더 자주)
-  CACHE_DURATION: 1 * 60 * 60 * 1000, // 1시간 (밀리초)
-  UPDATE_INTERVAL: 1 * 60 * 60 * 1000, // 1시간 자동 업데이트
-  RETRY_ATTEMPTS: 3,
+  // 1시간마다 업데이트
+  CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.EXCHANGE_RATE,
+  UPDATE_INTERVAL: API_CONFIG.COMMON.CACHE_DURATION.EXCHANGE_RATE,
+  RETRY_ATTEMPTS: API_CONFIG.COMMON.RETRY_ATTEMPTS,
   TIMEOUT: 15000 // 15초 (더 여유롭게)
 };
 

@@ -2,7 +2,23 @@ node_modules
 dist
 .env
 .env.local
-.env.production
+.env.development.local
+.env.production.local
 .vscode
 .DS_Store
 *.log
+
+# Server files
+server/node_modules
+server/.env
+server/.env.local
+server/.env.production
+server/logs
+server/*.log
+
+# Build artifacts
+dist/
+build/
+
+# PM2 files
+ecosystem.config.js

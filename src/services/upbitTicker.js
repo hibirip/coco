@@ -4,14 +4,15 @@
  */
 
 import { logger } from '../utils/logger';
+import { API_CONFIG } from '../config/api';
 
-// 업비트 API 설정 - 로컬과 배포환경 100% 동일하게 설정
+// 업비트 API 설정
 const UPBIT_API_CONFIG = {
-  // 모든 환경에서 직접 호출 (로컬 기준)
-  BASE_URL: 'https://api.upbit.com',
-  TICKER_ENDPOINT: '/v1/ticker',
+  // 모든 환경에서 프록시 경유 (통일된 방식)
+  BASE_URL: API_CONFIG.UPBIT.BASE_URL,
+  TICKER_ENDPOINT: API_CONFIG.UPBIT.TICKER,
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
-  CACHE_DURATION: 5000, // 5초 캐시
+  CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
   TIMEOUT: 8000, // 8초 타임아웃
   MOCK_UPDATE_INTERVAL: 60000 // Mock 데이터 1분 간격 업데이트
 };

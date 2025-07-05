@@ -4,15 +4,16 @@
  */
 
 import { logger } from '../utils/logger';
+import { API_CONFIG } from '../config/api';
 
-// Bitget REST API 설정 - 로컬과 배포환경 100% 동일하게 설정
+// Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
-  // 모든 환경에서 프록시 사용 (로컬 기준)
-  BASE_URL: '/api/bitget',
+  // 모든 환경에서 프록시 사용
+  BASE_URL: API_CONFIG.BITGET.BASE_URL,
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
-  TICKERS_ENDPOINT: '/api/v2/spot/market/tickers',
-  SINGLE_TICKER_ENDPOINT: '/api/v2/spot/market/ticker',
-  CACHE_TTL: 10 * 1000, // 10초 캐시 (더 자주 업데이트)
+  TICKERS_ENDPOINT: API_CONFIG.BITGET.TICKER,
+  SINGLE_TICKER_ENDPOINT: API_CONFIG.BITGET.SINGLE_TICKER,
+  CACHE_TTL: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
   REQUEST_TIMEOUT: 3000, // 3초 타임아웃 (빠른 폴백)
   MOCK_UPDATE_INTERVAL: 60000 // Mock 데이터 1분 간격 업데이트
 };

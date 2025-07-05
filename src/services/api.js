@@ -2,21 +2,23 @@
  * API 서비스 - 실시간 암호화폐 가격 데이터 fetching
  */
 
-// API 엔드포인트 (Express 프록시 서버 사용)
+import { API_CONFIG } from '../config/api';
+
+// API 엔드포인트 - 중앙화된 설정 사용
 const API_ENDPOINTS = {
   BITGET: {
-    BASE_URL: 'http://localhost:8080/api/bitget',
-    TICKER: '/api/v2/spot/market/tickers',
-    PRICE: '/api/v2/spot/market/tickers' // 복수형으로 변경
+    BASE_URL: API_CONFIG.BITGET.BASE_URL,
+    TICKER: API_CONFIG.BITGET.TICKER,
+    PRICE: API_CONFIG.BITGET.TICKER
   },
   UPBIT: {
-    BASE_URL: 'http://localhost:8080/api/upbit',
-    TICKER: '/v1/ticker',
-    MARKET: '/v1/market/all'
+    BASE_URL: API_CONFIG.UPBIT.BASE_URL,
+    TICKER: API_CONFIG.UPBIT.TICKER,
+    MARKET: API_CONFIG.UPBIT.MARKET
   },
   EXCHANGE_RATE: {
-    BASE_URL: 'http://localhost:8080',
-    LATEST: '/api/exchange-rate'
+    BASE_URL: API_CONFIG.EXCHANGE_RATE.BASE_URL,
+    LATEST: API_CONFIG.EXCHANGE_RATE.LATEST
   }
 };
 

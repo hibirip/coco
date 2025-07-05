@@ -5,17 +5,19 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePrices } from '../contexts';
-import { transformBitgetTickerData } from '../services/bitgetTicker';
+import { transformBitgetTickerData, getTickerData } from '../services/bitgetTicker';
 import { logger } from '../utils/logger';
+import { useWebSocketFallback } from './useWebSocketFallback';
 
 // Bitget WebSocket 설정
 const BITGET_WS_CONFIG = {
-  URL: 'wss://ws.bitget.com/spot/v1/stream',
-  RECONNECT_INTERVAL: 5000, // 5초
-  MAX_RECONNECT_ATTEMPTS: 10,
-  PING_INTERVAL: 30000, // 30초
-  CONNECTION_TIMEOUT: 10000, // 10초
-  MESSAGE_TIMEOUT: 60000 // 1분
+  URL: 'wss://ws.bitget.com/v2/ws/public',
+  RECONNECT_INTERVAL: 3000, // 3초
+  MAX_RECONNECT_ATTEMPTS: 5,
+  PING_INTERVAL: 20000, // 20초
+  CONNECTION_TIMEOUT: 15000, // 15초
+  MESSAGE_TIMEOUT: 60000, // 1분
+  INITIAL_DELAY: 1000 // 초기 연결 지연
 };
 
 // 주요 코인 심볼들 (WebSocket 구독용)
@@ -71,35 +73,43 @@ export function useBitgetWebSocket({
         return;
       }
       
-      // 실제 가격 데이터 처리
+      // 실제 가격 데이터 처리 (Bitget v2 API 형식)
       if (data.action === 'snapshot' || data.action === 'update') {
-        const tickerData = data.data?.[0];
-        if (!tickerData) return;
+        const tickerArray = data.data;
+        if (!Array.isArray(tickerArray) || tickerArray.length === 0) return;
         
-        // Bitget WebSocket 데이터 형식 변환
-        const transformedData = transformBitgetTickerData({
-          symbol: tickerData.instId,
-          lastPr: tickerData.last,
-          open: tickerData.open24h,
-          high24h: tickerData.high24h,
-          low24h: tickerData.low24h,
-          change24h: tickerData.change24h,
-          baseVolume: tickerData.baseVol,
-          quoteVolume: tickerData.quoteVol,
-          ts: tickerData.ts,
-          bidPr: tickerData.bidPx,
-          askPr: tickerData.askPx
+        tickerArray.forEach(tickerData => {
+          if (!tickerData || !tickerData.instId) return;
+          
+          try {
+            // Bitget WebSocket 데이터 형식 변환
+            const transformedData = transformBitgetTickerData({
+              symbol: tickerData.instId,
+              lastPr: tickerData.lastPr || tickerData.last,
+              open: tickerData.open24h,
+              high24h: tickerData.high24h,
+              low24h: tickerData.low24h,
+              change24h: tickerData.change24h,
+              baseVolume: tickerData.baseVol || tickerData.baseVolume,
+              quoteVolume: tickerData.quoteVol || tickerData.quoteVolume,
+              ts: tickerData.ts || Date.now(),
+              bidPr: tickerData.bidPx || tickerData.bidPr,
+              askPr: tickerData.askPx || tickerData.askPr
+            });
+            
+            if (transformedData && transformedData.price > 0) {
+              // PriceContext 업데이트
+              updatePriceData(transformedData.symbol, transformedData);
+              
+              setLastDataReceived(new Date().toLocaleTimeString());
+              setDataCount(prev => prev + 1);
+              
+              logger.debug(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
+            }
+          } catch (transformError) {
+            logger.warn(`Bitget WebSocket 데이터 변환 오류 (${tickerData.instId}):`, transformError);
+          }
         });
-        
-        if (transformedData) {
-          // PriceContext 업데이트
-          updatePriceData(transformedData.symbol, transformedData);
-          
-          setLastDataReceived(new Date().toLocaleTimeString());
-          setDataCount(prev => prev + 1);
-          
-          logger.debug(`Bitget WebSocket 데이터 수신: ${transformedData.symbol} = $${transformedData.price}`);
-        }
       }
       
     } catch (error) {
@@ -149,10 +159,11 @@ export function useBitgetWebSocket({
         
         logger.api('Bitget WebSocket: 연결 성공');
 
-        // 심볼 구독
+        // 심볼 구독 (새로운 Bitget API v2 형식)
         const subscribeMessage = {
           op: 'subscribe',
           args: symbols.map(symbol => ({
+            instType: 'SPOT',
             channel: 'ticker',
             instId: symbol
           }))
@@ -195,8 +206,30 @@ export function useBitgetWebSocket({
       };
 
       wsRef.current.onerror = (error) => {
-        logger.error('Bitget WebSocket 오류:', error);
+        if (!mountedRef.current) return;
+        
+        clearTimeout(connectionTimeoutRef.current);
+        clearInterval(pingIntervalRef.current);
+        
+        logger.error('Bitget WebSocket 오류:', {
+          readyState: wsRef.current?.readyState,
+          url: BITGET_WS_CONFIG.URL,
+          error: error.message || 'Unknown WebSocket error'
+        });
+        
+        setIsConnected(false);
         setIsConnecting(false);
+        
+        // 오류 발생 시 재연결 시도
+        if (reconnectAttempts < BITGET_WS_CONFIG.MAX_RECONNECT_ATTEMPTS) {
+          setReconnectAttempts(prev => prev + 1);
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (mountedRef.current) {
+              logger.info(`Bitget WebSocket: 오류 후 재연결 시도 (${reconnectAttempts + 1}/${BITGET_WS_CONFIG.MAX_RECONNECT_ATTEMPTS})`);
+              connect();
+            }
+          }, BITGET_WS_CONFIG.RECONNECT_INTERVAL * (reconnectAttempts + 1)); // 지수 백오프
+        }
       };
 
     } catch (error) {
@@ -230,12 +263,23 @@ export function useBitgetWebSocket({
     setTimeout(connect, 1000);
   }, [disconnect, connect]);
 
-  // 컴포넌트 마운트 시 연결
+  // 컴포넌트 마운트 시 연결 (지연 연결)
   useEffect(() => {
     mountedRef.current = true;
     
     if (enabled) {
-      connect();
+      // 초기 연결 지연으로 다른 컴포넌트 로딩 완료 후 연결
+      const initialTimeout = setTimeout(() => {
+        if (mountedRef.current) {
+          connect();
+        }
+      }, BITGET_WS_CONFIG.INITIAL_DELAY);
+      
+      return () => {
+        clearTimeout(initialTimeout);
+        mountedRef.current = false;
+        disconnect();
+      };
     }
 
     return () => {
@@ -243,6 +287,28 @@ export function useBitgetWebSocket({
       disconnect();
     };
   }, [enabled, connect, disconnect]);
+
+  // REST API Fallback 설정
+  const restApiFetcher = useCallback(async (symbol) => {
+    try {
+      const data = await getTickerData(symbol);
+      if (data && updatePriceData) {
+        updatePriceData(symbol, data);
+      }
+      return data;
+    } catch (error) {
+      logger.warn(`Bitget REST API 실패 (${symbol}):`, error.message);
+      throw error;
+    }
+  }, [updatePriceData]);
+
+  // WebSocket Fallback Hook 사용
+  const fallback = useWebSocketFallback({
+    wsConnected: isConnected,
+    restApiFetcher,
+    symbols,
+    enabled: enabled && !isConnected
+  });
 
   // 메시지 수신 타임아웃 감지
   useEffect(() => {
@@ -271,6 +337,12 @@ export function useBitgetWebSocket({
     connect,
     disconnect,
     reconnect,
+    // Fallback 상태
+    fallback: {
+      isActive: fallback.isFallbackActive,
+      attempts: fallback.fallbackAttempts,
+      lastData: fallback.lastFallbackData
+    },
     // 디버깅용 정보
     wsInstance: wsRef.current,
     config: BITGET_WS_CONFIG

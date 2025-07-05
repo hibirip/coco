@@ -13,10 +13,15 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// CORS 허용 도메인 설정 (환경 변수 사용)
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'];
+
 // 보안 및 미들웨어 설정
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(morgan('combined'));

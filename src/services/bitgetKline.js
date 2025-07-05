@@ -4,14 +4,15 @@
  */
 
 import { logger } from '../utils/logger';
+import { API_CONFIG } from '../config/api';
 
-// Bitget Kline API 설정 - 로컬과 배포환경 100% 동일하게 설정
+// Bitget Kline API 설정
 const BITGET_KLINE_CONFIG = {
-  // 모든 환경에서 프록시 사용 (로컬 기준)
-  BASE_URL: '/api/bitget',
-  KLINE_ENDPOINT: '/api/v2/spot/market/candles',
-  CACHE_TTL: 5 * 60 * 1000, // 5분 캐시
-  REQUEST_TIMEOUT: 3000, // 3초 타임아웃 (로컬과 동일)
+  // 모든 환경에서 프록시 사용
+  BASE_URL: API_CONFIG.BITGET.BASE_URL,
+  KLINE_ENDPOINT: API_CONFIG.BITGET.KLINE,
+  CACHE_TTL: API_CONFIG.COMMON.CACHE_DURATION.KLINE,
+  REQUEST_TIMEOUT: 3000, // 3초 타임아웃
   INTERVALS: {
     '1h': '1H',
     '4h': '4H', 

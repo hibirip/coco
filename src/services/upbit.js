@@ -3,12 +3,14 @@
  * 김치프리미엄 계산을 위한 KRW 마켓 데이터 제공
  */
 
+import { API_CONFIG } from '../config/api';
+
 // 업비트 API 설정
 const UPBIT_CONFIG = {
-  PROXY_URL: 'http://localhost:8080/api/upbit',
-  CACHE_DURATION: 5000, // 5초 (실시간 데이터이므로 짧게)
-  RETRY_ATTEMPTS: 3,
-  TIMEOUT: 10000, // 10초
+  PROXY_URL: API_CONFIG.UPBIT.BASE_URL,
+  CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
+  RETRY_ATTEMPTS: API_CONFIG.COMMON.RETRY_ATTEMPTS,
+  TIMEOUT: API_CONFIG.COMMON.TIMEOUT,
   MAX_MARKETS_PER_REQUEST: 100 // 업비트 API 제한
 };
 

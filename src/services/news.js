@@ -3,11 +3,13 @@
  * 암호화폐 뉴스 조회, 카테고리별 필터링, Twitter 피드
  */
 
+import { API_CONFIG } from '../config/api';
+
 // 뉴스 서비스 설정
 const NEWS_CONFIG = {
-  PROXY_URL: 'http://localhost:8080/api/news',
+  PROXY_URL: API_CONFIG.NEWS.BASE_URL,
   COINNESS_URL: 'https://api.coinness.com/v2',
-  CACHE_DURATION: 180000, // 3분 (뉴스는 자주 업데이트되므로 짧게)
+  CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.NEWS,
   RETRY_ATTEMPTS: 2,
   TIMEOUT: 15000, // 15초
   DEFAULT_LIMIT: 20,

@@ -11,9 +11,14 @@
     "server:dev": "cd server && npm run dev",
     "server:start": "cd server && npm start",
     "build": "vite build",
+    "build:dev": "vite build --mode development",
+    "build:prod": "vite build --mode production",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "setup": "node quick-setup.js"
+    "preview:prod": "vite preview --mode production",
+    "setup": "node quick-setup.js",
+    "deploy": "npm run build:prod && echo 'Build completed. Upload dist/ folder to your server.'",
+    "deploy:test": "npm run build:dev && npm run preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",
