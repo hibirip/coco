@@ -8,11 +8,18 @@ import { API_CONFIG } from '../config/api';
 
 // Bitget Kline API 설정
 const BITGET_KLINE_CONFIG = {
-  // 모든 환경에서 프록시 사용
-  BASE_URL: API_CONFIG.BITGET.BASE_URL,
+  // 환경별 API 설정
+  get BASE_URL() {
+    try {
+      return API_CONFIG.BITGET.BASE_URL;
+    } catch (error) {
+      // 배포환경에서는 Mock 데이터 사용
+      return null;
+    }
+  },
   KLINE_ENDPOINT: API_CONFIG.BITGET.KLINE,
   CACHE_TTL: API_CONFIG.COMMON.CACHE_DURATION.KLINE,
-  REQUEST_TIMEOUT: 3000, // 3초 타임아웃
+  REQUEST_TIMEOUT: 3000,
   INTERVALS: {
     '1h': '1H',
     '4h': '4H', 
@@ -63,6 +70,11 @@ function setCachedKlineData(symbol, data, interval = '1h') {
  */
 async function fetchBitgetKlineData(symbol, interval = '1h', limit = 24) {
   try {
+    // 배포환경에서는 API 사용 불가, Mock 데이터 생성
+    if (!BITGET_KLINE_CONFIG.BASE_URL) {
+      return generateMockKlineData(symbol, limit);
+    }
+    
     // 24시간 전 시간 계산
     const endTime = Date.now();
     const startTime = endTime - (24 * 60 * 60 * 1000); // 24시간 전
@@ -75,7 +87,6 @@ async function fetchBitgetKlineData(symbol, interval = '1h', limit = 24) {
       limit: limit.toString()
     });
     
-    // 모든 환경에서 동일한 프록시 사용 (로컬 기준)
     const url = `${BITGET_KLINE_CONFIG.BASE_URL}${BITGET_KLINE_CONFIG.KLINE_ENDPOINT}?${params}`;
     
     logger.api(`Bitget Kline API 요청: ${symbol} (${interval})`);

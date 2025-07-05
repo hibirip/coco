@@ -7,7 +7,6 @@ import { createContext, useContext, useReducer, useCallback, useEffect } from 'r
 import { calculateKimchi } from '../utils/formatters';
 import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exchangeRate';
 import { getBatchSparklineData } from '../services/bitgetKline';
-import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
@@ -1173,41 +1172,14 @@ export function PriceProvider({ children }) {
         logger.api('업비트 API 빠른 호출 시작');
         logger.debug('유효한 마켓:', validMarkets);
         
-        // Express 서버를 통한 단순한 호출
-        const marketsParam = validMarkets.join(',');
-        const url = `http://localhost:8080/api/upbit/v1/ticker?markets=${marketsParam}`;
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const tickerArray = await response.json();
-        logger.api(`업비트 API 응답: ${tickerArray.length}개 마켓 (요청: ${validMarkets.length}개)`);
+        // 환경별 API 호출
+        const upbitData = await getBatchUpbitTickerData(validMarkets);
+        logger.api(`업비트 API 응답: ${Object.keys(upbitData).length}개 마켓 (요청: ${validMarkets.length}개)`);
         
         // 데이터 변환 및 업데이트
         let updateCount = 0;
-        tickerArray.forEach(ticker => {
-          const transformedTicker = {
-            market: ticker.market,
-            trade_price: parseFloat(ticker.trade_price || 0),
-            change: parseFloat(ticker.change_price || 0),
-            change_rate: parseFloat(ticker.change_rate || 0),
-            change_percent: (ticker.change_rate || 0) * 100,
-            acc_trade_volume_24h: parseFloat(ticker.acc_trade_volume_24h || 0),
-            high_price: parseFloat(ticker.high_price || 0),
-            low_price: parseFloat(ticker.low_price || 0),
-            timestamp: ticker.timestamp || Date.now(),
-            source: 'upbit-rest-api-direct'
-          };
-          
-          updateUpbitPrice(ticker.market, transformedTicker);
+        Object.values(upbitData).forEach(ticker => {
+          updateUpbitPrice(ticker.market, ticker);
           updateCount++;
         });
         
