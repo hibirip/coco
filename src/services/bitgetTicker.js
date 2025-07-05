@@ -5,9 +5,9 @@
 
 // Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
-  // 개발환경에서는 proxy 사용, 배포환경에서는 Mock 모드 사용
+  // 개발환경에서는 proxy 사용, 배포환경에서는 Mock 모드 사용 (CORS 문제 때문)
   BASE_URL: '/api/bitget',
-  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용
+  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용 (CORS 방지)
   TICKERS_ENDPOINT: '/api/v2/spot/market/tickers',
   SINGLE_TICKER_ENDPOINT: '/api/v2/spot/market/ticker',
   CACHE_TTL: 30 * 1000, // 30초 캐시
@@ -115,17 +115,22 @@ function generateMockTickerData() {
   ];
 
   return symbols.map(symbol => {
-    // 각 코인별로 다른 가격대 설정
+    // 업비트 가격에 맞춘 USD 가격 설정 (환율 1380 기준)
     let basePrice = 50;
-    if (symbol === 'BTCUSDT') basePrice = 43000;
-    else if (symbol === 'ETHUSDT') basePrice = 2500;
-    else if (symbol === 'BNBUSDT') basePrice = 300;
-    else if (symbol === 'XRPUSDT') basePrice = 0.5;
-    else if (symbol === 'ADAUSDT') basePrice = 0.4;
-    else if (symbol === 'DOGEUSDT') basePrice = 0.08;
-    else if (symbol === 'SHIBUSDT') basePrice = 0.000012;
+    if (symbol === 'BTCUSDT') basePrice = 42750; // 59M KRW / 1380
+    else if (symbol === 'ETHUSDT') basePrice = 2465; // 3.4M KRW / 1380
+    else if (symbol === 'XRPUSDT') basePrice = 0.514; // 710 KRW / 1380
+    else if (symbol === 'ADAUSDT') basePrice = 0.377; // 520 KRW / 1380
+    else if (symbol === 'SOLUSDT') basePrice = 94.2; // 130K KRW / 1380
+    else if (symbol === 'DOTUSDT') basePrice = 6.16; // 8.5K KRW / 1380
+    else if (symbol === 'LINKUSDT') basePrice = 14.35; // 19.8K KRW / 1380
+    else if (symbol === 'DOGEUSDT') basePrice = 0.079; // 109 KRW / 1380
+    else if (symbol === 'SHIBUSDT') basePrice = 0.0000116; // 0.016 KRW / 1380
+    else if (symbol === 'TRXUSDT') basePrice = 0.199; // 275 KRW / 1380
     
-    const price = basePrice * (1 + (Math.random() - 0.5) * 0.05); // ±2.5% 변동
+    // 김치프리미엄을 고려한 가격 설정 (보통 -2% ~ +5%)
+    const kimchiPremium = (Math.random() - 0.3) * 0.07; // -2.1% ~ +4.9%
+    const price = basePrice * (1 + kimchiPremium);
     const change24h = (Math.random() - 0.5) * 0.1; // ±5% 변동
     const volume = Math.random() * 100000000;
     

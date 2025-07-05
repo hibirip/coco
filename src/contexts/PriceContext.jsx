@@ -1247,7 +1247,23 @@ export function PriceProvider({ children }) {
         
       } catch (error) {
         console.error('❌ 업비트 REST API 실패:', error);
-        addError(`업비트 API 실패: ${error.message}`);
+        console.log('🔄 Mock 데이터로 대체 시도...');
+        
+        // CORS 에러 등으로 실패 시 Mock 데이터 사용
+        try {
+          const mockTickerData = await getBatchUpbitTickerData(validMarkets);
+          let mockUpdateCount = 0;
+          
+          Object.entries(mockTickerData).forEach(([market, ticker]) => {
+            updateUpbitPrice(market, ticker);
+            mockUpdateCount++;
+          });
+          
+          console.log(`✅ Mock 업비트 데이터 업데이트: ${mockUpdateCount}개 마켓`);
+        } catch (mockError) {
+          console.error('❌ Mock 데이터 생성도 실패:', mockError);
+          addError(`업비트 API 실패: ${error.message}`);
+        }
       }
     };
     

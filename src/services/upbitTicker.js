@@ -7,7 +7,7 @@
 const UPBIT_API_CONFIG = {
   BASE_URL: 'https://api.upbit.com',
   TICKER_ENDPOINT: '/v1/ticker',
-  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용
+  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용 (CORS 문제 회피)
   CACHE_DURATION: 5000, // 5초 캐시
   TIMEOUT: 8000 // 8초 타임아웃
 };
@@ -19,24 +19,35 @@ const tickerCache = new Map();
  * Mock 업비트 데이터 생성 (배포환경용)
  */
 function generateMockUpbitData(markets) {
+  // 환율 1380 기준으로 김치프리미엄이 발생하도록 가격 설정
   const mockPrices = {
-    'KRW-BTC': 59000000,
-    'KRW-ETH': 3400000,
-    'KRW-XRP': 710,
-    'KRW-ADA': 520,
-    'KRW-SOL': 130000,
-    'KRW-DOT': 8500,
-    'KRW-LINK': 19800,
-    'KRW-UNI': 9300,
-    'KRW-AVAX': 48000,
-    'KRW-DOGE': 109,
-    'KRW-SHIB': 0.016,
-    'KRW-TRX': 275
+    'KRW-BTC': 60500000,  // Bitget $42,750 * 1380 = 59,055,000 -> 약 2.4% 프리미엄
+    'KRW-ETH': 3480000,   // Bitget $2,465 * 1380 = 3,401,700 -> 약 2.3% 프리미엄
+    'KRW-XRP': 730,       // Bitget $0.514 * 1380 = 709 -> 약 3.0% 프리미엄
+    'KRW-ADA': 535,       // Bitget $0.377 * 1380 = 520 -> 약 2.9% 프리미엄
+    'KRW-SOL': 132000,    // Bitget $94.2 * 1380 = 130,000 -> 약 1.5% 프리미엄
+    'KRW-DOT': 8700,      // Bitget $6.16 * 1380 = 8,500 -> 약 2.4% 프리미엄
+    'KRW-LINK': 20300,    // Bitget $14.35 * 1380 = 19,800 -> 약 2.5% 프리미엄
+    'KRW-UNI': 9500,      // 약간의 프리미엄 추가
+    'KRW-AVAX': 49000,    // 약간의 프리미엄 추가
+    'KRW-DOGE': 112,      // Bitget $0.079 * 1380 = 109 -> 약 2.8% 프리미엄
+    'KRW-SHIB': 0.0165,   // Bitget $0.0000116 * 1380 = 0.016 -> 약 3.1% 프리미엄
+    'KRW-TRX': 282,       // Bitget $0.199 * 1380 = 275 -> 약 2.5% 프리미엄
+    // 추가 코인들
+    'KRW-LTC': 125000,
+    'KRW-BCH': 680000,
+    'KRW-ETC': 38500,
+    'KRW-ATOM': 15200,
+    'KRW-NEAR': 8900,
+    'KRW-ALGO': 250,
+    'KRW-HBAR': 145
   };
 
   return markets.reduce((acc, market) => {
     const basePrice = mockPrices[market] || 10000;
-    const price = basePrice * (1 + (Math.random() - 0.5) * 0.05);
+    // 작은 변동성 추가 (±1.5%)
+    const price = basePrice * (1 + (Math.random() - 0.5) * 0.03);
+    // 전일대비 변동 (±5%)
     const change = (Math.random() - 0.5) * 0.1;
     
     acc[market] = {
@@ -46,6 +57,8 @@ function generateMockUpbitData(markets) {
       change_rate: change,
       change_percent: change * 100,
       acc_trade_volume_24h: Math.random() * 1000000000,
+      high_price: price * 1.05,
+      low_price: price * 0.95,
       timestamp: Date.now(),
       source: 'upbit-mock-api'
     };
