@@ -232,7 +232,20 @@ export default function PricesPage() {
 
       {/* 검색 및 필터 컨트롤 */}
       <div className="bg-section p-6 rounded-lg">
-        <div className="flex flex-col lg:flex-row gap-4">
+        {/* 모바일: 검색창만 표시, 데스크톱: 모든 컨트롤 표시 */}
+        <div className="block md:hidden">
+          {/* 모바일 검색창 */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="코인명 또는 심볼 검색 (예: Bitcoin, BTC)"
+            className="w-full px-4 py-2 bg-card border border-border rounded-lg text-text placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+        </div>
+
+        {/* 데스크톱 컨트롤 */}
+        <div className="hidden md:flex flex-col lg:flex-row gap-4">
           {/* 검색 */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-text mb-2">
@@ -282,9 +295,9 @@ export default function PricesPage() {
           </div>
         </div>
 
-        {/* 확장된 필터 */}
+        {/* 확장된 필터 (데스크톱만) */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-border">
+          <div className="hidden md:block mt-4 pt-4 border-t border-border">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {FILTER_OPTIONS.map(option => (
                 <button
