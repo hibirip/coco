@@ -69,21 +69,21 @@ export default function CoinTable({
       // 기본 데이터 로직
       data = MAJOR_SYMBOLS.map(symbol => {
         const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
-        const bitgetPrice = prices[symbol];
+        const binancePrice = prices[symbol];
         const upbitPrice = upbitPrices[coin?.upbitMarket];
         const kimchiPremium = showKimchi ? calculateKimchiPremium(symbol) : null;
         
         return {
           symbol,
           coin,
-          bitgetPrice,
+          binancePrice,
           upbitPrice,
           kimchiPremium,
           sparklineData: klineData[symbol] || null,
           // 정렬을 위한 우선순위
           priority: coin?.priority || 999,
           // 데이터 유효성
-          hasData: bitgetPrice?.price || upbitPrice?.trade_price
+          hasData: binancePrice?.price || upbitPrice?.trade_price
         };
       })
       .filter(item => item.coin && item.hasData); // 유효한 데이터만 표시
@@ -95,22 +95,22 @@ export default function CoinTable({
       
       switch (sortBy) {
         case 'price':
-          aValue = a.bitgetPrice?.price || a.upbitPrice?.trade_price || 0;
-          bValue = b.bitgetPrice?.price || b.upbitPrice?.trade_price || 0;
+          aValue = a.binancePrice?.price || a.upbitPrice?.trade_price || 0;
+          bValue = b.binancePrice?.price || b.upbitPrice?.trade_price || 0;
           break;
         case 'kimchi':
           aValue = a.kimchiPremium?.premium || 0;
           bValue = b.kimchiPremium?.premium || 0;
           break;
         case 'change':
-          aValue = a.upbitPrice?.change_percent || a.bitgetPrice?.changePercent24h || 0;
-          bValue = b.upbitPrice?.change_percent || b.bitgetPrice?.changePercent24h || 0;
+          aValue = a.upbitPrice?.change_percent || a.binancePrice?.changePercent24h || 0;
+          bValue = b.upbitPrice?.change_percent || b.binancePrice?.changePercent24h || 0;
           break;
         case 'volume':
-          aValue = (a.bitgetPrice?.volume24h && a.bitgetPrice?.price) ? 
-            a.bitgetPrice.volume24h * a.bitgetPrice.price : 0;
-          bValue = (b.bitgetPrice?.volume24h && b.bitgetPrice?.price) ? 
-            b.bitgetPrice.volume24h * b.bitgetPrice.price : 0;
+          aValue = (a.binancePrice?.volume24h && a.binancePrice?.price) ? 
+            a.binancePrice.volume24h * a.binancePrice.price : 0;
+          bValue = (b.binancePrice?.volume24h && b.binancePrice?.price) ? 
+            b.binancePrice.volume24h * b.binancePrice.price : 0;
           break;
         case 'priority':
         default:
@@ -294,7 +294,7 @@ export default function CoinTable({
                 </td>
               </tr>
             ) : tableData.length > 0 ? (
-              tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
+              tableData.map(({ symbol, coin, binancePrice, upbitPrice, kimchiPremium, sparklineData }) => (
                 <tr 
                   key={symbol}
                   className="border-b border-border hover:bg-card/50 transition-colors cursor-pointer"
@@ -332,15 +332,15 @@ export default function CoinTable({
                   <td className="px-4 py-3 text-right">
                     {(() => {
                       const upbitCurrentPrice = upbitPrice?.trade_price;
-                      const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
-                        (bitgetPrice.price * exchangeRate) : null;
+                      const binancePriceKRW = binancePrice?.price && exchangeRate ? 
+                        (binancePrice.price * exchangeRate) : null;
                       
-                      if (bitgetPriceKRW) {
+                      if (binancePriceKRW) {
                         return (
                           <div>
-                            {/* 비트겟 가격 (메인) */}
+                            {/* 바이낸스 가격 (메인) */}
                             <div className="font-bold text-text">
-                              {formatKRW(bitgetPriceKRW)}
+                              {formatKRW(binancePriceKRW)}
                             </div>
                             {/* 업비트 가격 (서브) */}
                             {upbitCurrentPrice && (
@@ -357,7 +357,7 @@ export default function CoinTable({
                               {formatKRW(upbitCurrentPrice)}
                             </div>
                             <div className="text-xs font-light text-textSecondary">
-                              비트겟: 로딩 중
+                              바이낸스: 로딩 중
                             </div>
                           </div>
                         );
@@ -376,8 +376,8 @@ export default function CoinTable({
                           </div>
                           <div className="text-sm text-textSecondary">
                             {(() => {
-                              if (bitgetPrice?.price && exchangeRate) {
-                                const premiumWon = (bitgetPrice.price * exchangeRate) * (kimchiPremium.premium / 100);
+                              if (binancePrice?.price && exchangeRate) {
+                                const premiumWon = (binancePrice.price * exchangeRate) * (kimchiPremium.premium / 100);
                                 return formatKRW(Math.abs(premiumWon));
                               }
                               return '-';
@@ -388,7 +388,7 @@ export default function CoinTable({
                         // 업비트 상장 코인이지만 김프 계산 불가
                         <div className="text-xs text-textSecondary">
                           {(() => {
-                            if (!bitgetPrice?.price) return '비트겟\n연결 대기';
+                            if (!binancePrice?.price) return '바이낸스\n연결 대기';
                             if (!upbitPrice?.trade_price) return '업비트\n연결 대기';
                             if (!exchangeRate) return '환율\n로딩 중';
                             return '계산\n준비 중';
@@ -406,8 +406,8 @@ export default function CoinTable({
                   <td className="px-4 py-3 text-center">
                     {(() => {
                       const upbitChange = upbitPrice?.change_percent || 0;
-                      const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                      const primaryChange = upbitChange || bitgetChange;
+                      const binanceChange = binancePrice?.changePercent24h || 0;
+                      const primaryChange = upbitChange || binanceChange;
                       
                       return (
                         <div>
@@ -419,8 +419,8 @@ export default function CoinTable({
                               if (upbitPrice?.trade_price && primaryChange) {
                                 const changeWon = upbitPrice.trade_price * (primaryChange / 100);
                                 return formatKRW(Math.abs(changeWon));
-                              } else if (bitgetPrice?.price && exchangeRate && primaryChange) {
-                                const changeWon = (bitgetPrice.price * exchangeRate) * (primaryChange / 100);
+                              } else if (binancePrice?.price && exchangeRate && primaryChange) {
+                                const changeWon = (binancePrice.price * exchangeRate) * (primaryChange / 100);
                                 return formatKRW(Math.abs(changeWon));
                               }
                               return '-';
@@ -439,8 +439,8 @@ export default function CoinTable({
                           data={sparklineData}
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                            return upbitChange || bitgetChange;
+                            const binanceChange = binancePrice?.changePercent24h || 0;
+                            return upbitChange || binanceChange;
                           })()}
                           symbol={symbol}
                           width={80}
@@ -452,8 +452,8 @@ export default function CoinTable({
                         <MockSparkline
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                            return upbitChange || bitgetChange;
+                            const binanceChange = binancePrice?.changePercent24h || 0;
+                            return upbitChange || binanceChange;
                           })()}
                           width={80}
                           height={30}
@@ -464,20 +464,20 @@ export default function CoinTable({
                     </div>
                   </td>
 
-                  {/* 거래액(24h) - 비트겟 기준 */}
+                  {/* 거래액(24h) - 바이낸스 기준 */}
                   <td className="px-4 py-3 text-right">
                     {(() => {
-                      const bitgetVolKRW = bitgetPrice?.volume24h && bitgetPrice?.price && exchangeRate ? 
-                        (bitgetPrice.volume24h * bitgetPrice.price * exchangeRate) : 0;
+                      const binanceVolKRW = binancePrice?.volume24h && binancePrice?.price && exchangeRate ? 
+                        (binancePrice.volume24h * binancePrice.price * exchangeRate) : 0;
                       
-                      if (bitgetVolKRW > 0) {
+                      if (binanceVolKRW > 0) {
                         return (
                           <div>
                             <div className="text-text font-medium">
-                              {(bitgetVolKRW / 100000000).toFixed(1)}억 원
+                              {(binanceVolKRW / 100000000).toFixed(1)}억 원
                             </div>
                             <div className="text-xs text-textSecondary">
-                              ${(bitgetPrice.volume24h * bitgetPrice.price / 1000000).toFixed(1)}M
+                              ${(binancePrice.volume24h * binancePrice.price / 1000000).toFixed(1)}M
                             </div>
                           </div>
                         );
@@ -508,12 +508,12 @@ export default function CoinTable({
                     <p className="text-lg">표시할 코인 데이터가 없습니다</p>
                     <div className="text-sm space-y-1">
                       <p>연결 상태:</p>
-                      <p>• Bitget WebSocket: {isConnected ? '✅ 연결됨' : '❌ 연결안됨'}</p>
+                      <p>• Binance WebSocket: {isConnected ? '✅ 연결됨' : '❌ 연결안됨'}</p>
                       <p>• 업비트 WebSocket: {upbitIsConnected ? '✅ 연결됨' : '❌ 연결안됨'}</p>
                       <p>• 환율 정보: {exchangeRate ? `✅ ${formatKRW(exchangeRate)}` : '❌ 없음'}</p>
-                      <p>• 수신된 가격 데이터: {Object.keys(prices).length}개 (Bitget), {Object.keys(upbitPrices).length}개 (업비트)</p>
+                      <p>• 수신된 가격 데이터: {Object.keys(prices).length}개 (Binance), {Object.keys(upbitPrices).length}개 (업비트)</p>
                       {Object.keys(prices).length > 0 && (
-                        <p>• Bitget 코인: {Object.keys(prices).slice(0, 3).join(', ')}...</p>
+                        <p>• Binance 코인: {Object.keys(prices).slice(0, 3).join(', ')}...</p>
                       )}
                       {Object.keys(upbitPrices).length > 0 && (
                         <p>• 업비트 코인: {Object.keys(upbitPrices).slice(0, 3).join(', ')}...</p>
@@ -540,7 +540,7 @@ export default function CoinTable({
               />
             </div>
           ) : tableData.length > 0 ? (
-            tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
+            tableData.map(({ symbol, coin, binancePrice, upbitPrice, kimchiPremium, sparklineData }) => (
               <div 
                 key={symbol}
                 className="bg-card p-3 rounded-lg border border-border cursor-pointer hover:bg-card/80 transition-colors"
@@ -570,10 +570,10 @@ export default function CoinTable({
                   <div className="col-span-1 text-right">
                     {(() => {
                       const upbitCurrentPrice = upbitPrice?.trade_price;
-                      const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
-                        (bitgetPrice.price * exchangeRate) : null;
+                      const binancePriceKRW = binancePrice?.price && exchangeRate ? 
+                        (binancePrice.price * exchangeRate) : null;
                       
-                      const currentPrice = upbitCurrentPrice || bitgetPriceKRW;
+                      const currentPrice = upbitCurrentPrice || binancePriceKRW;
                       
                       if (currentPrice) {
                         return (
@@ -595,8 +595,8 @@ export default function CoinTable({
                   <div className="col-span-1 text-center">
                     {(() => {
                       const upbitChange = upbitPrice?.change_percent || 0;
-                      const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                      const primaryChange = upbitChange || bitgetChange;
+                      const binanceChange = binancePrice?.changePercent24h || 0;
+                      const primaryChange = upbitChange || binanceChange;
                       
                       return (
                         <div className="text-center">
@@ -616,8 +616,8 @@ export default function CoinTable({
                           data={sparklineData}
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                            return upbitChange || bitgetChange;
+                            const binanceChange = binancePrice?.changePercent24h || 0;
+                            return upbitChange || binanceChange;
                           })()}
                           symbol={symbol}
                           width={64}
@@ -629,8 +629,8 @@ export default function CoinTable({
                         <MockSparkline
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                            return upbitChange || bitgetChange;
+                            const binanceChange = binancePrice?.changePercent24h || 0;
+                            return upbitChange || binanceChange;
                           })()}
                           width={64}
                           height={32}

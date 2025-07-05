@@ -157,10 +157,10 @@ export default function HomePage() {
           <div className="bg-card p-3 md:p-4 rounded-lg">
             <h3 className="font-medium text-text mb-2">가격 데이터</h3>
             <div className="space-y-1 text-sm">
-              <p>Bitget: <span className="text-primary">{Object.keys(prices).length}개</span></p>
+              <p>Binance: <span className="text-primary">{Object.keys(prices).length}개</span></p>
               <p>업비트: <span className="text-primary">{Object.keys(contextUpbitPrices).length}개</span></p>
               <p>연결: <span className={`${isConnected ? 'text-success' : 'text-warning'}`}>
-                {isConnected ? 'Bitget ✓' : 'Bitget ✗'} {upbitIsConnected ? 'Upbit ✓' : 'Upbit ✗'}
+                {isConnected ? 'Binance ✓' : 'Binance ✗'} {upbitIsConnected ? 'Upbit ✓' : 'Upbit ✗'}
               </span></p>
             </div>
           </div>
