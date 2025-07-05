@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { usePrices } from '../contexts';
 import { CoinTable, MainBanner } from '../components/Common';
+import { NewsPreview, EventsPreview } from '../components/Home';
 import { formatKRW } from '../utils';
 
 export default function HomePage() {
@@ -91,28 +92,6 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* KimchiPage 프리뷰 */}
-        <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-              <span className="text-red-400 text-lg">🌶️</span>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-text">김치프리미엄</h3>
-              <p className="text-sm text-textSecondary">가격 차이 분석</p>
-            </div>
-          </div>
-          <p className="text-textSecondary mb-4">
-            국내외 거래소 가격 차이를 실시간으로 분석하여 차익거래 기회를 발견하세요.
-          </p>
-          <Link 
-            to="/kimchi" 
-            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-          >
-            <span className="text-sm font-medium">바로가기</span>
-            <span>→</span>
-          </Link>
-        </div>
 
         {/* NewsPage 프리뷰 */}
         <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
@@ -137,6 +116,12 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+
+      {/* 뉴스 미리보기 섹션 */}
+      <NewsPreview />
+
+      {/* 이벤트 미리보기 섹션 */}
+      <EventsPreview />
 
       {/* 실시간 데이터 상태 확인 */}
       <div className="bg-section p-4 md:p-6 rounded-lg">

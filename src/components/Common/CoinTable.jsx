@@ -421,12 +421,12 @@ export default function CoinTable({
                         return (
                           <div className={`transition-all duration-200 rounded px-2 py-1 ${flashClass}`}>
                             {/* 비트겟 가격 (메인) */}
-                            <div className="font-bold text-text">
+                            <div className="font-bold text-text whitespace-nowrap">
                               {formatKRW(bitgetPriceKRW)}
                             </div>
                             {/* 업비트 가격 (서브) */}
                             {upbitCurrentPrice && (
-                              <div className="text-xs font-light text-textSecondary">
+                              <div className="text-xs font-light text-textSecondary whitespace-nowrap">
                                 업비트: {formatKRW(upbitCurrentPrice)}
                               </div>
                             )}
@@ -435,10 +435,10 @@ export default function CoinTable({
                       } else if (upbitCurrentPrice) {
                         return (
                           <div className={`transition-all duration-200 rounded px-2 py-1 ${flashClass}`}>
-                            <div className="font-bold text-text">
+                            <div className="font-bold text-text whitespace-nowrap">
                               {formatKRW(upbitCurrentPrice)}
                             </div>
-                            <div className="text-xs font-light text-textSecondary">
+                            <div className="text-xs font-light text-textSecondary whitespace-nowrap">
                               비트겟: 로딩 중
                             </div>
                           </div>
@@ -453,10 +453,10 @@ export default function CoinTable({
                     <td className="px-4 py-3 text-center">
                       {kimchiPremium ? (
                         <div>
-                          <div className={`font-medium ${getChangeColorClass(kimchiPremium.premium)}`}>
+                          <div className={`font-medium whitespace-nowrap ${getChangeColorClass(kimchiPremium.premium)}`}>
                             {formatPercent(kimchiPremium.premium)}
                           </div>
-                          <div className="text-sm text-textSecondary">
+                          <div className="text-sm text-textSecondary whitespace-nowrap">
                             {(() => {
                               if (bitgetPrice?.price && exchangeRate) {
                                 const premiumWon = (bitgetPrice.price * exchangeRate) * (kimchiPremium.premium / 100);
@@ -493,10 +493,10 @@ export default function CoinTable({
                       
                       return (
                         <div>
-                          <div className={`font-medium ${getChangeColorClass(primaryChange)}`}>
+                          <div className={`font-medium whitespace-nowrap ${getChangeColorClass(primaryChange)}`}>
                             {formatPercent(primaryChange)}
                           </div>
-                          <div className="text-sm text-textSecondary">
+                          <div className="text-sm text-textSecondary whitespace-nowrap">
                             {(() => {
                               if (upbitPrice?.trade_price && primaryChange) {
                                 const changeWon = upbitPrice.trade_price * (primaryChange / 100);
@@ -555,10 +555,10 @@ export default function CoinTable({
                       if (bitgetVolKRW > 0) {
                         return (
                           <div>
-                            <div className="text-text font-medium">
+                            <div className="text-text font-medium whitespace-nowrap">
                               {(bitgetVolKRW / 100000000).toFixed(1)}억 원
                             </div>
-                            <div className="text-xs text-textSecondary">
+                            <div className="text-xs text-textSecondary whitespace-nowrap">
                               ${(bitgetPrice.volume24h * bitgetPrice.price / 1000000).toFixed(1)}M
                             </div>
                           </div>
@@ -634,10 +634,10 @@ export default function CoinTable({
                       showName={false}
                     />
                     <div className="mt-1">
-                      <div className="text-xs font-medium text-text truncate">
+                      <div className="text-xs font-medium text-text truncate whitespace-nowrap">
                         {coin.name}
                       </div>
-                      <div className="text-xs text-textSecondary">
+                      <div className="text-xs text-textSecondary whitespace-nowrap">
                         {symbol.replace('USDT', '')}
                       </div>
                     </div>
@@ -658,7 +658,7 @@ export default function CoinTable({
                       if (currentPrice) {
                         return (
                           <div className={`transition-all duration-200 rounded px-1 py-1 ${flashClass}`}>
-                            <div className="text-sm font-bold text-text">
+                            <div className="text-sm font-bold text-text whitespace-nowrap">
                               {currentPrice > 1000 ? 
                                 `₩${Math.round(currentPrice / 1000)}K` : 
                                 formatKRW(currentPrice, false)
@@ -680,7 +680,7 @@ export default function CoinTable({
                       
                       return (
                         <div className="text-center">
-                          <div className={`text-sm font-medium ${getChangeColorClass(primaryChange)}`}>
+                          <div className={`text-sm font-medium whitespace-nowrap ${getChangeColorClass(primaryChange)}`}>
                             {formatPercent(primaryChange)}
                           </div>
                         </div>
