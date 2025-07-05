@@ -9,32 +9,47 @@ import { logger } from '../utils/logger';
 const UPBIT_API_CONFIG = {
   BASE_URL: 'https://api.upbit.com',
   TICKER_ENDPOINT: '/v1/ticker',
-  USE_MOCK: false, // Mock 모드 비활성화 - 실제 API 사용
+  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용 (CORS 문제)
   CACHE_DURATION: 5000, // 5초 캐시
-  TIMEOUT: 8000 // 8초 타임아웃
+  TIMEOUT: 8000, // 8초 타임아웃
+  MOCK_UPDATE_INTERVAL: 60000 // Mock 데이터 1분 간격 업데이트
 };
 
 // 캐시 저장소
 const tickerCache = new Map();
 
+// 안정적인 업비트 Mock 데이터 캐시
+let stableUpbitMockData = null;
+let lastUpbitMockUpdate = 0;
+
 /**
- * Mock 업비트 데이터 생성 (배포환경용)
+ * 안정적인 업비트 Mock 데이터 생성 (배포환경용)
+ * 1분마다만 업데이트되어 빠른 변화 방지
  */
 function generateMockUpbitData(markets) {
-  // 환율 1380 기준으로 김치프리미엄이 발생하도록 가격 설정
+  // 1분마다만 Mock 데이터 업데이트 (빠른 변화 방지)
+  const now = Date.now();
+  if (stableUpbitMockData && (now - lastUpbitMockUpdate) < UPBIT_API_CONFIG.MOCK_UPDATE_INTERVAL) {
+    return stableUpbitMockData;
+  }
+
+  // 현재 시간을 시드로 사용해서 같은 분 내에서는 동일한 값 생성
+  const timeSeed = Math.floor(now / UPBIT_API_CONFIG.MOCK_UPDATE_INTERVAL);
+
+  // 환율 1380 기준으로 김치프리미엄이 발생하도록 가격 설정 (실제 시세에 가깝게)
   const mockPrices = {
-    'KRW-BTC': 60500000,  // Bitget $42,750 * 1380 = 59,055,000 -> 약 2.4% 프리미엄
-    'KRW-ETH': 3480000,   // Bitget $2,465 * 1380 = 3,401,700 -> 약 2.3% 프리미엄
-    'KRW-XRP': 730,       // Bitget $0.514 * 1380 = 709 -> 약 3.0% 프리미엄
-    'KRW-ADA': 535,       // Bitget $0.377 * 1380 = 520 -> 약 2.9% 프리미엄
-    'KRW-SOL': 132000,    // Bitget $94.2 * 1380 = 130,000 -> 약 1.5% 프리미엄
-    'KRW-DOT': 8700,      // Bitget $6.16 * 1380 = 8,500 -> 약 2.4% 프리미엄
-    'KRW-LINK': 20300,    // Bitget $14.35 * 1380 = 19,800 -> 약 2.5% 프리미엄
-    'KRW-UNI': 9500,      // 약간의 프리미엄 추가
-    'KRW-AVAX': 49000,    // 약간의 프리미엄 추가
-    'KRW-DOGE': 112,      // Bitget $0.079 * 1380 = 109 -> 약 2.8% 프리미엄
-    'KRW-SHIB': 0.0165,   // Bitget $0.0000116 * 1380 = 0.016 -> 약 3.1% 프리미엄
-    'KRW-TRX': 282,       // Bitget $0.199 * 1380 = 275 -> 약 2.5% 프리미엄
+    'KRW-BTC': 149000000, // 실제 비트코인 시세에 가깝게 (약 $108,000 * 1380)
+    'KRW-ETH': 3470000,   // 실제 이더리움 시세에 가깝게 (약 $2,516 * 1380)
+    'KRW-XRP': 3065,      // 실제 리플 시세에 가깝게 (약 $2.22 * 1380)
+    'KRW-ADA': 1173,      // 실제 에이다 시세에 가깝게 (약 $0.85 * 1380)
+    'KRW-SOL': 204240,    // 실제 솔라나 시세에 가깝게 (약 $148 * 1380)
+    'KRW-DOT': 4623,      // 실제 폴카닷 시세에 가깝게 (약 $3.35 * 1380)
+    'KRW-LINK': 18216,    // 실제 체인링크 시세에 가깝게 (약 $13.2 * 1380)
+    'KRW-UNI': 9500,      // 유니스와프
+    'KRW-AVAX': 49000,    // 아발란체
+    'KRW-DOGE': 96.6,     // 도지코인 (약 $0.07 * 1380)
+    'KRW-SHIB': 0.0152,   // 시바이누 (약 $0.000011 * 1380)
+    'KRW-TRX': 262.2,     // 트론 (약 $0.19 * 1380)
     // 추가 코인들
     'KRW-LTC': 125000,
     'KRW-BCH': 680000,
@@ -45,27 +60,34 @@ function generateMockUpbitData(markets) {
     'KRW-HBAR': 145
   };
 
-  return markets.reduce((acc, market) => {
+  stableUpbitMockData = markets.reduce((acc, market, index) => {
     const basePrice = mockPrices[market] || 10000;
-    // 작은 변동성 추가 (±1.5%)
-    const price = basePrice * (1 + (Math.random() - 0.5) * 0.03);
-    // 전일대비 변동 (±5%)
-    const change = (Math.random() - 0.5) * 0.1;
+    // 시드 기반 안정적 변동 (1분마다만 변화)
+    const marketSeed = (timeSeed + index) % 1000;
+    const priceVariation = ((marketSeed / 1000) - 0.5) * 0.015; // ±0.75% 변동
+    const price = basePrice * (1 + priceVariation);
+    // 전일대비 변동 시드 기반
+    const change = ((marketSeed / 500) - 1) * 0.03; // ±1.5% 변동
     
     acc[market] = {
       market,
-      trade_price: price,
-      change_price: price * change,
+      trade_price: Math.round(price),
+      change_price: Math.round(price * change),
       change_rate: change,
       change_percent: change * 100,
-      acc_trade_volume_24h: Math.random() * 1000000000,
-      high_price: price * 1.05,
-      low_price: price * 0.95,
-      timestamp: Date.now(),
+      acc_trade_volume_24h: (marketSeed + 1) * 1000000,
+      high_price: Math.round(price * 1.05),
+      low_price: Math.round(price * 0.95),
+      timestamp: now,
       source: 'upbit-mock-api'
     };
     return acc;
   }, {});
+  
+  lastUpbitMockUpdate = now;
+  logger.info(`새로운 안정적 업비트 Mock 데이터 생성: ${markets.length}개 마켓`);
+  
+  return stableUpbitMockData;
 }
 
 /**

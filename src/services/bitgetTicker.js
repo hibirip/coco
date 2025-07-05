@@ -7,13 +7,14 @@ import { logger } from '../utils/logger';
 
 // Bitget REST API 설정
 const BITGET_TICKER_CONFIG = {
-  // 개발환경에서는 proxy 사용, 배포환경에서는 Mock 모드 사용 (CORS 문제 때문)
+  // 개발환경에서는 proxy 사용, 배포환경에서는 Mock 데이터 사용 (CORS 문제)
   BASE_URL: '/api/bitget',
-  USE_MOCK: false, // Mock 모드 비활성화 - 실제 API 사용
+  USE_MOCK: !import.meta.env.DEV, // 배포환경에서는 Mock 데이터 사용
   TICKERS_ENDPOINT: '/api/v2/spot/market/tickers',
   SINGLE_TICKER_ENDPOINT: '/api/v2/spot/market/ticker',
   CACHE_TTL: 30 * 1000, // 30초 캐시
-  REQUEST_TIMEOUT: 10000 // 10초 타임아웃
+  REQUEST_TIMEOUT: 10000, // 10초 타임아웃
+  MOCK_UPDATE_INTERVAL: 60000 // Mock 데이터 1분 간격 업데이트
 };
 
 // 메모리 캐시
@@ -98,10 +99,21 @@ async function fetchBitgetTickerData(symbol) {
   }
 }
 
+// 안정적인 Mock 데이터 캐시 (배포환경에서 가격이 빠르게 변하지 않도록)
+let stableMockData = null;
+let lastMockUpdate = 0;
+
 /**
- * Mock 데이터 생성 (배포환경용)
+ * 안정적인 Mock 데이터 생성 (배포환경용)
+ * 1분마다만 업데이트되어 빠른 변화 방지
  */
 function generateMockTickerData() {
+  // 1분마다만 Mock 데이터 업데이트 (빠른 변화 방지)
+  const now = Date.now();
+  if (stableMockData && (now - lastMockUpdate) < BITGET_TICKER_CONFIG.MOCK_UPDATE_INTERVAL) {
+    return stableMockData;
+  }
+
   // 100개 코인의 Mock 데이터 생성
   const symbols = [
     'BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'ADAUSDT', 'SOLUSDT', 'DOTUSDT', 'LINKUSDT', 'MATICUSDT', 'UNIUSDT', 'AVAXUSDT',
@@ -116,36 +128,45 @@ function generateMockTickerData() {
     'BNBUSDT', 'TONUSDT', 'RNDRUSDT', 'FTMUSDT', 'RUNEUSDT', 'CAKEUSDT', 'GALAUSDT', 'IMXUSDT', 'ROSEUSDT', 'XMRUSDT'
   ];
 
-  return symbols.map(symbol => {
-    // 업비트 가격에 맞춘 USD 가격 설정 (환율 1380 기준)
+  // 현재 시간을 시드로 사용해서 같은 분 내에서는 동일한 값 생성
+  const timeSeed = Math.floor(now / BITGET_TICKER_CONFIG.MOCK_UPDATE_INTERVAL);
+  
+  stableMockData = symbols.map((symbol, index) => {
+    // 업비트 가격에 맞춘 고정 USD 가격 설정 (환율 1380 기준)
     let basePrice = 50;
-    if (symbol === 'BTCUSDT') basePrice = 42750; // 59M KRW / 1380
-    else if (symbol === 'ETHUSDT') basePrice = 2465; // 3.4M KRW / 1380
-    else if (symbol === 'XRPUSDT') basePrice = 0.514; // 710 KRW / 1380
-    else if (symbol === 'ADAUSDT') basePrice = 0.377; // 520 KRW / 1380
-    else if (symbol === 'SOLUSDT') basePrice = 94.2; // 130K KRW / 1380
-    else if (symbol === 'DOTUSDT') basePrice = 6.16; // 8.5K KRW / 1380
-    else if (symbol === 'LINKUSDT') basePrice = 14.35; // 19.8K KRW / 1380
-    else if (symbol === 'DOGEUSDT') basePrice = 0.079; // 109 KRW / 1380
-    else if (symbol === 'SHIBUSDT') basePrice = 0.0000116; // 0.016 KRW / 1380
-    else if (symbol === 'TRXUSDT') basePrice = 0.199; // 275 KRW / 1380
+    if (symbol === 'BTCUSDT') basePrice = 108000; // 실제 비트코인 가격에 가깝게
+    else if (symbol === 'ETHUSDT') basePrice = 2516; // 실제 이더리움 가격에 가깝게  
+    else if (symbol === 'XRPUSDT') basePrice = 2.22; // 실제 리플 가격에 가깝게
+    else if (symbol === 'ADAUSDT') basePrice = 0.85;
+    else if (symbol === 'SOLUSDT') basePrice = 148;
+    else if (symbol === 'DOTUSDT') basePrice = 3.35;
+    else if (symbol === 'LINKUSDT') basePrice = 13.2;
+    else if (symbol === 'DOGEUSDT') basePrice = 0.07;
+    else if (symbol === 'SHIBUSDT') basePrice = 0.000011;
+    else if (symbol === 'TRXUSDT') basePrice = 0.19;
     
-    // 김치프리미엄을 고려한 가격 설정 (보통 -2% ~ +5%)
-    const kimchiPremium = (Math.random() - 0.3) * 0.07; // -2.1% ~ +4.9%
-    const price = basePrice * (1 + kimchiPremium);
-    const change24h = (Math.random() - 0.5) * 0.1; // ±5% 변동
-    const volume = Math.random() * 100000000;
+    // 시드 기반 안정적 변동 (1분마다만 변화)
+    const symbolSeed = (timeSeed + index) % 1000;
+    const priceVariation = ((symbolSeed / 1000) - 0.5) * 0.02; // ±1% 변동
+    const price = basePrice * (1 + priceVariation);
+    const change24h = ((symbolSeed / 500) - 1) * 0.05; // ±2.5% 변동
+    const volume = (symbolSeed + 1) * 100000;
     
     return {
       symbol,
-      lastPr: price.toString(),
-      open: (price / (1 + change24h)).toString(),
-      change24h: change24h.toString(),
+      lastPr: price.toFixed(symbol.includes('SHIB') ? 8 : 4),
+      open: (price / (1 + change24h)).toFixed(symbol.includes('SHIB') ? 8 : 4),
+      change24h: change24h.toFixed(4),
       quoteVolume: volume.toString(),
       baseVolume: (volume / price).toString(),
-      ts: Date.now().toString()
+      ts: now.toString()
     };
   });
+  
+  lastMockUpdate = now;
+  logger.info(`새로운 안정적 Mock 데이터 생성: ${symbols.length}개 코인`);
+  
+  return stableMockData;
 }
 
 /**
