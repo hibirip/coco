@@ -7,13 +7,7 @@ import { API_CONFIG } from '../config/api';
 // API 엔드포인트 - 중앙화된 설정 사용
 const API_ENDPOINTS = {
   BITGET: {
-    get BASE_URL() {
-      try {
-        return API_CONFIG.BITGET.BASE_URL;
-      } catch (error) {
-        return null; // 배포환경에서 사용 불가
-      }
-    },
+    BASE_URL: API_CONFIG.BITGET.BASE_URL,
     TICKER: API_CONFIG.BITGET.TICKER,
     PRICE: API_CONFIG.BITGET.TICKER
   },
@@ -112,11 +106,6 @@ function setCachedData(key, data) {
  */
 export async function getBitgetPrice(symbol) {
   try {
-    // 배포환경에서는 Bitget REST API 사용 불가
-    if (!API_ENDPOINTS.BITGET.BASE_URL) {
-      throw new Error('Bitget REST API not available in production (use WebSocket instead)');
-    }
-    
     const cacheKey = `bitget_${symbol}`;
     const cached = getCachedData(cacheKey);
     if (cached) return cached;
@@ -125,7 +114,7 @@ export async function getBitgetPrice(symbol) {
     const upperSymbol = symbol.toUpperCase();
     const url = `${API_ENDPOINTS.BITGET.BASE_URL}${API_ENDPOINTS.BITGET.PRICE}?symbol=${upperSymbol}`;
     
-    console.log('📡 Bitget API 호출:', url);
+    console.log('📡 Bitget API 호출 (프록시):', url);
     const response = await fetchWithRetry(url);
     const data = await response.json();
 
