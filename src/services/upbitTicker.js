@@ -7,7 +7,10 @@ import { logger } from '../utils/logger';
 
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
-  BASE_URL: 'https://corsproxy.io/?https://api.upbit.com',
+  // 개발환경은 직접 호출, 배포환경은 allorigins 사용 (가장 안정적)
+  BASE_URL: import.meta.env.DEV ? 
+    'https://api.upbit.com' : 
+    'https://api.allorigins.win/get?url=https://api.upbit.com',
   TICKER_ENDPOINT: '/v1/ticker',
   USE_MOCK: false, // Mock 데이터 완전 비활성화 - 실제 API만 사용
   CACHE_DURATION: 5000, // 5초 캐시
@@ -124,7 +127,16 @@ export async function getBatchUpbitTickerData(markets) {
     
     // 마켓 파라미터 생성
     const marketsParam = markets.join(',');
-    const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}`;
+    let url;
+    
+    if (import.meta.env.DEV) {
+      // 개발환경: 직접 호출
+      url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}`;
+    } else {
+      // 배포환경: allorigins를 통한 프록시 (JSON 응답 형태)
+      const targetUrl = encodeURIComponent(`https://api.upbit.com${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}`);
+      url = `${UPBIT_API_CONFIG.BASE_URL}=${targetUrl}`;
+    }
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
@@ -134,8 +146,10 @@ export async function getBatchUpbitTickerData(markets) {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; Coco-Upbit-Ticker/1.0)'
-      }
+        'Content-Type': 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'omit'
     });
     
     clearTimeout(timeoutId);
@@ -144,7 +158,20 @@ export async function getBatchUpbitTickerData(markets) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const tickerArray = await response.json();
+    let tickerArray;
+    
+    if (import.meta.env.DEV) {
+      // 개발환경: 직접 JSON 응답
+      tickerArray = await response.json();
+    } else {
+      // 배포환경: allorigins JSON wrapper 파싱
+      const data = await response.json();
+      if (!data.contents) {
+        throw new Error('allorigins 응답에 contents가 없음');
+      }
+      tickerArray = JSON.parse(data.contents);
+    }
+    
     logger.api(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
     
     // 데이터 변환
@@ -175,9 +202,21 @@ export async function getBatchUpbitTickerData(markets) {
       return cached.data;
     }
     
-    // 마지막 수단: Mock 데이터 반환
-    logger.warn('API 실패로 업비트 Mock 데이터 사용');
-    return generateMockUpbitData(markets);
+    // API 실패 시 배포환경에서만 실제 시세 기반 Mock 데이터 사용
+    if (!import.meta.env.DEV) {
+      logger.warn('배포환경: API 실패로 실제 시세 기반 Mock 데이터 사용');
+      const mockData = generateMockUpbitData(markets);
+      // Mock 데이터도 캐시에 저장
+      tickerCache.set(cacheKey, {
+        data: mockData,
+        timestamp: Date.now()
+      });
+      return mockData;
+    }
+    
+    // 개발환경에서는 빈 객체 반환
+    logger.error('개발환경: 업비트 API 완전 실패');
+    return {};
   }
 }
 
