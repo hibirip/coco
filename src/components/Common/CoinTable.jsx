@@ -6,6 +6,7 @@
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrices } from '../../contexts';
+import { useMultiplePriceFlash } from '../../hooks';
 import { 
   formatKRW, 
   formatUSD, 
@@ -16,6 +17,8 @@ import {
 import { CoinLogoWithInfo } from './CoinLogo';
 import { SparklineWithTrend, MockSparkline } from './Sparkline';
 import LoadingSpinner from './LoadingSpinner';
+import SkeletonLoader, { MobileSkeletonLoader } from './SkeletonLoader';
+import CoinTableLoader from './CoinTableLoader';
 
 /**
  * CoinTable 컴포넌트
@@ -69,21 +72,21 @@ export default function CoinTable({
       // 기본 데이터 로직
       data = MAJOR_SYMBOLS.map(symbol => {
         const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
-        const binancePrice = prices[symbol];
+        const bitgetPrice = prices[symbol];
         const upbitPrice = upbitPrices[coin?.upbitMarket];
         const kimchiPremium = showKimchi ? calculateKimchiPremium(symbol) : null;
         
         return {
           symbol,
           coin,
-          binancePrice,
+          bitgetPrice,
           upbitPrice,
           kimchiPremium,
           sparklineData: klineData[symbol] || null,
           // 정렬을 위한 우선순위
           priority: coin?.priority || 999,
           // 데이터 유효성
-          hasData: binancePrice?.price || upbitPrice?.trade_price
+          hasData: bitgetPrice?.price || upbitPrice?.trade_price
         };
       })
       .filter(item => item.coin && item.hasData); // 유효한 데이터만 표시
@@ -95,22 +98,22 @@ export default function CoinTable({
       
       switch (sortBy) {
         case 'price':
-          aValue = a.binancePrice?.price || a.upbitPrice?.trade_price || 0;
-          bValue = b.binancePrice?.price || b.upbitPrice?.trade_price || 0;
+          aValue = a.bitgetPrice?.price || a.upbitPrice?.trade_price || 0;
+          bValue = b.bitgetPrice?.price || b.upbitPrice?.trade_price || 0;
           break;
         case 'kimchi':
           aValue = a.kimchiPremium?.premium || 0;
           bValue = b.kimchiPremium?.premium || 0;
           break;
         case 'change':
-          aValue = a.upbitPrice?.change_percent || a.binancePrice?.changePercent24h || 0;
-          bValue = b.upbitPrice?.change_percent || b.binancePrice?.changePercent24h || 0;
+          aValue = a.upbitPrice?.change_percent || a.bitgetPrice?.changePercent24h || 0;
+          bValue = b.upbitPrice?.change_percent || b.bitgetPrice?.changePercent24h || 0;
           break;
         case 'volume':
-          aValue = (a.binancePrice?.volume24h && a.binancePrice?.price) ? 
-            a.binancePrice.volume24h * a.binancePrice.price : 0;
-          bValue = (b.binancePrice?.volume24h && b.binancePrice?.price) ? 
-            b.binancePrice.volume24h * b.binancePrice.price : 0;
+          aValue = (a.bitgetPrice?.volume24h && a.bitgetPrice?.price) ? 
+            a.bitgetPrice.volume24h * a.bitgetPrice.price : 0;
+          bValue = (b.bitgetPrice?.volume24h && b.bitgetPrice?.price) ? 
+            b.bitgetPrice.volume24h * b.bitgetPrice.price : 0;
           break;
         case 'priority':
         default:
@@ -181,23 +184,68 @@ export default function CoinTable({
     hasFullConnection: isConnected && upbitIsConnected && exchangeRate
   }), [isConnected, upbitIsConnected, exchangeRate]);
 
+  // 가격 깜빡임 애니메이션을 위한 가격 맵 생성
+  const pricesMap = useMemo(() => {
+    const map = {};
+    tableData.forEach(({ symbol, bitgetPrice, upbitPrice }) => {
+      // Bitget 가격 우선, 없으면 업비트 가격 사용
+      const price = bitgetPrice?.price || upbitPrice?.trade_price;
+      if (price) {
+        map[symbol] = price;
+      }
+    });
+    return map;
+  }, [tableData]);
+
+  // 가격 변화 깜빡임 훅 사용
+  const flashStates = useMultiplePriceFlash(pricesMap, 800);
+
+  // 비트겟 완전 연결 상태 확인 (단순화)
+  const isBitgetFullyConnected = useMemo(() => {
+    const priceDataCount = Object.keys(prices).length;
+    
+    // 디버깅 정보 출력 (개발 모드에서만)
+    if (import.meta.env.DEV) {
+      console.log('🔍 Bitget 연결 상태 체크:', {
+        priceDataCount,
+        exchangeRate,
+        tableDataLength: tableData.length
+      });
+    }
+    
+    // 매우 관대한 조건: 가격 데이터가 1개라도 있으면 OK
+    return priceDataCount > 0;
+  }, [prices, exchangeRate, tableData.length]);
+
   // 초기 로딩 상태 관리
   useEffect(() => {
-    // 데이터가 하나라도 있으면 로딩 완료
-    if (tableData.length > 0 || (customData && customData.length > 0)) {
+    // Bitget이 완전히 연결되고 데이터가 있으면 로딩 완료
+    if (isBitgetFullyConnected && (tableData.length > 0 || (customData && customData.length > 0))) {
       setIsInitialLoading(false);
     }
     
-    // 3초 후에는 무조건 로딩 상태 해제 (타임아웃)
+    // 2초 후에는 무조건 로딩 상태 해제 (더 빠른 타임아웃)
     const timeout = setTimeout(() => {
+      console.log('⏰ 타임아웃으로 로딩 상태 해제');
       setIsInitialLoading(false);
-    }, 3000);
+    }, 2000);
     
     return () => clearTimeout(timeout);
-  }, [tableData.length, customData]);
+  }, [isBitgetFullyConnected, tableData.length, customData]);
+
+  // Bitget이 완전히 연결되지 않았고 초기 로딩 중이면 전체 로딩 화면 표시
+  if (!isBitgetFullyConnected && isInitialLoading) {
+    return (
+      <CoinTableLoader 
+        className={className}
+        showKimchi={showKimchi}
+        showFavorites={showFavorites}
+      />
+    );
+  }
 
   return (
-    <div className={`bg-section rounded-lg overflow-hidden ${className}`}>
+    <div className={`bg-section rounded-lg overflow-hidden ${className} animate-fade-in-up`}>
       {/* 검색 컨트롤 */}
       {onSearchChange && (
         <div className="p-4 border-b border-border">
@@ -262,7 +310,7 @@ export default function CoinTable({
                   )}
                 </div>
               </th>
-              <th className="px-4 py-3 text-center min-w-[120px]">변동추이(24시간)</th>
+              <th className="px-4 py-3 text-center min-w-[120px]">변화량(24h)</th>
               <th 
                 className="px-4 py-3 text-right min-w-[120px] cursor-pointer hover:bg-card/80 transition-colors"
                 onClick={() => handleSort('volume')}
@@ -281,20 +329,61 @@ export default function CoinTable({
           </thead>
           <tbody>
             {isInitialLoading ? (
-              // 초기 로딩 화면
-              <tr>
-                <td 
-                  colSpan={showFavorites && showKimchi ? 8 : showFavorites || showKimchi ? 7 : 6}
-                  className="px-4 py-16"
-                >
-                  <LoadingSpinner 
-                    size="lg" 
-                    text="코인 시세 데이터를 불러오는 중..." 
-                  />
-                </td>
-              </tr>
+              // 스켈레톤 UI 표시 (즉시 레이아웃 보여줌)
+              <>
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <tr key={index} className="border-b border-border animate-pulse">
+                    {showFavorites && (
+                      <td className="px-4 py-3">
+                        <div className="w-4 h-4 bg-border rounded"></div>
+                      </td>
+                    )}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-border rounded-full"></div>
+                        <div className="space-y-1">
+                          <div className="h-4 w-16 bg-border rounded"></div>
+                          <div className="h-3 w-12 bg-border rounded"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="space-y-1">
+                        <div className="h-4 w-20 bg-border rounded ml-auto"></div>
+                        <div className="h-3 w-16 bg-border rounded ml-auto"></div>
+                      </div>
+                    </td>
+                    {showKimchi && (
+                      <td className="px-4 py-3 text-center">
+                        <div className="space-y-1">
+                          <div className="h-4 w-12 bg-border rounded mx-auto"></div>
+                          <div className="h-3 w-10 bg-border rounded mx-auto"></div>
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-center">
+                      <div className="space-y-1">
+                        <div className="h-4 w-14 bg-border rounded mx-auto"></div>
+                        <div className="h-3 w-12 bg-border rounded mx-auto"></div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="h-8 w-20 bg-border rounded mx-auto"></div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="space-y-1">
+                        <div className="h-4 w-12 bg-border rounded ml-auto"></div>
+                        <div className="h-3 w-10 bg-border rounded ml-auto"></div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="h-6 w-16 bg-border rounded mx-auto"></div>
+                    </td>
+                  </tr>
+                ))}
+              </>
             ) : tableData.length > 0 ? (
-              tableData.map(({ symbol, coin, binancePrice, upbitPrice, kimchiPremium, sparklineData }) => (
+              tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
                 <tr 
                   key={symbol}
                   className="border-b border-border hover:bg-card/50 transition-colors cursor-pointer"
@@ -332,15 +421,18 @@ export default function CoinTable({
                   <td className="px-4 py-3 text-right">
                     {(() => {
                       const upbitCurrentPrice = upbitPrice?.trade_price;
-                      const binancePriceKRW = binancePrice?.price && exchangeRate ? 
-                        (binancePrice.price * exchangeRate) : null;
+                      const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
+                        (bitgetPrice.price * exchangeRate) : null;
                       
-                      if (binancePriceKRW) {
+                      // 깜빡임 애니메이션 클래스 가져오기
+                      const flashClass = flashStates[symbol]?.flashClass || '';
+                      
+                      if (bitgetPriceKRW) {
                         return (
-                          <div>
-                            {/* 바이낸스 가격 (메인) */}
+                          <div className={`transition-all duration-200 rounded px-2 py-1 ${flashClass}`}>
+                            {/* 비트겟 가격 (메인) */}
                             <div className="font-bold text-text">
-                              {formatKRW(binancePriceKRW)}
+                              {formatKRW(bitgetPriceKRW)}
                             </div>
                             {/* 업비트 가격 (서브) */}
                             {upbitCurrentPrice && (
@@ -352,12 +444,12 @@ export default function CoinTable({
                         );
                       } else if (upbitCurrentPrice) {
                         return (
-                          <div>
+                          <div className={`transition-all duration-200 rounded px-2 py-1 ${flashClass}`}>
                             <div className="font-bold text-text">
                               {formatKRW(upbitCurrentPrice)}
                             </div>
                             <div className="text-xs font-light text-textSecondary">
-                              바이낸스: 로딩 중
+                              비트겟: 로딩 중
                             </div>
                           </div>
                         );
@@ -376,8 +468,8 @@ export default function CoinTable({
                           </div>
                           <div className="text-sm text-textSecondary">
                             {(() => {
-                              if (binancePrice?.price && exchangeRate) {
-                                const premiumWon = (binancePrice.price * exchangeRate) * (kimchiPremium.premium / 100);
+                              if (bitgetPrice?.price && exchangeRate) {
+                                const premiumWon = (bitgetPrice.price * exchangeRate) * (kimchiPremium.premium / 100);
                                 return formatKRW(Math.abs(premiumWon));
                               }
                               return '-';
@@ -388,8 +480,8 @@ export default function CoinTable({
                         // 업비트 상장 코인이지만 김프 계산 불가
                         <div className="text-xs text-textSecondary">
                           {(() => {
-                            if (!binancePrice?.price) return '바이낸스\n연결 대기';
-                            if (!upbitPrice?.trade_price) return '업비트\n연결 대기';
+                            if (!bitgetPrice?.price) return '비트겟\n로딩 중';
+                            if (!upbitPrice?.trade_price) return '업비트\n로딩 중';
                             if (!exchangeRate) return '환율\n로딩 중';
                             return '계산\n준비 중';
                           })()}
@@ -406,8 +498,8 @@ export default function CoinTable({
                   <td className="px-4 py-3 text-center">
                     {(() => {
                       const upbitChange = upbitPrice?.change_percent || 0;
-                      const binanceChange = binancePrice?.changePercent24h || 0;
-                      const primaryChange = upbitChange || binanceChange;
+                      const bitgetChange = bitgetPrice?.changePercent24h || 0;
+                      const primaryChange = upbitChange || bitgetChange;
                       
                       return (
                         <div>
@@ -419,8 +511,8 @@ export default function CoinTable({
                               if (upbitPrice?.trade_price && primaryChange) {
                                 const changeWon = upbitPrice.trade_price * (primaryChange / 100);
                                 return formatKRW(Math.abs(changeWon));
-                              } else if (binancePrice?.price && exchangeRate && primaryChange) {
-                                const changeWon = (binancePrice.price * exchangeRate) * (primaryChange / 100);
+                              } else if (bitgetPrice?.price && exchangeRate && primaryChange) {
+                                const changeWon = (bitgetPrice.price * exchangeRate) * (primaryChange / 100);
                                 return formatKRW(Math.abs(changeWon));
                               }
                               return '-';
@@ -439,8 +531,8 @@ export default function CoinTable({
                           data={sparklineData}
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const binanceChange = binancePrice?.changePercent24h || 0;
-                            return upbitChange || binanceChange;
+                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
+                            return upbitChange || bitgetChange;
                           })()}
                           symbol={symbol}
                           width={80}
@@ -452,8 +544,8 @@ export default function CoinTable({
                         <MockSparkline
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const binanceChange = binancePrice?.changePercent24h || 0;
-                            return upbitChange || binanceChange;
+                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
+                            return upbitChange || bitgetChange;
                           })()}
                           width={80}
                           height={30}
@@ -464,20 +556,20 @@ export default function CoinTable({
                     </div>
                   </td>
 
-                  {/* 거래액(24h) - 바이낸스 기준 */}
+                  {/* 거래액(24h) - 비트겟 기준 */}
                   <td className="px-4 py-3 text-right">
                     {(() => {
-                      const binanceVolKRW = binancePrice?.volume24h && binancePrice?.price && exchangeRate ? 
-                        (binancePrice.volume24h * binancePrice.price * exchangeRate) : 0;
+                      const bitgetVolKRW = bitgetPrice?.volume24h && bitgetPrice?.price && exchangeRate ? 
+                        (bitgetPrice.volume24h * bitgetPrice.price * exchangeRate) : 0;
                       
-                      if (binanceVolKRW > 0) {
+                      if (bitgetVolKRW > 0) {
                         return (
                           <div>
                             <div className="text-text font-medium">
-                              {(binanceVolKRW / 100000000).toFixed(1)}억 원
+                              {(bitgetVolKRW / 100000000).toFixed(1)}억 원
                             </div>
                             <div className="text-xs text-textSecondary">
-                              ${(binancePrice.volume24h * binancePrice.price / 1000000).toFixed(1)}M
+                              ${(bitgetPrice.volume24h * bitgetPrice.price / 1000000).toFixed(1)}M
                             </div>
                           </div>
                         );
@@ -508,12 +600,12 @@ export default function CoinTable({
                     <p className="text-lg">표시할 코인 데이터가 없습니다</p>
                     <div className="text-sm space-y-1">
                       <p>데이터 상태:</p>
-                      <p>• Binance API: {Object.keys(prices).length > 0 ? '✅ 정상' : '❌ 로딩중'}</p>
+                      <p>• Bitget API: {Object.keys(prices).length > 0 ? '✅ 정상' : '❌ 로딩중'}</p>
                       <p>• 업비트 API: {Object.keys(upbitPrices).length > 0 ? '✅ 정상' : '❌ 로딩중'}</p>
                       <p>• 환율 정보: {exchangeRate ? `✅ ${formatKRW(exchangeRate)}` : '❌ 없음'}</p>
-                      <p>• 수신된 가격 데이터: {Object.keys(prices).length}개 (Binance), {Object.keys(upbitPrices).length}개 (업비트)</p>
+                      <p>• 수신된 가격 데이터: {Object.keys(prices).length}개 (Bitget), {Object.keys(upbitPrices).length}개 (업비트)</p>
                       {Object.keys(prices).length > 0 && (
-                        <p>• Binance 코인: {Object.keys(prices).slice(0, 3).join(', ')}...</p>
+                        <p>• Bitget 코인: {Object.keys(prices).slice(0, 3).join(', ')}...</p>
                       )}
                       {Object.keys(upbitPrices).length > 0 && (
                         <p>• 업비트 코인: {Object.keys(upbitPrices).slice(0, 3).join(', ')}...</p>
@@ -532,15 +624,10 @@ export default function CoinTable({
         {/* 모바일 카드 리스트 */}
         <div className="md:hidden space-y-2">
           {isInitialLoading ? (
-            // 모바일 로딩 화면
-            <div className="py-16">
-              <LoadingSpinner 
-                size="lg" 
-                text="코인 시세 데이터를 불러오는 중..." 
-              />
-            </div>
+            // 모바일 스켈레톤 UI
+            <MobileSkeletonLoader rows={8} />
           ) : tableData.length > 0 ? (
-            tableData.map(({ symbol, coin, binancePrice, upbitPrice, kimchiPremium, sparklineData }) => (
+            tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
               <div 
                 key={symbol}
                 className="bg-card p-3 rounded-lg border border-border cursor-pointer hover:bg-card/80 transition-colors"
@@ -570,14 +657,17 @@ export default function CoinTable({
                   <div className="col-span-1 text-right">
                     {(() => {
                       const upbitCurrentPrice = upbitPrice?.trade_price;
-                      const binancePriceKRW = binancePrice?.price && exchangeRate ? 
-                        (binancePrice.price * exchangeRate) : null;
+                      const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
+                        (bitgetPrice.price * exchangeRate) : null;
                       
-                      const currentPrice = upbitCurrentPrice || binancePriceKRW;
+                      const currentPrice = upbitCurrentPrice || bitgetPriceKRW;
+                      
+                      // 깜빡임 애니메이션 클래스 가져오기
+                      const flashClass = flashStates[symbol]?.flashClass || '';
                       
                       if (currentPrice) {
                         return (
-                          <div>
+                          <div className={`transition-all duration-200 rounded px-1 py-1 ${flashClass}`}>
                             <div className="text-sm font-bold text-text">
                               {currentPrice > 1000 ? 
                                 `₩${Math.round(currentPrice / 1000)}K` : 
@@ -595,8 +685,8 @@ export default function CoinTable({
                   <div className="col-span-1 text-center">
                     {(() => {
                       const upbitChange = upbitPrice?.change_percent || 0;
-                      const binanceChange = binancePrice?.changePercent24h || 0;
-                      const primaryChange = upbitChange || binanceChange;
+                      const bitgetChange = bitgetPrice?.changePercent24h || 0;
+                      const primaryChange = upbitChange || bitgetChange;
                       
                       return (
                         <div className="text-center">
@@ -616,8 +706,8 @@ export default function CoinTable({
                           data={sparklineData}
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const binanceChange = binancePrice?.changePercent24h || 0;
-                            return upbitChange || binanceChange;
+                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
+                            return upbitChange || bitgetChange;
                           })()}
                           symbol={symbol}
                           width={64}
@@ -629,8 +719,8 @@ export default function CoinTable({
                         <MockSparkline
                           changePercent={(() => {
                             const upbitChange = upbitPrice?.change_percent || 0;
-                            const binanceChange = binancePrice?.changePercent24h || 0;
-                            return upbitChange || binanceChange;
+                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
+                            return upbitChange || bitgetChange;
                           })()}
                           width={64}
                           height={32}

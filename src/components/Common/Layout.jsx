@@ -3,23 +3,23 @@ import { useEffect } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import SideBanner from './SideBanner';
-import { useBinanceWebSocket } from '../../hooks/useBinanceWebSocket';
+import { useBitgetWebSocket } from '../../hooks/useBitgetWebSocket';
 import { useUpbitWebSocket } from '../../hooks/useUpbitWebSocket';
 
 const Layout = () => {
   const location = useLocation();
   
-  // WebSocket 연결 시작 - 배포환경에서는 WebSocket 비활성화
-  const binanceWS = useBinanceWebSocket({ enabled: import.meta.env.DEV });
-  const upbitWS = useUpbitWebSocket({ enabled: import.meta.env.DEV });
+  // WebSocket 연결 시작 - 배포환경에서도 WebSocket 활성화 (비트겟으로 복구)
+  const bitgetWS = useBitgetWebSocket({ enabled: true });
+  const upbitWS = useUpbitWebSocket({ enabled: true });
   
   // WebSocket 상태 로깅 (개발 모드에서만)
   useEffect(() => {
     console.log('📊 Layout WebSocket 상태:', {
-      binance: {
-        connected: binanceWS.isConnected,
-        connecting: binanceWS.isConnecting,
-        reconnectAttempts: binanceWS.reconnectAttempts
+      bitget: {
+        connected: bitgetWS.isConnected,
+        connecting: bitgetWS.isConnecting,
+        reconnectAttempts: bitgetWS.reconnectAttempts
       },
       upbit: {
         connected: upbitWS.isConnected,
@@ -29,7 +29,7 @@ const Layout = () => {
       }
     });
   }, [
-    binanceWS.isConnected, binanceWS.isConnecting, binanceWS.reconnectAttempts,
+    bitgetWS.isConnected, bitgetWS.isConnecting, bitgetWS.reconnectAttempts,
     upbitWS.isConnected, upbitWS.isConnecting, upbitWS.dataReceived
   ]);
   

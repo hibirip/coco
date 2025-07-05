@@ -10,8 +10,8 @@ import { usePrices } from '../contexts';
 // 정렬 옵션 정의
 const SORT_OPTIONS = [
   { value: 'priority', label: '기본순', desc: '코인 우선순위' },
-  { value: 'price_desc', label: '가격 높은순', desc: 'Binance USD 기준' },
-  { value: 'price_asc', label: '가격 낮은순', desc: 'Binance USD 기준' },
+  { value: 'price_desc', label: '가격 높은순', desc: 'Bitget USD 기준' },
+  { value: 'price_asc', label: '가격 낮은순', desc: 'Bitget USD 기준' },
   { value: 'change_desc', label: '상승률순', desc: '24시간 변동률' },
   { value: 'change_asc', label: '하락률순', desc: '24시간 변동률' },
   { value: 'volume_desc', label: '거래량순', desc: '24시간 거래량' },
@@ -69,18 +69,18 @@ export default function PricesPage() {
   const filteredAndSortedCoins = useMemo(() => {
     let coins = ALL_SYMBOLS.map(symbol => {
       const coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
-      const binancePrice = prices[symbol];
+      const bitgetPrice = prices[symbol];
       const upbitPrice = upbitPrices[coin?.upbitMarket];
       const kimchiPremium = calculateKimchiPremium(symbol);
       
       return {
         symbol,
         coin,
-        binancePrice,
+        bitgetPrice,
         upbitPrice,
         kimchiPremium,
         priority: coin?.priority || 999,
-        hasData: binancePrice?.price || upbitPrice?.trade_price
+        hasData: bitgetPrice?.price || upbitPrice?.trade_price
       };
     }).filter(item => item.coin && item.hasData);
 
@@ -99,7 +99,7 @@ export default function PricesPage() {
       case 'rising':
         coins = coins.filter(item => {
           const change = Math.max(
-            item.binancePrice?.changePercent24h || 0,
+            item.bitgetPrice?.changePercent24h || 0,
             item.upbitPrice?.change_percent || 0
           );
           return change > 0;
@@ -108,7 +108,7 @@ export default function PricesPage() {
       case 'falling':
         coins = coins.filter(item => {
           const change = Math.max(
-            item.binancePrice?.changePercent24h || 0,
+            item.bitgetPrice?.changePercent24h || 0,
             item.upbitPrice?.change_percent || 0
           );
           return change < 0;
@@ -128,29 +128,29 @@ export default function PricesPage() {
     // 정렬 적용
     switch (sortBy) {
       case 'price_desc':
-        coins.sort((a, b) => (b.binancePrice?.price || 0) - (a.binancePrice?.price || 0));
+        coins.sort((a, b) => (b.bitgetPrice?.price || 0) - (a.bitgetPrice?.price || 0));
         break;
       case 'price_asc':
-        coins.sort((a, b) => (a.binancePrice?.price || 0) - (b.binancePrice?.price || 0));
+        coins.sort((a, b) => (a.bitgetPrice?.price || 0) - (b.bitgetPrice?.price || 0));
         break;
       case 'change_desc':
         coins.sort((a, b) => {
-          const aChange = Math.max(a.binancePrice?.changePercent24h || 0, a.upbitPrice?.change_percent || 0);
-          const bChange = Math.max(b.binancePrice?.changePercent24h || 0, b.upbitPrice?.change_percent || 0);
+          const aChange = Math.max(a.bitgetPrice?.changePercent24h || 0, a.upbitPrice?.change_percent || 0);
+          const bChange = Math.max(b.bitgetPrice?.changePercent24h || 0, b.upbitPrice?.change_percent || 0);
           return bChange - aChange;
         });
         break;
       case 'change_asc':
         coins.sort((a, b) => {
-          const aChange = Math.max(a.binancePrice?.changePercent24h || 0, a.upbitPrice?.change_percent || 0);
-          const bChange = Math.max(b.binancePrice?.changePercent24h || 0, b.upbitPrice?.change_percent || 0);
+          const aChange = Math.max(a.bitgetPrice?.changePercent24h || 0, a.upbitPrice?.change_percent || 0);
+          const bChange = Math.max(b.bitgetPrice?.changePercent24h || 0, b.upbitPrice?.change_percent || 0);
           return aChange - bChange;
         });
         break;
       case 'volume_desc':
         coins.sort((a, b) => {
-          const aVolume = Math.max(a.binancePrice?.volume24h || 0, a.upbitPrice?.acc_trade_volume_24h || 0);
-          const bVolume = Math.max(b.binancePrice?.volume24h || 0, b.upbitPrice?.acc_trade_volume_24h || 0);
+          const aVolume = Math.max(a.bitgetPrice?.volume24h || 0, a.upbitPrice?.acc_trade_volume_24h || 0);
+          const bVolume = Math.max(b.bitgetPrice?.volume24h || 0, b.upbitPrice?.acc_trade_volume_24h || 0);
           return bVolume - aVolume;
         });
         break;
@@ -181,7 +181,7 @@ export default function PricesPage() {
   const pageStats = useMemo(() => {
     const rising = filteredAndSortedCoins.filter(item => {
       const change = Math.max(
-        item.binancePrice?.changePercent24h || 0,
+        item.bitgetPrice?.changePercent24h || 0,
         item.upbitPrice?.change_percent || 0
       );
       return change > 0;
@@ -189,7 +189,7 @@ export default function PricesPage() {
 
     const falling = filteredAndSortedCoins.filter(item => {
       const change = Math.max(
-        item.binancePrice?.changePercent24h || 0,
+        item.bitgetPrice?.changePercent24h || 0,
         item.upbitPrice?.change_percent || 0
       );
       return change < 0;

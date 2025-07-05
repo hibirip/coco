@@ -28,6 +28,17 @@ export default defineConfig({
             console.log('Exchange proxy error', err);
           });
         }
+      },
+      '/api/bitget': {
+        target: 'https://api.bitget.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/bitget/, ''),
+        secure: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Bitget proxy error', err);
+          });
+        }
       }
     }
   }
