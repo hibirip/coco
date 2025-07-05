@@ -1151,23 +1151,23 @@ export function PriceProvider({ children }) {
         }
         
       } catch (error) {
-        logger.error('Bitget REST API 실패:', error);
-        addError(`Bitget API 실패: ${error.message}`);
+        logger.error('Binance REST API 실패:', error);
+        addError(`Binance API 실패: ${error.message}`);
       }
     };
     
     // 즉시 로드
     fetchTickerData();
     
-    // 1분마다 업데이트
-    tickerInterval = setInterval(fetchTickerData, 60 * 1000);
+    // 15초마다 업데이트 (더 빠른 실시간성)
+    tickerInterval = setInterval(fetchTickerData, 15 * 1000);
     
-    logger.info('Bitget REST API 자동 업데이트 활성화 (1분 간격)');
+    logger.info('Binance REST API 자동 업데이트 활성화 (15초 간격)');
     
     return () => {
       if (tickerInterval) {
         clearInterval(tickerInterval);
-        logger.info('Bitget REST API 업데이트 정리');
+        logger.info('Binance REST API 업데이트 정리');
       }
     };
   }, [updatePrice, addError, state.prices]);

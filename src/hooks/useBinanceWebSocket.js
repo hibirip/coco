@@ -75,9 +75,9 @@ export function useBinanceWebSocket(options = {}) {
       // 기존 연결 정리
       cleanup();
 
-      // 스트림 URL 생성 (여러 심볼을 한 번에 구독)
-      const streams = targetSymbols.map(symbol => `${symbol.toLowerCase()}@ticker`).join('/');
-      const url = `${BINANCE_WS_CONFIG.URL}${streams}`;
+      // 테스트를 위해 먼저 BTCUSDT만 구독
+      const testSymbol = 'BTCUSDT';
+      const url = `wss://stream.binance.com:9443/ws/${testSymbol.toLowerCase()}@ticker`;
       
       logger.api(`Binance WebSocket URL: ${url}`);
       wsRef.current = new WebSocket(url);
@@ -178,6 +178,13 @@ export function useBinanceWebSocket(options = {}) {
     //   "n": 18151          // 총 거래 횟수
     // }
 
+    // pong 메시지 처리
+    if (data === 'pong') {
+      logger.debug('Binance WebSocket pong 수신');
+      return;
+    }
+
+    // 24hrTicker 이벤트 처리
     if (data.e === '24hrTicker') {
       const symbol = data.s;
       const price = parseFloat(data.c);
@@ -203,6 +210,8 @@ export function useBinanceWebSocket(options = {}) {
       updatePrice(symbol, priceData);
       
       logger.debug(`Binance 가격 업데이트: ${symbol} = $${price} (${changePercent24h > 0 ? '+' : ''}${changePercent24h.toFixed(2)}%)`);
+    } else {
+      logger.debug('알 수 없는 Binance 메시지:', data);
     }
   }, [updatePrice]);
 
@@ -234,7 +243,8 @@ export function useBinanceWebSocket(options = {}) {
     pingIntervalRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         try {
-          wsRef.current.send(JSON.stringify({ method: 'ping' }));
+          // 바이낸스는 특별한 ping 메시지가 필요하지 않음. 단순히 연결 확인
+          wsRef.current.send('ping');
           logger.debug('Binance WebSocket ping 전송');
         } catch (error) {
           logger.error('Binance WebSocket ping 전송 실패:', error);
