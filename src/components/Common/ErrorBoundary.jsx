@@ -16,8 +16,20 @@ class ErrorBoundary extends Component {
       errorInfo: errorInfo
     });
     
-    // 에러 로깅 (프로덕션에서는 실제 로깅 서비스 사용)
+    // 배포 환경에서 상세한 에러 로깅
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // 배포 환경에서 추가 디버깅 정보
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Production Error Details]:', {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 
   handleReload = () => {

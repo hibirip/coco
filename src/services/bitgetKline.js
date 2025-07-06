@@ -110,7 +110,13 @@ async function fetchBitgetKlineData(symbol, interval = '1h', limit = 24) {
     return data.data;
     
   } catch (error) {
-    logger.error(`Bitget Kline API 오류 (${symbol}):`, error.message);
+    // 400 에러는 심볼이 존재하지 않는 경우이므로 경고로 처리
+    if (error.message.includes('400')) {
+      logger.warn(`Bitget Kline 심볼 지원 안됨 (${symbol}): ${error.message}`);
+      return []; // 빈 배열 반환하여 앱 크래시 방지
+    } else {
+      logger.error(`Bitget Kline API 오류 (${symbol}):`, error.message);
+    }
     throw error;
   }
 }
@@ -201,6 +207,12 @@ export async function getSparklineData(symbol, interval = '1h') {
     return klineToSparklineData(klineData);
     
   } catch (error) {
+    // 400 에러의 경우 심볼이 지원되지 않으므로 빈 배열 반환
+    if (error.message.includes('400')) {
+      logger.warn(`지원되지 않는 심볼 (${symbol}), 빈 데이터 반환`);
+      return [];
+    }
+    
     logger.warn(`Kline 데이터 가져오기 실패 (${symbol}), Mock 데이터 사용:`, error.message);
     
     // API 실패시 Mock 데이터로 폴백

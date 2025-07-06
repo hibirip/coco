@@ -1089,10 +1089,15 @@ export function PriceProvider({ children }) {
         
         // 모든 코인들의 스파크라인 데이터 로드 (단계적 로딩)
         // 1단계: 주요 코인 먼저 로드
-        const majorSparklineData = await getBatchSparklineData(MAJOR_SYMBOLS, '1h');
-        if (majorSparklineData && Object.keys(majorSparklineData).length > 0) {
-          setKlineDataBulk(majorSparklineData);
-          logger.info(`주요 코인 스파크라인 데이터 업데이트: ${Object.keys(majorSparklineData).length}개`);
+        try {
+          const majorSparklineData = await getBatchSparklineData(MAJOR_SYMBOLS, '1h');
+          if (majorSparklineData && Object.keys(majorSparklineData).length > 0) {
+            setKlineDataBulk(majorSparklineData);
+            logger.info(`주요 코인 스파크라인 데이터 업데이트: ${Object.keys(majorSparklineData).length}개`);
+          }
+        } catch (error) {
+          logger.warn('주요 코인 스파크라인 데이터 로딩 실패:', error.message);
+          // 실패해도 앱은 계속 실행
         }
         
         // 2단계: 나머지 코인들 로드 (지연 로딩)
@@ -1108,6 +1113,7 @@ export function PriceProvider({ children }) {
             }
           } catch (error) {
             logger.warn('추가 스파크라인 데이터 로딩 실패:', error.message);
+            // 실패해도 앱은 계속 실행
           }
         }, 200); // 0.2초 지연
         
