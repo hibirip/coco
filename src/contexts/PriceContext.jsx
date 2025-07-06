@@ -1186,31 +1186,18 @@ export function PriceProvider({ children }) {
         
       } catch (error) {
         logger.error('업비트 REST API 실패:', error);
-        logger.info('Mock 데이터로 대체 시도...');
-        
-        // CORS 에러 등으로 실패 시 Mock 데이터 사용
-        try {
-          const mockTickerData = await getBatchUpbitTickerData(validMarkets);
-          let mockUpdateCount = 0;
-          
-          Object.entries(mockTickerData).forEach(([market, ticker]) => {
-            updateUpbitPrice(market, ticker);
-            mockUpdateCount++;
-          });
-          
-          logger.api(`Mock 업비트 데이터 업데이트: ${mockUpdateCount}개 마켓`);
-        } catch (mockError) {
-          logger.error('Mock 데이터 생성도 실패:', mockError);
-          addError(`업비트 API 실패: ${error.message}`);
-        }
+        addError(`업비트 API 실패: ${error.message}`);
       }
     };
     
     // 즉시 시작 (Binance와 동시에)
     fetchUpbitTickerData();
     
+    // 첫 3초 후 한번 더 업데이트 (빠른 초기 로딩)
+    setTimeout(fetchUpbitTickerData, 3000);
+    
     // 더 빈번한 업데이트로 실시간성 향상
-    const upbitUpdateInterval = 30 * 1000; // 30초 간격으로 단축
+    const upbitUpdateInterval = 10 * 1000; // 10초 간격으로 실시간성 최대화
     upbitTickerInterval = setInterval(fetchUpbitTickerData, upbitUpdateInterval);
     
     logger.info(`업비트 REST API 자동 업데이트 활성화 (${upbitUpdateInterval/1000}초 간격)`);

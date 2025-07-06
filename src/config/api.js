@@ -75,7 +75,7 @@ export const API_CONFIG = {
     TIMEOUT: 10000, // 10초
     RETRY_ATTEMPTS: 3,
     CACHE_DURATION: {
-      TICKER: 5000, // 5초
+      TICKER: 2000, // 2초로 단축하여 실시간성 향상
       KLINE: 300000, // 5분
       NEWS: 180000, // 3분
       EXCHANGE_RATE: 3600000 // 1시간
