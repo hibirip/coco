@@ -50,8 +50,9 @@ export async function getBatchUpbitTickerData(markets) {
     // 마켓 파라미터 생성
     const marketsParam = markets.join(',');
     
-    // 모든 환경에서 동일한 방식으로 직접 호출 (로컬 기준)
-    const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}`;
+    // 캐시 무시를 위한 타임스탬프 추가
+    const timestamp = Date.now();
+    const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}&_t=${timestamp}`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
@@ -61,8 +62,11 @@ export async function getBatchUpbitTickerData(markets) {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-store' // 캐시 완전 비활성화
     });
     
     clearTimeout(timeoutId);

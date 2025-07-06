@@ -741,20 +741,23 @@ function priceReducer(state, action) {
       if (action.payload.market === 'KRW-BTC') {
         logger.debug(`PriceContext UPDATE_UPBIT_PRICE (${action.payload.market}):`, {
           market: action.payload.market,
-          newData: action.payload.data
+          newData: action.payload.data,
+          timestamp: Date.now()
         });
       }
       
+      // 새로운 상태 객체 생성으로 React가 변경을 감지하도록 함
+      const newUpbitPrices = {
+        ...state.upbitPrices,
+        [action.payload.market]: {
+          ...action.payload.data,
+          lastUpdated: Date.now()
+        }
+      };
+      
       return {
         ...state,
-        upbitPrices: {
-          ...state.upbitPrices,
-          [action.payload.market]: {
-            ...state.upbitPrices[action.payload.market],
-            ...action.payload.data,
-            lastUpdated: Date.now()
-          }
-        },
+        upbitPrices: newUpbitPrices,
         lastUpdated: Date.now()
       };
       
@@ -1150,6 +1153,7 @@ export function PriceProvider({ children }) {
   // 업비트 REST API Ticker 데이터 자동 업데이트
   useEffect(() => {
     let upbitTickerInterval = null;
+    let updateCounter = 0; // 업데이트 카운터 추가
     
     const fetchUpbitTickerData = async () => {
       // 초기 로드시 주요 코인만 먼저 로드
@@ -1167,8 +1171,9 @@ export function PriceProvider({ children }) {
       const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
       
       try {
-        logger.api('업비트 REST API 데이터 로드 중...');
-        logger.api('업비트 API 빠른 호출 시작');
+        updateCounter++;
+        const currentTime = new Date().toLocaleTimeString();
+        logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] 업비트 REST API 데이터 로드 중...`);
         logger.debug('유효한 마켓:', validMarkets);
         
         // 환경별 API 호출
@@ -1177,16 +1182,33 @@ export function PriceProvider({ children }) {
         
         // 데이터 변환 및 업데이트
         let updateCount = 0;
+        const timestamp = Date.now();
+        
         Object.values(upbitData).forEach(ticker => {
-          updateUpbitPrice(ticker.market, ticker);
+          // 타임스탬프 추가하여 항상 새로운 데이터로 인식되도록 함
+          updateUpbitPrice(ticker.market, {
+            ...ticker,
+            updateTimestamp: timestamp,
+            updateCounter: updateCounter
+          });
           updateCount++;
         });
         
-        logger.api(`업비트 데이터 업데이트: ${updateCount}개 마켓`);
+        logger.api(`[${updateCounter}번째] 업비트 데이터 업데이트 완료: ${updateCount}개 마켓`);
+        
+        // 배포 환경에서 디버깅
+        if (!isDevelopment) {
+          console.log(`[Production] Upbit price update #${updateCounter} at ${currentTime}: ${updateCount} markets updated`);
+        }
         
       } catch (error) {
-        logger.error('업비트 REST API 실패:', error);
+        logger.error(`[${updateCounter}번째] 업비트 REST API 실패:`, error);
         addError(`업비트 API 실패: ${error.message}`);
+        
+        // 배포 환경에서 에러 로깅
+        if (!isDevelopment) {
+          console.error(`[Production] Upbit API error #${updateCounter}:`, error);
+        }
       }
     };
     
@@ -1194,7 +1216,7 @@ export function PriceProvider({ children }) {
     fetchUpbitTickerData();
     
     // 첫 3초 후 한번 더 업데이트 (빠른 초기 로딩)
-    setTimeout(fetchUpbitTickerData, 3000);
+    const initialTimeout = setTimeout(fetchUpbitTickerData, 3000);
     
     // 더 빈번한 업데이트로 실시간성 향상
     const upbitUpdateInterval = 10 * 1000; // 10초 간격으로 실시간성 최대화
@@ -1202,13 +1224,21 @@ export function PriceProvider({ children }) {
     
     logger.info(`업비트 REST API 자동 업데이트 활성화 (${upbitUpdateInterval/1000}초 간격)`);
     
+    // 배포 환경 디버깅
+    if (!isDevelopment) {
+      console.log(`[Production] Upbit REST API auto-update enabled (every ${upbitUpdateInterval/1000}s)`);
+    }
+    
     return () => {
       if (upbitTickerInterval) {
         clearInterval(upbitTickerInterval);
         logger.info('업비트 REST API 업데이트 정리');
       }
+      if (initialTimeout) {
+        clearTimeout(initialTimeout);
+      }
     };
-  }, [updateUpbitPrice, addError]); // MAJOR_COINS 제거 (상수이므로 불필요)
+  }, [updateUpbitPrice, addError]); // 의존성 최소화
   
   // 통계 업데이트 (자동)
   useEffect(() => {

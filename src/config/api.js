@@ -13,6 +13,15 @@ const BACKEND_SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'https://coco-pro
 // Express 프록시 서버 URL
 const EXPRESS_SERVER_URL = isDevelopment ? 'http://localhost:8080' : BACKEND_SERVER_URL;
 
+// 배포 환경에서 설정 확인
+if (!isDevelopment) {
+  console.log('[Production] API Configuration:', {
+    BACKEND_SERVER_URL,
+    EXPRESS_SERVER_URL,
+    isDevelopment
+  });
+}
+
 // API 타입별 경로 설정
 const API_PATHS = {
   BITGET: '/api/bitget',
