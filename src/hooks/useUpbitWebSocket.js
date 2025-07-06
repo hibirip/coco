@@ -14,8 +14,8 @@ const UPBIT_WS_CONFIG = {
   RECONNECT_INTERVAL: 3000, // 3초 재연결 간격
   MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
   CONNECTION_TIMEOUT: 10000, // 10초로 복원
-  USE_MOCK: false, // Mock WebSocket 비활성화 (REST API만 사용)
-  MOCK_INTERVAL: 30000 // Mock 데이터 30초 간격으로 변경
+  USE_MOCK: false, // 실제 WebSocket 우선 시도
+  MOCK_INTERVAL: 15000 // Mock 데이터 15초 간격으로 실시간성 향상
 };
 
 // WebSocket 연결 상태
@@ -393,8 +393,8 @@ export function useUpbitWebSocket(options = {}) {
         UPBIT_WS_CONFIG.USE_MOCK = true;
         setReconnectAttempts(0);
         setTimeout(() => {
-          connect();
-        }, 2000);
+          startMockData(); // 직접 Mock 데이터 시작
+        }, 1000);
       }
       return;
     }

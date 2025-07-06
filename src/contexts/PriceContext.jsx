@@ -919,7 +919,7 @@ export function PriceProvider({ children }) {
         data: priceData
       }
     });
-  }, [state.upbitPrices]);
+  }, []); // 의존성 배열에서 state.upbitPrices 제거
   
   // 환율 업데이트
   const updateExchangeRate = useCallback((rate) => {
@@ -1152,23 +1152,22 @@ export function PriceProvider({ children }) {
     let upbitTickerInterval = null;
     
     const fetchUpbitTickerData = async () => {
+      // 초기 로드시 주요 코인만 먼저 로드
+      const isInitialLoad = Object.keys(state.upbitPrices).length === 0;
+      const upbitMarkets = isInitialLoad ? MAJOR_UPBIT_MARKETS : ALL_UPBIT_MARKETS;
+      
+      logger.debug('업비트 마켓 목록:', upbitMarkets);
+      
+      if (upbitMarkets.length === 0) {
+        logger.warn('업비트 마켓 목록이 비어있음');
+        return;
+      }
+      
+      // 업비트 API 호출 (빠른 배치 방식)
+      const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
+      
       try {
         logger.api('업비트 REST API 데이터 로드 중...');
-        
-        // 초기 로드시 주요 코인만 먼저 로드
-        const isInitialLoad = Object.keys(state.upbitPrices).length === 0;
-        const upbitMarkets = isInitialLoad ? MAJOR_UPBIT_MARKETS : ALL_UPBIT_MARKETS;
-        
-        logger.debug('업비트 마켓 목록:', upbitMarkets);
-        
-        if (upbitMarkets.length === 0) {
-          logger.warn('업비트 마켓 목록이 비어있음');
-          return;
-        }
-        
-        // 업비트 API 호출 (빠른 배치 방식)
-        const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
-        
         logger.api('업비트 API 빠른 호출 시작');
         logger.debug('유효한 마켓:', validMarkets);
         
@@ -1210,8 +1209,8 @@ export function PriceProvider({ children }) {
     // 즉시 시작 (Binance와 동시에)
     fetchUpbitTickerData();
     
-    // 모든 환경에서 동일한 간격으로 업데이트 (로컬 기준)
-    const upbitUpdateInterval = 60 * 1000; // 60초 간격으로 통일
+    // 더 빈번한 업데이트로 실시간성 향상
+    const upbitUpdateInterval = 30 * 1000; // 30초 간격으로 단축
     upbitTickerInterval = setInterval(fetchUpbitTickerData, upbitUpdateInterval);
     
     logger.info(`업비트 REST API 자동 업데이트 활성화 (${upbitUpdateInterval/1000}초 간격)`);
@@ -1222,7 +1221,7 @@ export function PriceProvider({ children }) {
         logger.info('업비트 REST API 업데이트 정리');
       }
     };
-  }, [updateUpbitPrice, addError, MAJOR_COINS]);
+  }, [updateUpbitPrice, addError]); // MAJOR_COINS 제거 (상수이므로 불필요)
   
   // 통계 업데이트 (자동)
   useEffect(() => {
