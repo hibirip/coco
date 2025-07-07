@@ -163,7 +163,7 @@ export default function CoinDetailPage() {
             {/* 24시간 변동 */}
             <div className={`text-right ${getChangeColorClass(change24h)}`}>
               <p className="text-xl font-semibold">
-                {change24h > 0 ? '+' : ''}{formatPercent(change24h)}
+                {formatPercent(change24h)}
               </p>
               <p className="text-sm">24시간 변동</p>
             </div>
@@ -178,7 +178,7 @@ export default function CoinDetailPage() {
             {kimchiPremium ? (
               <div>
                 <p className={`text-lg font-bold ${getChangeColorClass(kimchiPremium.premium)}`}>
-                  {kimchiPremium.premium > 0 ? '+' : ''}{formatPercent(kimchiPremium.premium)}
+                  {formatPercent(kimchiPremium.premium)}
                 </p>
                 <p className="text-xs text-textSecondary">
                   {(() => {

@@ -163,7 +163,7 @@ export default function CoinDetailPageV2() {
               
               <div className={`text-right ${change24h >= 0 ? 'text-primary' : 'text-danger'}`}>
                 <div className="text-xl font-semibold">
-                  {change24h > 0 ? '+' : ''}{formatPercent(change24h)}
+                  {formatPercent(change24h)}
                 </div>
                 <div className="text-sm">24h 변동</div>
               </div>
@@ -187,7 +187,7 @@ export default function CoinDetailPageV2() {
             <div className="flex gap-2 items-center px-4 py-2 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/30 hover:from-gray-700/50 hover:to-gray-600/30 transition-all duration-300 border border-gray-600/30 ml-auto">
               <span className="text-gray-400">Kimchi Premium:</span>
               <span className={`font-semibold ${kimchiPremium?.premium > 0 ? 'text-primary' : 'text-danger'}`}>
-                {kimchiPremium ? `${kimchiPremium.premium > 0 ? '+' : ''}${formatPercent(kimchiPremium.premium)}` : '-'}
+                {kimchiPremium ? formatPercent(kimchiPremium.premium) : '-'}
               </span>
             </div>
           </div>
@@ -339,7 +339,7 @@ export default function CoinDetailPageV2() {
               <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors">
                 <span className="text-gray-400">24h Change</span>
                 <span className={`font-medium ${change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {change24h > 0 ? '+' : ''}{formatPercent(change24h)}
+                  {formatPercent(change24h)}
                 </span>
               </div>
               <div className="flex justify-between py-2 px-3 rounded-lg hover:bg-gray-800/30 transition-colors">
@@ -358,7 +358,7 @@ export default function CoinDetailPageV2() {
                 <div className="flex justify-between py-3 px-4 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/40 hover:from-gray-700/60 hover:to-gray-600/50 transition-all duration-300 border border-gray-600/40 shadow-lg">
                   <span className="text-gray-300 font-medium">Kimchi Premium</span>
                   <span className={`font-bold ${kimchiPremium.premium >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {kimchiPremium.premium > 0 ? '+' : ''}{formatPercent(kimchiPremium.premium)}
+                    {formatPercent(kimchiPremium.premium)}
                   </span>
                 </div>
               )}

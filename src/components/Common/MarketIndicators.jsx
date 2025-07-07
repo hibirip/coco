@@ -193,39 +193,40 @@ const MarketIndicators = () => {
 
   // 개별 지표 카드 컴포넌트
   const IndicatorCard = ({ title, value, subValue, change, changePercent, loading, icon, customColor }) => (
-    <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/50 to-gray-800/60 backdrop-blur-xl rounded-xl p-4 border border-gray-600/40 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-green-500/20 group">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {icon}
-          <h3 className="text-xs font-medium text-gray-300 group-hover:text-white transition-colors">
+    <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/50 to-gray-800/60 backdrop-blur-xl rounded-xl p-3 md:p-4 border border-gray-600/40 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-green-500/20 group">
+      <div className="flex flex-col h-full">
+        {/* 헤더 영역 */}
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-medium text-gray-300 group-hover:text-white transition-colors truncate">
             {title}
           </h3>
+          {change !== undefined && <ChangeIcon change={change} />}
         </div>
-        {change !== undefined && <ChangeIcon change={change} />}
-      </div>
-      
-      {loading ? (
-        <div className="space-y-2">
-          <div className="h-6 bg-gray-600/50 rounded animate-pulse"></div>
-          <div className="h-4 bg-gray-600/30 rounded animate-pulse w-2/3"></div>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          <div className={`text-lg font-bold ${customColor || 'text-white'} group-hover:text-green-100 transition-colors`}>
-            {value}
+        
+        {/* 컨텐츠 영역 */}
+        {loading ? (
+          <div className="space-y-2 flex-1">
+            <div className="h-6 bg-gray-600/50 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-600/30 rounded animate-pulse w-2/3"></div>
           </div>
-          {subValue && (
-            <div className="text-xs text-gray-400">
-              {subValue}
+        ) : (
+          <div className="flex-1 flex flex-col justify-center">
+            <div className={`text-base md:text-lg font-bold ${customColor || 'text-white'} group-hover:text-green-100 transition-colors break-all`}>
+              {value}
             </div>
-          )}
-          {changePercent !== undefined && changePercent !== null && (
-            <div className={`text-xs font-medium ${getChangeColorClass(changePercent)}`}>
-              {changePercent > 0 ? '+' : ''}{formatPercent(changePercent)}
-            </div>
-          )}
-        </div>
-      )}
+            {subValue && (
+              <div className="text-xs text-gray-400 mt-1 truncate">
+                {subValue}
+              </div>
+            )}
+            {changePercent !== undefined && changePercent !== null && (
+              <div className={`text-xs font-medium ${getChangeColorClass(changePercent)} mt-1`}>
+                {formatPercent(changePercent)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -246,7 +247,64 @@ const MarketIndicators = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* 모바일: 3x2 그리드, 데스크톱: 기존 레이아웃 */}
+      <div className="md:hidden">
+        {/* 모바일 레이아웃 - 6개 지표 3x2 */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* 공포탐욕지수 - 모바일에서는 일반 카드 크기 */}
+          <IndicatorCard
+            title="공포탐욕지수"
+            value={indicators.fearGreed.value ? `${indicators.fearGreed.value}` : '—'}
+            loading={indicators.fearGreed.loading}
+            customColor={indicators.fearGreed.value ? getFearGreedColor(indicators.fearGreed.value) : 'text-white'}
+          />
+
+          {/* 총 시가총액 */}
+          <IndicatorCard
+            title="총 시가총액"
+            value={indicators.totalMarketCap.value ? `$${(indicators.totalMarketCap.value / 1e12).toFixed(2)}T` : '—'}
+            loading={indicators.totalMarketCap.loading}
+          />
+
+          {/* S&P 500 */}
+          <IndicatorCard
+            title="S&P 500"
+            value={indicators.sp500.value ? indicators.sp500.value.toLocaleString() : '—'}
+            change={indicators.sp500.change}
+            changePercent={indicators.sp500.changePercent}
+            loading={indicators.sp500.loading}
+          />
+
+          {/* 달러 인덱스 */}
+          <IndicatorCard
+            title="달러 인덱스"
+            value={indicators.dxy.value ? indicators.dxy.value.toFixed(2) : '—'}
+            change={indicators.dxy.change}
+            changePercent={indicators.dxy.changePercent}
+            loading={indicators.dxy.loading}
+          />
+
+          {/* 김치프리미엄 */}
+          <IndicatorCard
+            title="김치프리미엄"
+            value={indicators.kimchiPremium.value ? `${indicators.kimchiPremium.value > 0 ? '+' : ''}${indicators.kimchiPremium.value.toFixed(2)}%` : '—'}
+            loading={indicators.kimchiPremium.loading}
+            customColor={indicators.kimchiPremium.value ? getChangeColorClass(indicators.kimchiPremium.value) : 'text-white'}
+          />
+
+          {/* USD/KRW */}
+          <IndicatorCard
+            title="USD/KRW"
+            value={indicators.usdKrw.value ? `₩${indicators.usdKrw.value.toFixed(0)}` : '—'}
+            change={indicators.usdKrw.change}
+            changePercent={indicators.usdKrw.changePercent}
+            loading={indicators.usdKrw.loading}
+          />
+        </div>
+      </div>
+
+      {/* 데스크톱 레이아웃 - 기존 유지 */}
+      <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 공포탐욕지수 - 특별 섹션 */}
         <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/50 to-gray-800/60 backdrop-blur-xl rounded-xl p-6 border border-gray-600/40 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-green-500/20 group">
           <div className="flex items-center justify-between mb-4">
@@ -260,7 +318,7 @@ const MarketIndicators = () => {
           />
         </div>
 
-        {/* 기타 지표들 - 6개 지표를 3x2 레이아웃 */}
+        {/* 기타 지표들 - 5개 지표를 3x2 레이아웃 */}
         <div className="md:col-span-1 lg:col-span-3">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
 
@@ -283,15 +341,6 @@ const MarketIndicators = () => {
           icon={<div className="w-4 h-4 text-green-400"></div>}
         />
 
-        {/* 나스닥 */}
-        <IndicatorCard
-          title="나스닥"
-          value={indicators.nasdaq.value ? indicators.nasdaq.value.toLocaleString() : '—'}
-          change={indicators.nasdaq.change}
-          changePercent={indicators.nasdaq.changePercent}
-          loading={indicators.nasdaq.loading}
-          icon={<div className="w-4 h-4 text-cyan-400"></div>}
-        />
 
         {/* 달러 인덱스 */}
         <IndicatorCard

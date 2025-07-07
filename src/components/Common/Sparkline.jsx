@@ -184,16 +184,11 @@ export function SparklineWithTrend({ data, changePercent, symbol, ...props }) {
   const isPositive = changePercent >= 0;
   
   return (
-    <div className="flex items-center gap-2">
-      <Sparkline
-        data={data}
-        strokeColor={isPositive ? '#10B981' : '#EF4444'}
-        {...props}
-      />
-      <div className={`text-xs font-medium ${isPositive ? 'text-success' : 'text-danger'}`}>
-        {isPositive ? '+' : ''}{changePercent?.toFixed(2)}%
-      </div>
-    </div>
+    <Sparkline
+      data={data}
+      strokeColor={isPositive ? '#10B981' : '#EF4444'}
+      {...props}
+    />
   );
 }
 
