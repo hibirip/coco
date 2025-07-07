@@ -204,9 +204,6 @@ export default function PricesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-
-
-
       {/* 메인 코인 테이블 */}
       <div className="bg-section rounded-lg overflow-hidden">
         <CoinTable 

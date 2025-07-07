@@ -235,17 +235,24 @@ export default function CoinTable({
   }
 
   return (
-    <div className={`bg-section rounded-lg overflow-hidden ${className} animate-fade-in-up`}>
+    <div className={`bg-gradient-to-br from-gray-900/95 via-gray-800/85 to-gray-900/75 backdrop-blur-xl rounded-xl overflow-hidden border border-gray-700/40 shadow-2xl hover:shadow-3xl transition-all duration-300 ${className} animate-fade-in-up`}>
       {/* 검색 컨트롤 */}
       {onSearchChange && (
-        <div className="p-4 border-b border-border">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="코인명 또는 심볼 검색 (예: Bitcoin, BTC)"
-            className="w-full px-4 py-2 bg-card border border-border rounded-lg text-text placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
+        <div className="p-6 border-b border-gray-700/30">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="코인명 또는 심볼 검색 (예: Bitcoin, BTC)"
+              className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-300 backdrop-blur-sm"
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
         </div>
       )}
 
@@ -253,20 +260,22 @@ export default function CoinTable({
       <div className="overflow-hidden">
         {/* 데스크톱 테이블 */}
         <table className="w-full hidden md:table">
-          <thead className="bg-card">
-            <tr className="text-left text-sm text-textSecondary">
+          <thead className="bg-gradient-to-r from-gray-800/50 to-gray-700/30">
+            <tr className="text-left text-sm text-gray-300">
               {showFavorites && (
-                <th className="px-4 py-3 w-12">★</th>
+                <th className="px-6 py-4 w-12">
+                  <div className="text-yellow-400">★</div>
+                </th>
               )}
-              <th className="px-4 py-3 min-w-[200px]">코인</th>
+              <th className="px-6 py-4 min-w-[200px] font-semibold text-white">코인</th>
               <th 
-                className="px-4 py-3 text-right min-w-[120px] cursor-pointer hover:bg-card/80 transition-colors"
+                className="px-6 py-4 text-right min-w-[120px] cursor-pointer hover:bg-gray-700/40 transition-all duration-300 rounded-lg"
                 onClick={() => handleSort('price')}
               >
-                <div className="flex items-center justify-end gap-1">
-                  현재가
+                <div className="flex items-center justify-end gap-2">
+                  <span className="font-semibold text-white">현재가</span>
                   {sortBy === 'price' && (
-                    <span className="text-primary">
+                    <span className="text-green-400 text-lg">
                       {sortOrder === 'desc' ? '↓' : '↑'}
                     </span>
                   )}
@@ -274,13 +283,13 @@ export default function CoinTable({
               </th>
               {showKimchi && (
                 <th 
-                  className="px-4 py-3 text-center min-w-[80px] cursor-pointer hover:bg-card/80 transition-colors"
+                  className="px-6 py-4 text-center min-w-[80px] cursor-pointer hover:bg-gray-700/40 transition-all duration-300 rounded-lg"
                   onClick={() => handleSort('kimchi')}
                 >
-                  <div className="flex items-center justify-center gap-1">
-                    김프
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-semibold text-white">김프</span>
                     {sortBy === 'kimchi' && (
-                      <span className="text-primary">
+                      <span className="text-green-400 text-lg">
                         {sortOrder === 'desc' ? '↓' : '↑'}
                       </span>
                     )}
@@ -288,33 +297,33 @@ export default function CoinTable({
                 </th>
               )}
               <th 
-                className="px-4 py-3 text-center min-w-[100px] cursor-pointer hover:bg-card/80 transition-colors"
+                className="px-6 py-4 text-center min-w-[100px] cursor-pointer hover:bg-gray-700/40 transition-all duration-300 rounded-lg"
                 onClick={() => handleSort('change')}
               >
-                <div className="flex items-center justify-center gap-1">
-                  전일대비
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-semibold text-white">전일대비</span>
                   {sortBy === 'change' && (
-                    <span className="text-primary">
+                    <span className="text-green-400 text-lg">
                       {sortOrder === 'desc' ? '↓' : '↑'}
                     </span>
                   )}
                 </div>
               </th>
-              <th className="px-4 py-3 text-center min-w-[120px]">변화량(24h)</th>
+              <th className="px-6 py-4 text-center min-w-[120px] font-semibold text-white">변화량(24h)</th>
               <th 
-                className="px-4 py-3 text-right min-w-[120px] cursor-pointer hover:bg-card/80 transition-colors"
+                className="px-6 py-4 text-right min-w-[120px] cursor-pointer hover:bg-gray-700/40 transition-all duration-300 rounded-lg"
                 onClick={() => handleSort('volume')}
               >
-                <div className="flex items-center justify-end gap-1">
-                  거래액(24h)
+                <div className="flex items-center justify-end gap-2">
+                  <span className="font-semibold text-white">거래액(24h)</span>
                   {sortBy === 'volume' && (
-                    <span className="text-primary">
+                    <span className="text-green-400 text-lg">
                       {sortOrder === 'desc' ? '↓' : '↑'}
                     </span>
                   )}
                 </div>
               </th>
-              <th className="px-4 py-3 text-center min-w-[80px]">상세</th>
+              <th className="px-6 py-4 text-center min-w-[80px] font-semibold text-white">상세</th>
             </tr>
           </thead>
           <tbody>
@@ -376,19 +385,19 @@ export default function CoinTable({
               tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
                 <tr 
                   key={symbol}
-                  className="border-b border-border hover:bg-card/50 transition-colors cursor-pointer"
+                  className="border-b border-gray-700/30 hover:bg-gradient-to-r hover:from-gray-800/40 hover:to-gray-700/30 transition-all duration-300 cursor-pointer group backdrop-blur-sm"
                   onClick={() => handleCoinClick(symbol)}
                 >
                   {/* 즐겨찾기 */}
                   {showFavorites && (
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleFavorite(symbol);
                         }}
-                        className={`text-lg hover:scale-110 transition-transform ${
-                          favorites.has(symbol) ? 'text-warning' : 'text-textSecondary hover:text-warning'
+                        className={`text-xl hover:scale-125 transition-all duration-300 ${
+                          favorites.has(symbol) ? 'text-yellow-400 drop-shadow-lg' : 'text-gray-500 hover:text-yellow-400'
                         }`}
                       >
                         {favorites.has(symbol) ? '★' : '☆'}
@@ -397,18 +406,20 @@ export default function CoinTable({
                   )}
 
                   {/* 코인 (로고 + 이름) */}
-                  <td className="px-4 py-3">
-                    <CoinLogoWithInfo 
-                      symbol={symbol}
-                      name={coin.name}
-                      size={32}
-                      showSymbol={true}
-                      showName={true}
-                    />
+                  <td className="px-6 py-4">
+                    <div className="group-hover:scale-105 transition-transform duration-300">
+                      <CoinLogoWithInfo 
+                        symbol={symbol}
+                        name={coin.name}
+                        size={36}
+                        showSymbol={true}
+                        showName={true}
+                      />
+                    </div>
                   </td>
 
                   {/* 현재가 */}
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-6 py-4 text-right">
                     {(() => {
                       const upbitCurrentPrice = upbitPrice?.trade_price;
                       const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
@@ -572,7 +583,7 @@ export default function CoinTable({
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => handleCoinClick(symbol)}
-                      className="px-3 py-1 bg-primary text-background rounded text-sm hover:bg-primary/80 transition-colors"
+                      className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-300 text-black px-3 py-1.5 rounded-lg font-bold text-sm transition-all duration-300 shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-400/40 hover:scale-105 transform"
                     >
                       거래하기
                     </button>
@@ -612,7 +623,7 @@ export default function CoinTable({
         </table>
 
         {/* 모바일 카드 리스트 */}
-        <div className="md:hidden space-y-2">
+        <div className="md:hidden space-y-3">
           {isInitialLoading ? (
             // 모바일 스켈레톤 UI
             <MobileSkeletonLoader rows={8} />
@@ -620,106 +631,116 @@ export default function CoinTable({
             tableData.map(({ symbol, coin, bitgetPrice, upbitPrice, kimchiPremium, sparklineData }) => (
               <div 
                 key={symbol}
-                className="bg-card p-3 rounded-lg border border-border cursor-pointer hover:bg-card/80 transition-colors"
+                className="bg-gradient-to-r from-gray-800/40 via-gray-700/30 to-gray-800/40 backdrop-blur-xl rounded-xl p-3 border border-gray-700/40 shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 transform hover:scale-[1.02] group cursor-pointer"
                 onClick={() => handleCoinClick(symbol)}
               >
-                <div className="grid grid-cols-4 gap-2 items-center">
-                  {/* 코인 정보 */}
-                  <div className="col-span-1">
-                    <CoinLogoWithInfo 
-                      symbol={symbol}
-                      name={coin.name}
-                      size={24}
-                      showSymbol={false}
-                      showName={false}
-                    />
-                    <div className="mt-1">
-                      <div className="text-xs font-medium text-text truncate whitespace-nowrap">
-                        {coin.name}
-                      </div>
-                      <div className="text-xs text-textSecondary whitespace-nowrap">
-                        {symbol.replace('USDT', '')}
+                <div className="flex items-center justify-between">
+                  {/* 코인 정보 (로고 + 이름) */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="group-hover:scale-110 transition-transform duration-300">
+                      <CoinLogoWithInfo 
+                        symbol={symbol}
+                        name={coin.name}
+                        size={32}
+                        showSymbol={false}
+                        showName={false}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-bold text-white group-hover:text-green-400 transition-colors duration-300 truncate">
+                          {coin.name}
+                        </div>
+                        {/* 모바일 즐겨찾기 버튼 */}
+                        {showFavorites && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(symbol);
+                            }}
+                            className={`text-sm hover:scale-125 transition-all duration-300 ${
+                              favorites.has(symbol) ? 'text-yellow-400 drop-shadow-lg' : 'text-gray-500 hover:text-yellow-400'
+                            }`}
+                          >
+                            {favorites.has(symbol) ? '★' : '☆'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* 현재가 */}
-                  <div className="col-span-1 text-right">
+                  {/* 가격 정보 */}
+                  <div className="text-right mr-2">
                     {(() => {
                       const upbitCurrentPrice = upbitPrice?.trade_price;
                       const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
                         (bitgetPrice.price * exchangeRate) : null;
                       
-                      const currentPrice = upbitCurrentPrice || bitgetPriceKRW;
-                      
                       // 깜빡임 애니메이션 클래스 가져오기
                       const flashClass = flashStates[symbol]?.flashClass || '';
                       
-                      if (currentPrice) {
+                      if (bitgetPriceKRW) {
                         return (
-                          <div className={`transition-all duration-200 rounded px-1 py-1 ${flashClass}`}>
-                            <div className="text-sm font-bold text-text whitespace-nowrap">
-                              {currentPrice > 1000 ? 
-                                `₩${Math.round(currentPrice / 1000)}K` : 
-                                formatKRW(currentPrice, false)
-                              }
+                          <div className={`transition-all duration-300 rounded-lg px-2 py-2 ${flashClass} group-hover:bg-gray-800/30`}>
+                            <div className="text-sm font-bold text-white whitespace-nowrap">
+                              {formatKRW(bitgetPriceKRW)}
+                            </div>
+                            {upbitCurrentPrice && (
+                              <div className="text-xs text-gray-400 whitespace-nowrap">
+                                ₩{Math.round(upbitCurrentPrice / 1000)}K
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } else if (upbitCurrentPrice) {
+                        return (
+                          <div className={`transition-all duration-300 rounded-lg px-2 py-2 ${flashClass} group-hover:bg-gray-800/30`}>
+                            <div className="text-sm font-bold text-white whitespace-nowrap">
+                              {formatKRW(upbitCurrentPrice)}
+                            </div>
+                            <div className="text-xs text-gray-400 whitespace-nowrap">
+                              Bitget 로딩중
                             </div>
                           </div>
                         );
                       }
-                      return <span className="text-xs text-textSecondary">로딩중</span>;
+                      return <span className="text-xs text-gray-400">로딩중</span>;
                     })()}
                   </div>
 
-                  {/* 전일대비 */}
-                  <div className="col-span-1 text-center">
+                  {/* 전일대비 & 김프 */}
+                  <div className="text-center mr-2">
                     {(() => {
                       const upbitChange = upbitPrice?.change_percent || 0;
                       const bitgetChange = bitgetPrice?.changePercent24h || 0;
                       const primaryChange = upbitChange || bitgetChange;
                       
                       return (
-                        <div className="text-center">
-                          <div className={`text-sm font-medium whitespace-nowrap ${getChangeColorClass(primaryChange)}`}>
+                        <div className="bg-gray-800/50 rounded-lg px-2 py-1.5 group-hover:bg-gray-700/50 transition-all duration-300">
+                          <div className={`text-sm font-bold whitespace-nowrap ${getChangeColorClass(primaryChange)}`}>
                             {formatPercent(primaryChange)}
                           </div>
+                          {/* 김치프리미엄 (있는 경우) */}
+                          {showKimchi && kimchiPremium && (
+                            <div className={`text-xs font-medium whitespace-nowrap ${getChangeColorClass(kimchiPremium.premium)}`}>
+                              김프: {formatPercent(kimchiPremium.premium)}
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
                   </div>
 
-                  {/* 변동추이 차트 */}
-                  <div className="col-span-1 flex justify-end">
-                    <div className="w-16 h-8">
-                      {sparklineData && sparklineData.length > 0 ? (
-                        <SparklineWithTrend
-                          data={sparklineData}
-                          changePercent={(() => {
-                            const upbitChange = upbitPrice?.change_percent || 0;
-                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                            return upbitChange || bitgetChange;
-                          })()}
-                          symbol={symbol}
-                          width={64}
-                          height={32}
-                          strokeWidth={1.5}
-                          showGradient={false}
-                        />
-                      ) : (
-                        <MockSparkline
-                          changePercent={(() => {
-                            const upbitChange = upbitPrice?.change_percent || 0;
-                            const bitgetChange = bitgetPrice?.changePercent24h || 0;
-                            return upbitChange || bitgetChange;
-                          })()}
-                          width={64}
-                          height={32}
-                          strokeWidth={1.5}
-                          showGradient={false}
-                        />
-                      )}
-                    </div>
-                  </div>
+                  {/* 거래하기 버튼 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCoinClick(symbol);
+                    }}
+                    className="bg-gradient-to-r from-green-500 to-green-400 hover:from-green-400 hover:to-green-300 text-black px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all duration-300 shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-400/40 hover:scale-105 transform"
+                  >
+                    거래하기
+                  </button>
                 </div>
               </div>
             ))

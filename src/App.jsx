@@ -10,7 +10,7 @@ import { useToast } from './hooks';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const MockTradingPage = lazy(() => import('./pages/MockTradingPage'));
 const PricesPage = lazy(() => import('./pages/PricesPage'));
-const CoinDetailPage = lazy(() => import('./pages/CoinDetailPage'));
+const CoinDetailPage = lazy(() => import('./pages/CoinDetailPageV2'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
 const AnalysisPage = lazy(() => import('./pages/AnalysisPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));

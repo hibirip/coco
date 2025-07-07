@@ -6,16 +6,29 @@
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
 
-// Bitget REST API 설정
+// 환경 감지
+const isDevelopment = import.meta.env.DEV;
+
+// Bitget REST API 설정 - 환경별 분기
 const BITGET_TICKER_CONFIG = {
-  // 모든 환경에서 프록시 서버 사용
-  BASE_URL: API_CONFIG.BITGET.BASE_URL,
+  // 로컬: 직접 호출, 배포: 프록시 서버 사용
+  BASE_URL: isDevelopment ? 'https://api.bitget.com' : API_CONFIG.BITGET.BASE_URL,
   USE_MOCK: false,
-  TICKERS_ENDPOINT: API_CONFIG.BITGET.TICKER,
-  SINGLE_TICKER_ENDPOINT: API_CONFIG.BITGET.SINGLE_TICKER,
+  TICKERS_ENDPOINT: isDevelopment ? '/api/v2/spot/market/tickers' : API_CONFIG.BITGET.TICKER,
+  SINGLE_TICKER_ENDPOINT: isDevelopment ? '/api/v2/spot/market/ticker' : API_CONFIG.BITGET.SINGLE_TICKER,
   CACHE_TTL: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
   REQUEST_TIMEOUT: 8000
 };
+
+// 설정 로그 출력 (개발 환경에서만)
+if (isDevelopment) {
+  console.log('🔧 Bitget API Configuration:', {
+    isDevelopment,
+    BASE_URL: BITGET_TICKER_CONFIG.BASE_URL,
+    TICKERS_ENDPOINT: BITGET_TICKER_CONFIG.TICKERS_ENDPOINT,
+    FULL_URL: `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`
+  });
+}
 
 // 메모리 캐시
 const tickerCache = new Map();

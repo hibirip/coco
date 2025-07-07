@@ -105,7 +105,7 @@ export default function NewsPreview() {
             onClick={() => window.open(news.url, '_blank')}
           >
             {/* 뉴스 이미지 */}
-            <div className="w-full h-32 bg-border rounded mb-3 flex items-center justify-center overflow-hidden">
+            <div className="w-full h-32 bg-border rounded mb-3 flex items-center justify-center overflow-hidden relative">
               {news.imageUrl ? (
                 <img 
                   src={news.imageUrl} 
@@ -120,6 +120,13 @@ export default function NewsPreview() {
               <div className="w-full h-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center" style={{ display: news.imageUrl ? 'none' : 'flex' }}>
                 <span className="text-2xl">📰</span>
               </div>
+              
+              {/* 사진 검색 표시 */}
+              {news.photoSearched && (
+                <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-1 py-0.5 rounded">
+                  📷
+                </div>
+              )}
             </div>
 
             {/* 뉴스 내용 */}

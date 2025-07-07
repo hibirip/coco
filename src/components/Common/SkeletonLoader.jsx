@@ -115,33 +115,32 @@ export default function SkeletonLoader({
  */
 export function MobileSkeletonLoader({ rows = 5, className = '' }) {
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="bg-card p-3 rounded-lg border border-border">
-          <div className="grid grid-cols-4 gap-2 items-center">
-            {/* 코인 로고 */}
-            <div className="col-span-1">
-              <div className="w-6 h-6 bg-border rounded-full animate-pulse"></div>
-              <div className="mt-1 space-y-1">
-                <div className="h-3 w-12 bg-border rounded animate-pulse"></div>
-                <div className="h-2 w-8 bg-border rounded animate-pulse"></div>
+        <div key={index} className="bg-gradient-to-r from-gray-800/40 via-gray-700/30 to-gray-800/40 backdrop-blur-xl rounded-xl p-3 border border-gray-700/40 shadow-lg">
+          <div className="flex items-center justify-between">
+            {/* 코인 정보 (로고 + 이름) */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-8 h-8 bg-gray-600/50 rounded-full animate-pulse"></div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="h-4 w-20 bg-gray-600/50 rounded animate-pulse"></div>
               </div>
             </div>
 
-            {/* 현재가 */}
-            <div className="col-span-1 text-right">
-              <div className="h-3 w-16 bg-border rounded animate-pulse ml-auto"></div>
+            {/* 가격 정보 */}
+            <div className="text-right mr-2">
+              <div className="h-4 w-16 bg-gray-600/50 rounded animate-pulse ml-auto"></div>
             </div>
 
             {/* 전일대비 */}
-            <div className="col-span-1 text-center">
-              <div className="h-3 w-12 bg-border rounded animate-pulse mx-auto"></div>
+            <div className="text-center mr-2">
+              <div className="bg-gray-800/50 rounded-lg px-2 py-1">
+                <div className="h-4 w-12 bg-gray-600/50 rounded animate-pulse"></div>
+              </div>
             </div>
 
-            {/* 변화량 차트 */}
-            <div className="col-span-1 flex justify-end">
-              <div className="w-16 h-8 bg-border rounded animate-pulse"></div>
-            </div>
+            {/* 거래하기 버튼 */}
+            <div className="w-14 h-7 bg-gray-600/50 rounded-lg animate-pulse"></div>
           </div>
         </div>
       ))}

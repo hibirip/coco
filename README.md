@@ -99,7 +99,7 @@ npm start
 
 - **Frontend**: React, Vite, TailwindCSS
 - **Backend**: Express.js (프록시 서버)
-- **APIs**: Bitget, Upbit, Exchange Rate API
+- **APIs**: Bitget, Upbit, Exchange Rate API, Twitter API v2
 - **WebSocket**: 실시간 데이터 연결
 - **Database**: Supabase, Firebase
 
@@ -136,6 +136,7 @@ npm run preview          # 빌드 결과 미리보기
 - Upbit: `/api/upbit/*`
 - 환율: `/api/exchange-rate`
 - 뉴스: `/api/news/*`
+- Twitter: `/api/twitter/*`
 
 ### 운영 환경
 - 모든 API: `${VITE_API_BASE_URL}/api/*`
@@ -145,8 +146,12 @@ npm run preview          # 빌드 결과 미리보기
 ### 클라이언트 (.env)
 ```bash
 # API 설정
-VITE_API_BASE_URL=        # 운영: https://your-api-server.com
-CORS_ORIGINS=             # localhost 또는 운영 도메인
+VITE_BACKEND_URL=https://coco-proxy-server.onrender.com
+
+# Twitter API (선택사항)
+VITE_TWITTER_BEARER_TOKEN=your-twitter-bearer-token-here
+
+# 기타 설정
 
 # 서비스 연동
 VITE_SUPABASE_URL=
@@ -194,6 +199,40 @@ EXCHANGE_RATE_API_KEY=    # 환율 API 키 (선택)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## 🐦 Twitter API 설정 (선택사항)
+
+### 1. Twitter Developer Account 생성
+1. [Twitter Developer Portal](https://developer.twitter.com/) 방문
+2. 개발자 계정 신청 및 승인 대기
+3. 새 프로젝트/앱 생성
+
+### 2. API 키 발급
+1. 프로젝트 대시보드에서 "Keys and tokens" 클릭
+2. "Bearer Token" 생성 및 복사
+3. `.env` 파일에 추가:
+```bash
+VITE_TWITTER_BEARER_TOKEN=your-actual-bearer-token-here
+```
+
+### 3. API 사용량 및 가격
+- **Free Tier**: 월 500 요청 (테스트용)
+- **Basic**: 월 $200 (10,000 요청)
+- **Pro**: 월 $5,000 (1,000,000 요청)
+
+### 4. 설정 확인
+- API 키가 없거나 잘못된 경우 자동으로 Mock 데이터 사용
+- 브라우저 콘솔에서 "실제 데이터" vs "폴백 데이터" 비율 확인 가능
+
+### 5. 지원되는 인플루언서
+- Elon Musk (@elonmusk)
+- Michael Saylor (@saylor)
+- Vitalik Buterin (@VitalikButerin)
+- Changpeng Zhao (@cz_binance)
+- Cathie Wood (@CathieDWood)
+- Brian Armstrong (@brian_armstrong)
+- Coinbase (@coinbase)
+- Andreas Antonopoulos (@aantonop)
 
 ## 📄 라이선스
 

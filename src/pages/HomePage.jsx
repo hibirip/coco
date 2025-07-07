@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { usePrices } from '../contexts';
-import { CoinTable, MainBanner } from '../components/Common';
+import { CoinTable, MainBanner, MarketIndicators } from '../components/Common';
 import { NewsPreview, EventsPreview } from '../components/Home';
 import { formatKRW } from '../utils';
 
@@ -20,6 +20,9 @@ export default function HomePage() {
     <div className="container mx-auto px-3 py-4 space-y-4 md:px-4 md:py-8 md:space-y-6">
       {/* 메인 배너 섹션 */}
       <MainBanner />
+
+      {/* 시장 지표 섹션 */}
+      <MarketIndicators />
 
       {/* 인기 코인 섹션 */}
       <div className="bg-section p-4 md:p-6 rounded-lg">

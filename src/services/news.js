@@ -4,6 +4,10 @@
  */
 
 import { API_CONFIG } from '../config/api';
+import { addPhotosToNews, resetUsedImages } from './photoSearchService';
+import { getRealTwitterFeeds } from './twitterApi';
+import { getLatestNews as getSourcedNews, addThumbnailsToNews } from './newsSourcesService';
+import newsScheduler from './newsScheduler';
 
 // 뉴스 서비스 설정
 const NEWS_CONFIG = {
@@ -11,9 +15,10 @@ const NEWS_CONFIG = {
   COINNESS_URL: 'https://api.coinness.com/v2',
   CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.NEWS,
   RETRY_ATTEMPTS: 2,
-  TIMEOUT: 15000, // 15초
+  TIMEOUT: 10000, // 10초 (더 빠른 사용자 경험을 위해 단축)
   DEFAULT_LIMIT: 20,
-  USE_MOCK: true // 개발 중에는 Mock 데이터 사용
+  USE_MOCK: import.meta.env.VITE_USE_MOCK_DATA === 'true' ? true : false, // 환경변수로 제어
+  USE_REAL_SOURCES: import.meta.env.VITE_USE_MOCK_DATA === 'true' ? false : true // 실제 뉴스 소스 활성화
 };
 
 // 뉴스 카테고리 매핑
@@ -284,9 +289,63 @@ export async function getLatestNews(options = {}) {
       return cached;
     }
 
+    // 새로운 뉴스 로드시 사용된 이미지 추적 초기화 (중복 방지)
+    if (offset === 0) {
+      resetUsedImages();
+      console.log('🖼️ 이미지 중복 방지 초기화');
+    }
+
     let processedNews = [];
 
-    if (NEWS_CONFIG.USE_MOCK) {
+    if (NEWS_CONFIG.USE_REAL_SOURCES) {
+      console.log('🌐 실제 뉴스 소스에서 데이터 조회');
+      try {
+        // 실제 뉴스 소스에서 데이터 조회
+        const sourceNews = await getSourcedNews();
+        
+        // 뉴스 데이터 정규화 및 현재 시간 기준으로 처리
+        const normalizedNews = sourceNews.map(news => ({
+          ...news,
+          id: news.id || `news_${Date.now()}_${Math.random()}`,
+          imageUrl: news.thumbnail || news.imageUrl,
+          summary: news.description || news.summary,
+          content: news.description || news.content,
+          // 발행 시간이 현재보다 미래인 경우 현재 시간으로 조정
+          publishedAt: new Date(news.publishedAt) > new Date() ? 
+            new Date(Date.now() - Math.random() * 12 * 60 * 60 * 1000).toISOString() : 
+            news.publishedAt
+        }));
+        
+        // 카테고리 필터링
+        if (category !== 'all') {
+          const filteredData = normalizedNews.filter(news => 
+            news.category?.toLowerCase().includes(category.toLowerCase()) ||
+            news.title?.toLowerCase().includes(category.toLowerCase())
+          );
+          processedNews = filteredData.slice(offset, offset + limit);
+        } else {
+          processedNews = normalizedNews.slice(offset, offset + limit);
+        }
+        
+        console.log(`✅ 실제 뉴스 소스에서 ${processedNews.length}개 뉴스 조회`);
+      } catch (error) {
+        console.warn('실제 뉴스 소스 조회 실패, Mock 데이터 사용:', error.message);
+        const mockData = generateMockNews(limit);
+        
+        // 카테고리 필터링
+        if (category !== 'all') {
+          const filteredData = mockData.filter(news => 
+            news.category.toLowerCase().includes(category.toLowerCase())
+          );
+          processedNews = filteredData.slice(offset, offset + limit);
+        } else {
+          processedNews = mockData.slice(offset, offset + limit);
+        }
+        
+        // 제목에 맞는 실제 사진 검색
+        processedNews = await addPhotosToNews(processedNews);
+      }
+    } else if (NEWS_CONFIG.USE_MOCK) {
       console.log('🟡 Mock 뉴스 데이터 사용');
       const mockData = generateMockNews(limit);
       
@@ -299,6 +358,9 @@ export async function getLatestNews(options = {}) {
       } else {
         processedNews = mockData.slice(offset, offset + limit);
       }
+      
+      // 제목에 맞는 실제 사진 검색
+      processedNews = await addPhotosToNews(processedNews);
     } else {
       const params = {
         limit,
@@ -323,6 +385,9 @@ export async function getLatestNews(options = {}) {
 
       // 뉴스 데이터 후처리
       processedNews = newsData.map(news => processNewsItem(news));
+      
+      // 제목에 맞는 실제 사진 검색
+      processedNews = await addPhotosToNews(processedNews);
     }
     
     setCachedData(cacheKey, processedNews);
@@ -552,29 +617,37 @@ export function clearNewsCache() {
 }
 
 /**
- * Twitter 피드 조회
+ * Twitter 피드 조회 (실제 API 연동)
  * @returns {Promise<Array>} Twitter 피드 배열
  */
 export async function getTwitterFeeds() {
   try {
-    const cacheKey = 'twitter_feeds';
-    const cached = getCachedData(cacheKey);
-    if (cached) {
-      console.log('✅ 캐시된 Twitter 피드 사용');
-      return cached;
-    }
-
-    console.log('🐦 Mock Twitter 피드 데이터 생성');
-    const twitterFeeds = generateMockTwitterFeeds();
+    console.log('🐦 Twitter 피드 조회 시작...');
+    console.log('📍 현재 위치: getTwitterFeeds() in news.js');
     
-    setCachedData(cacheKey, twitterFeeds);
-    console.log(`🐦 Twitter 피드 조회 완료: ${twitterFeeds.length}개`);
+    // 실제 Twitter API를 통한 피드 조회
+    console.log('📞 getRealTwitterFeeds() 호출 중...');
+    const realTwitterFeeds = await getRealTwitterFeeds();
     
-    return twitterFeeds;
+    console.log(`✅ Twitter 피드 조회 완료: ${realTwitterFeeds.length}개`);
+    console.log(`📡 실제 데이터: ${realTwitterFeeds.filter(feed => feed.isReal).length}개`);
+    console.log(`🔄 폴백 데이터: ${realTwitterFeeds.filter(feed => !feed.isReal).length}개`);
+    console.log('📋 피드 미리보기:', realTwitterFeeds.slice(0, 2).map(feed => ({
+      user: feed.user.name,
+      content: feed.content.substring(0, 50) + '...',
+      isReal: feed.isReal
+    })));
+    
+    return realTwitterFeeds;
 
   } catch (error) {
-    console.error('Twitter 피드 조회 오류:', error);
-    return [];
+    console.error('❌ Twitter 피드 조회 오류:', error);
+    
+    // 완전 실패시 기본 Mock 데이터 반환
+    console.log('🟡 완전 실패 - 기본 Mock Twitter 피드 데이터 사용');
+    const mockFeeds = generateMockTwitterFeeds();
+    console.log(`🔄 Mock 데이터 생성 완료: ${mockFeeds.length}개`);
+    return mockFeeds;
   }
 }
 

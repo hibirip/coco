@@ -7,9 +7,13 @@ import { createContext, useContext, useReducer, useCallback, useEffect } from 'r
 import { calculateKimchi } from '../utils/formatters';
 import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exchangeRate';
 import { getBatchSparklineData } from '../services/bitgetKline';
+import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
+
+// 환경 감지
+const isDevelopment = import.meta.env.DEV;
 
 // 주요 10개 코인 (홈페이지용)
 export const MAJOR_COINS = {
@@ -1245,6 +1249,77 @@ export function PriceProvider({ children }) {
       }
     };
   }, [updateUpbitPrice, addError]); // 의존성 최소화
+  
+  // Bitget REST API Ticker 데이터 자동 업데이트 추가
+  useEffect(() => {
+    let bitgetTickerInterval = null;
+    let updateCounter = 0;
+    
+    const fetchBitgetTickerData = async () => {
+      // 초기 로드시 주요 코인만 먼저 로드
+      const isInitialLoad = Object.keys(state.prices).length === 0;
+      const symbols = isInitialLoad ? MAJOR_SYMBOLS : ALL_SYMBOLS;
+      
+      logger.debug('Bitget 심볼 목록:', symbols);
+      
+      if (symbols.length === 0) {
+        logger.warn('Bitget 심볼 목록이 비어있음');
+        return;
+      }
+      
+      try {
+        updateCounter++;
+        const currentTime = new Date().toLocaleTimeString();
+        logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] Bitget REST API 데이터 로드 중...`);
+        logger.debug('요청 심볼:', symbols);
+        
+        // Bitget API 호출
+        const bitgetData = await getBatchTickerData(symbols);
+        logger.api(`Bitget API 응답: ${Object.keys(bitgetData).length}개 심볼 (요청: ${symbols.length}개)`);
+        
+        // 데이터 변환 및 업데이트
+        let updateCount = 0;
+        const timestamp = Date.now();
+        
+        Object.entries(bitgetData).forEach(([symbol, tickerData]) => {
+          // 타임스탬프 추가하여 항상 새로운 데이터로 인식되도록 함
+          updatePrice(symbol, {
+            ...tickerData,
+            lastUpdated: timestamp,
+            updateId: updateCounter
+          });
+          updateCount++;
+        });
+        
+        if (updateCount > 0) {
+          logger.api(`✅ Bitget 가격 업데이트: ${updateCount}개 심볼`);
+        } else {
+          logger.warn('⚠️ Bitget 업데이트할 데이터가 없음');
+        }
+        
+        // 초기 로드 완료 후 전체 코인으로 확장
+        if (isInitialLoad && updateCount > 0) {
+          logger.info('🚀 Bitget 초기 로드 완료 - 다음 업데이트에서 전체 코인 로드');
+        }
+        
+      } catch (error) {
+        logger.error('Bitget API 오류:', error);
+        addError(`Bitget 데이터 로드 실패: ${error.message}`);
+      }
+    };
+    
+    // 즉시 로드
+    fetchBitgetTickerData();
+    
+    // 5초마다 업데이트 (업비트와 동일한 주기)
+    bitgetTickerInterval = setInterval(fetchBitgetTickerData, 5000);
+    
+    return () => {
+      if (bitgetTickerInterval) {
+        clearInterval(bitgetTickerInterval);
+      }
+    };
+  }, [updatePrice, addError]); // 의존성 최소화
   
   // 통계 업데이트 (자동)
   useEffect(() => {

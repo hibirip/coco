@@ -125,15 +125,24 @@ export default function NewsPage() {
 
       {/* 헤드라인 뉴스 (빅 뉴스) */}
       {headlineNews && (
-        <section className="bg-section rounded-lg overflow-hidden shadow-lg">
+        <section 
+          className="bg-section rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 transform hover:scale-[1.01] group"
+          onClick={() => window.open(headlineNews.url, '_blank', 'noopener,noreferrer')}
+        >
           <div className="md:flex">
             {/* 이미지 */}
-            <div className="md:w-1/2">
+            <div className="md:w-1/2 relative">
               <img
                 src={headlineNews.imageUrl}
                 alt={headlineNews.title}
                 className="w-full h-64 md:h-full object-cover"
               />
+              {/* 사진 검색 표시 */}
+              {headlineNews.photoSearched && (
+                <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  📷 검색
+                </div>
+              )}
             </div>
             
             {/* 콘텐츠 */}
@@ -147,7 +156,7 @@ export default function NewsPage() {
                 </span>
               </div>
               
-              <h2 className="text-xl md:text-2xl font-bold text-text mb-3 line-clamp-2">
+              <h2 className="text-xl md:text-2xl font-bold text-text mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-300">
                 {headlineNews.title}
               </h2>
               
@@ -167,7 +176,10 @@ export default function NewsPage() {
                 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => toggleBookmark(headlineNews.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBookmark(headlineNews.id);
+                    }}
                     className={`p-2 rounded hover:bg-card transition-colors ${
                       bookmarks.has(headlineNews.id) ? 'text-warning' : 'text-textSecondary'
                     }`}
@@ -175,7 +187,10 @@ export default function NewsPage() {
                     {bookmarks.has(headlineNews.id) ? '★' : '☆'}
                   </button>
                   <button
-                    onClick={() => shareNews(headlineNews)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      shareNews(headlineNews);
+                    }}
                     className="p-2 rounded hover:bg-card transition-colors text-textSecondary hover:text-text"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -207,13 +222,22 @@ export default function NewsPage() {
             {newsList.map((news) => (
               <article
                 key={news.id}
-                className="bg-section rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-section rounded-lg overflow-hidden hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] group"
+                onClick={() => window.open(news.url, '_blank', 'noopener,noreferrer')}
               >
-                <img
-                  src={news.imageUrl}
-                  alt={news.title}
-                  className="w-full h-48 object-cover"
-                />
+                <div className="relative">
+                  <img
+                    src={news.imageUrl}
+                    alt={news.title}
+                    className="w-full h-48 object-cover"
+                  />
+                  {/* 사진 검색 표시 */}
+                  {news.photoSearched && (
+                    <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      📷
+                    </div>
+                  )}
+                </div>
                 
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2">
@@ -223,9 +247,12 @@ export default function NewsPage() {
                     <span className="text-textSecondary text-xs">
                       {formatTimeAgo(news.publishedAt)}
                     </span>
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs ml-auto">
+                      {news.source}
+                    </span>
                   </div>
                   
-                  <h3 className="font-semibold text-text mb-2 line-clamp-2">
+                  <h3 className="font-semibold text-text mb-2 line-clamp-2 group-hover:text-primary transition-colors duration-300">
                     {news.title}
                   </h3>
                   
@@ -240,7 +267,10 @@ export default function NewsPage() {
                     
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => toggleBookmark(news.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(news.id);
+                        }}
                         className={`p-1 rounded hover:bg-card transition-colors ${
                           bookmarks.has(news.id) ? 'text-warning' : 'text-textSecondary'
                         }`}
@@ -248,7 +278,10 @@ export default function NewsPage() {
                         {bookmarks.has(news.id) ? '★' : '☆'}
                       </button>
                       <button
-                        onClick={() => shareNews(news)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          shareNews(news);
+                        }}
                         className="p-1 rounded hover:bg-card transition-colors text-textSecondary hover:text-text"
                       >
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -265,19 +298,43 @@ export default function NewsPage() {
 
         {/* Twitter 피드 (우측 1/3) */}
         <div className="lg:col-span-1">
-          <h2 className="text-xl font-semibold text-text mb-6">인플루언서 피드</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-text">인플루언서 피드</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full animate-pulse">
+                📡 실시간
+              </span>
+              <button
+                onClick={loadNewsData}
+                className="text-primary hover:text-primary/80 text-sm transition-colors"
+              >
+                새로고침
+              </button>
+            </div>
+          </div>
           
           <div className="space-y-4">
             {twitterFeeds.map((tweet) => (
               <div
                 key={tweet.id}
-                className="bg-section rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="bg-section rounded-lg p-4 hover:shadow-md transition-shadow relative"
+                onClick={() => window.open(tweet.url, '_blank')}
               >
-                <div className="flex items-start gap-3">
+                {/* 실제 데이터 표시 */}
+                {tweet.isReal && (
+                  <div className="absolute top-2 right-2 bg-green-500/20 text-green-500 text-xs px-2 py-1 rounded">
+                    LIVE
+                  </div>
+                )}
+                
+                <div className="flex items-start gap-3 cursor-pointer">
                   <img
                     src={tweet.user.avatar}
                     alt={tweet.user.name}
                     className="w-10 h-10 rounded-full"
+                    onError={(e) => {
+                      e.target.src = `https://via.placeholder.com/40x40?text=${tweet.user.name[0]}`;
+                    }}
                   />
                   
                   <div className="flex-1 min-w-0">
@@ -292,6 +349,9 @@ export default function NewsPage() {
                       )}
                       <span className="text-textSecondary text-xs">
                         @{tweet.user.username}
+                      </span>
+                      <span className="text-textSecondary text-xs">
+                        · {tweet.user.followers}
                       </span>
                     </div>
                     

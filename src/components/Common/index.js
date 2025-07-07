@@ -9,3 +9,4 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as CoinTableLoader, SimpleCoinLoader } from './CoinTableLoader';
 export { default as SkeletonLoader, MobileSkeletonLoader, SimpleSkeletonLoader } from './SkeletonLoader';
 export { default as Sparkline, SparklineWithTrend, MockSparkline } from './Sparkline';
+export { default as MarketIndicators } from './MarketIndicators';

@@ -2,10 +2,19 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { AuthProvider, PriceProvider } from './contexts'
+import { AuthProvider, PriceProvider, NewsProvider } from './contexts'
 import ErrorBoundary from './components/Common/ErrorBoundary'
+import { startNewsScheduler } from './services/newsScheduler'
 
 console.log('🚀 React 앱 시작 중...');
+
+// 뉴스 스케줄러 시작
+try {
+  startNewsScheduler();
+  console.log('📰 뉴스 스케줄러 시작됨');
+} catch (error) {
+  console.error('❌ 뉴스 스케줄러 시작 실패:', error);
+}
 
 try {
   ReactDOM.createRoot(document.getElementById('root')).render(
@@ -13,7 +22,9 @@ try {
       <ErrorBoundary>
         <AuthProvider>
           <PriceProvider>
-            <App />
+            <NewsProvider>
+              <App />
+            </NewsProvider>
           </PriceProvider>
         </AuthProvider>
       </ErrorBoundary>

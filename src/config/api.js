@@ -27,12 +27,13 @@ const API_PATHS = {
   BITGET: '/api/bitget',
   UPBIT: '/api/upbit',
   EXCHANGE_RATE: '/api/exchange-rate',
-  NEWS: '/api/news'
+  NEWS: '/api/news',
+  TWITTER: '/api/twitter'
 };
 
 /**
  * API 엔드포인트 생성
- * @param {string} apiType - API 타입 (BITGET, UPBIT, EXCHANGE_RATE, NEWS)
+ * @param {string} apiType - API 타입 (BITGET, UPBIT, EXCHANGE_RATE, NEWS, TWITTER)
  * @returns {string} Express 프록시 서버를 통한 API URL
  */
 export function getApiEndpoint(apiType) {
@@ -77,6 +78,13 @@ export const API_CONFIG = {
     BASE_URL: getApiEndpoint('NEWS'),
     LATEST: '',
     SEARCH: '/search'
+  },
+
+  // Twitter API (프록시 서버를 통해 호출)
+  TWITTER: {
+    BASE_URL: getApiEndpoint('TWITTER'),
+    SEARCH: '/search',
+    FEEDS: '/feeds'
   },
 
   // 공통 설정
