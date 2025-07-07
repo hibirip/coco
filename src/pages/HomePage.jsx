@@ -25,18 +25,7 @@ export default function HomePage() {
       <MarketIndicators />
 
       {/* 인기 코인 섹션 */}
-      <div className="bg-section p-4 md:p-6 rounded-lg">
-        {/* 섹션 헤더 */}
-        <div className="flex items-center justify-end mb-6">
-          <Link 
-            to="/prices" 
-            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-          >
-            <span className="text-sm font-medium">전체보기</span>
-            <span className="text-lg">→</span>
-          </Link>
-        </div>
-
+      <div>
         {/* 미니 시세판 */}
         <CoinTable 
           limit={10}
@@ -44,6 +33,7 @@ export default function HomePage() {
           showFavorites={false}
           showHeader={false}
           className="mb-4"
+          showFooterLink={true}
         />
       </div>
 
@@ -53,7 +43,7 @@ export default function HomePage() {
         <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-              <span className="text-green-400 text-lg">💰</span>
+              <span className="text-green-400 text-lg"></span>
             </div>
             <div>
               <h3 className="text-lg font-bold text-text">모의투자</h3>
@@ -76,7 +66,7 @@ export default function HomePage() {
         <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <span className="text-blue-400 text-lg">📊</span>
+              <span className="text-blue-400 text-lg"></span>
             </div>
             <div>
               <h3 className="text-lg font-bold text-text">실시간 시세</h3>
@@ -100,7 +90,7 @@ export default function HomePage() {
         <div className="bg-section p-4 md:p-6 rounded-lg border border-border hover:border-primary/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <span className="text-purple-400 text-lg">📰</span>
+              <span className="text-purple-400 text-lg"></span>
             </div>
             <div>
               <h3 className="text-lg font-bold text-text">암호화폐 뉴스</h3>

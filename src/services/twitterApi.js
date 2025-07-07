@@ -288,7 +288,7 @@ function transformTwitterResponse(apiResponse) {
           user: {
             name: user?.name || influencer.name || 'Unknown',
             username: user?.username || 'unknown',
-            avatar: user?.profile_image_url || `https://via.placeholder.com/100x100?text=${user?.username?.[0] || 'U'}`,
+            avatar: user?.profile_image_url || `data:image/svg+xml;base64,${btoa(`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#3B82F6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#FFFFFF">${user?.username?.[0] || 'U'}</text></svg>`)}`,
             verified: user?.verified || influencer.verified || false,
             followers: formatFollowerCount(user?.public_metrics?.followers_count || 0)
           },
@@ -349,7 +349,7 @@ function getInfluencerAvatar(username) {
     'CathieDWood': 'https://pbs.twimg.com/profile_images/1506754356016553986/jjb_s5mL_400x400.jpg'
   };
   
-  return avatars[username] || `https://via.placeholder.com/100x100?text=${username[0].toUpperCase()}`;
+  return avatars[username] || `data:image/svg+xml;base64,${btoa(`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#3B82F6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#FFFFFF">${username[0].toUpperCase()}</text></svg>`)}`;
 }
 
 /**

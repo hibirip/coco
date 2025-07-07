@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { usePrices } from '../../contexts';
 import { useMultiplePriceFlash } from '../../hooks';
 import { 
@@ -40,7 +40,8 @@ export default function CoinTable({
   customData,
   showHeader = true,
   searchQuery = '',
-  onSearchChange
+  onSearchChange,
+  showFooterLink = false
 }) {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState(new Set());
@@ -755,12 +756,22 @@ export default function CoinTable({
       {/* 테이블 푸터 */}
       <div className="p-4 bg-card/50 text-sm text-textSecondary">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span>총 {tableData.length}개 코인</span>
-            {limit && tableData.length >= limit && (
-              <span>({limit}개만 표시)</span>
-            )}
-          </div>
+          {showFooterLink ? (
+            <Link 
+              to="/prices" 
+              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+            >
+              <span className="text-sm font-medium">전체보기</span>
+              <span className="text-lg">→</span>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-4">
+              <span>총 {tableData.length}개 코인</span>
+              {limit && tableData.length >= limit && (
+                <span>({limit}개만 표시)</span>
+              )}
+            </div>
+          )}
           
           <div className="flex items-center gap-4">
             {showKimchi && connectionStatus.hasFullConnection && (

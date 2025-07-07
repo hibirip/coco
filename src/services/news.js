@@ -122,7 +122,7 @@ function generateMockNews(count = 20) {
       category: categories[Math.floor(Math.random() * categories.length)],
       author: sources[Math.floor(Math.random() * sources.length)],
       publishedAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-      imageUrl: `https://picsum.photos/600/400?random=${index}`,
+      imageUrl: `data:image/svg+xml;base64,${btoa(`<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f0f0f0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666">뉴스 이미지</text></svg>`)}`,
       url: `https://coinness.com/news/${Date.now()}_${index}`,
       readTime: Math.floor(Math.random() * 5) + 2,
       tags: ['암호화폐', '블록체인', baseNews.category],

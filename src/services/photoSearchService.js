@@ -4,6 +4,7 @@
  */
 
 import { logger } from '../utils/logger';
+import { createPlaceholderDataUrl } from '../components/PlaceholderImage';
 
 // 사진 검색 API 설정
 const PHOTO_CONFIG = {
@@ -455,8 +456,8 @@ export async function searchNewsPhoto(title, category = 'default', newsId = null
   } catch (error) {
     logger.error('사진 검색 오류:', error);
     
-    // 오류 발생시 기본 큐레이션된 이미지 반환
-    return getCuratedCryptoImage(['technology'], newsId);
+    // 오류 발생시 로컬 SVG 플레이스홀더 반환
+    return createPlaceholderDataUrl(600, 400, '뉴스 이미지', '#f0f0f0', '#666');
   }
 }
 

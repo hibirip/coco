@@ -333,7 +333,7 @@ export default function NewsPage() {
                     alt={tweet.user.name}
                     className="w-10 h-10 rounded-full"
                     onError={(e) => {
-                      e.target.src = `https://via.placeholder.com/40x40?text=${tweet.user.name[0]}`;
+                      e.target.src = `data:image/svg+xml;base64,${btoa(`<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#3B82F6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">${tweet.user.name[0]}</text></svg>`)}`;
                     }}
                   />
                   

@@ -506,7 +506,7 @@ const FALLBACK_SERVICES = {
   cryptocompareGeneric: (symbol) => `https://www.cryptocompare.com/media/19633/btc.png`,
   
   // 4순위: 플레이스홀더
-  placeholder: (symbol) => `https://via.placeholder.com/64x64/3B82F6/FFFFFF?text=${symbol.slice(0, 2)}`
+  placeholder: (symbol) => `data:image/svg+xml;base64,${btoa(`<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#3B82F6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF">${symbol.slice(0, 2)}</text></svg>`)}`
 };
 
 // 주요 코인들의 CoinMarketCap ID 매핑 (실제 검증된 ID)
@@ -719,7 +719,7 @@ export function getFallbackLogoUrl(symbol) {
   }
   
   // 3순위: 플레이스홀더
-  return `https://via.placeholder.com/64x64/3B82F6/FFFFFF?text=${cleanSymbol.slice(0, 2)}`;
+  return `data:image/svg+xml;base64,${btoa(`<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#3B82F6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF">${cleanSymbol.slice(0, 2)}</text></svg>`)}`;
 }
 
 export default {

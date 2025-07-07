@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { formatKRW, formatUSD, formatPercent, getChangeColorClass } from '../../utils';
+import FearGreedGauge from './FearGreedGauge';
 
 const MarketIndicators = () => {
   const [indicators, setIndicators] = useState({
@@ -245,31 +246,31 @@ const MarketIndicators = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        {/* 공포탐욕지수 */}
-        <IndicatorCard
-          title="공포탐욕지수"
-          value={indicators.fearGreed.value ? `${indicators.fearGreed.value}` : '—'}
-          subValue={indicators.fearGreed.classification}
-          loading={indicators.fearGreed.loading}
-          customColor={indicators.fearGreed.value ? getFearGreedColor(indicators.fearGreed.value) : 'text-white'}
-          icon={<div className="w-4 h-4 text-purple-400">😱</div>}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 공포탐욕지수 - 특별 섹션 */}
+        <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/50 to-gray-800/60 backdrop-blur-xl rounded-xl p-6 border border-gray-600/40 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-green-500/20 group">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+              공포탐욕지수
+            </h3>
+          </div>
+          <FearGreedGauge
+            value={indicators.fearGreed.value}
+            loading={indicators.fearGreed.loading}
+          />
+        </div>
 
-        {/* 비트코인 도미넌스 */}
-        <IndicatorCard
-          title="BTC 도미넌스"
-          value={indicators.btcDominance.value ? `${indicators.btcDominance.value.toFixed(1)}%` : '—'}
-          loading={indicators.btcDominance.loading}
-          icon={<div className="w-4 h-4 text-orange-400">₿</div>}
-        />
+        {/* 기타 지표들 - 6개 지표를 3x2 레이아웃 */}
+        <div className="md:col-span-1 lg:col-span-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+
 
         {/* 총 시가총액 */}
         <IndicatorCard
           title="총 시가총액"
           value={indicators.totalMarketCap.value ? `$${(indicators.totalMarketCap.value / 1e12).toFixed(2)}T` : '—'}
           loading={indicators.totalMarketCap.loading}
-          icon={<div className="w-4 h-4 text-blue-400">💎</div>}
+          icon={<div className="w-4 h-4 text-blue-400"></div>}
         />
 
         {/* S&P 500 */}
@@ -279,7 +280,7 @@ const MarketIndicators = () => {
           change={indicators.sp500.change}
           changePercent={indicators.sp500.changePercent}
           loading={indicators.sp500.loading}
-          icon={<div className="w-4 h-4 text-green-400">📈</div>}
+          icon={<div className="w-4 h-4 text-green-400"></div>}
         />
 
         {/* 나스닥 */}
@@ -289,7 +290,7 @@ const MarketIndicators = () => {
           change={indicators.nasdaq.change}
           changePercent={indicators.nasdaq.changePercent}
           loading={indicators.nasdaq.loading}
-          icon={<div className="w-4 h-4 text-cyan-400">🚀</div>}
+          icon={<div className="w-4 h-4 text-cyan-400"></div>}
         />
 
         {/* 달러 인덱스 */}
@@ -299,7 +300,7 @@ const MarketIndicators = () => {
           change={indicators.dxy.change}
           changePercent={indicators.dxy.changePercent}
           loading={indicators.dxy.loading}
-          icon={<div className="w-4 h-4 text-yellow-400">💵</div>}
+          icon={<div className="w-4 h-4 text-yellow-400"></div>}
         />
 
         {/* 비트코인 김치프리미엄 */}
@@ -308,7 +309,7 @@ const MarketIndicators = () => {
           value={indicators.kimchiPremium.value ? `${indicators.kimchiPremium.value > 0 ? '+' : ''}${indicators.kimchiPremium.value.toFixed(2)}%` : '—'}
           loading={indicators.kimchiPremium.loading}
           customColor={indicators.kimchiPremium.value ? getChangeColorClass(indicators.kimchiPremium.value) : 'text-white'}
-          icon={<div className="w-4 h-4 text-red-400">🌶️</div>}
+          icon={<div className="w-4 h-4 text-red-400"></div>}
         />
 
         {/* 달러/원 환율 */}
@@ -318,8 +319,10 @@ const MarketIndicators = () => {
           change={indicators.usdKrw.change}
           changePercent={indicators.usdKrw.changePercent}
           loading={indicators.usdKrw.loading}
-          icon={<div className="w-4 h-4 text-pink-400">🏦</div>}
+          icon={<div className="w-4 h-4 text-pink-400"></div>}
         />
+          </div>
+        </div>
       </div>
 
       <div className="mt-4 text-xs text-textSecondary text-center">
