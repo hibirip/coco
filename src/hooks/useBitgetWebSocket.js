@@ -184,6 +184,15 @@ export function useBitgetWebSocket({
         lastMessageTimeRef.current = Date.now();
         
         logger.api('Bitget WebSocket: 연결 성공');
+        
+        // 배포 환경에서 연결 상태 확인
+        if (!import.meta.env.DEV) {
+          console.log('[Production] Bitget WebSocket connected:', {
+            url: BITGET_WS_CONFIG.URL,
+            symbols: symbols.length,
+            timestamp: new Date().toISOString()
+          });
+        }
 
         // 심볼 구독 (새로운 Bitget API v2 형식)
         const subscribeMessage = {

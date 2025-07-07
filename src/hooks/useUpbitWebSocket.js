@@ -342,6 +342,15 @@ export function useUpbitWebSocket(options = {}) {
         setReconnectAttempts(0);
         clearErrors();
         logSuccess('업비트 WebSocket 연결 성공');
+        
+        // 배포 환경에서 연결 상태 확인
+        if (!import.meta.env.DEV) {
+          console.log('[Production] Upbit WebSocket connected:', {
+            url: UPBIT_WS_CONFIG.URL,
+            markets: marketsToSubscribe.length,
+            timestamp: new Date().toISOString()
+          });
+        }
 
         // 구독 메시지 전송
         setTimeout(sendSubscribe, 100);

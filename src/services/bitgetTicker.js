@@ -9,13 +9,13 @@ import { API_CONFIG } from '../config/api';
 // 환경 감지
 const isDevelopment = import.meta.env.DEV;
 
-// Bitget REST API 설정 - 환경별 분기
+// Bitget REST API 설정 - 모든 환경에서 동일한 프록시 사용
 const BITGET_TICKER_CONFIG = {
-  // 로컬: 직접 호출, 배포: 프록시 서버 사용
-  BASE_URL: isDevelopment ? 'https://api.bitget.com' : API_CONFIG.BITGET.BASE_URL,
+  // 모든 환경에서 프록시 서버 사용 (환경별 일관성 확보)
+  BASE_URL: API_CONFIG.BITGET.BASE_URL,
   USE_MOCK: false,
-  TICKERS_ENDPOINT: isDevelopment ? '/api/v2/spot/market/tickers' : API_CONFIG.BITGET.TICKER,
-  SINGLE_TICKER_ENDPOINT: isDevelopment ? '/api/v2/spot/market/ticker' : API_CONFIG.BITGET.SINGLE_TICKER,
+  TICKERS_ENDPOINT: API_CONFIG.BITGET.TICKER,
+  SINGLE_TICKER_ENDPOINT: API_CONFIG.BITGET.SINGLE_TICKER,
   CACHE_TTL: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
   REQUEST_TIMEOUT: 8000
 };

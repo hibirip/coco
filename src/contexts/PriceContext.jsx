@@ -1206,9 +1206,17 @@ export function PriceProvider({ children }) {
         
         logger.api(`[${updateCounter}번째] 업비트 데이터 업데이트 완료: ${updateCount}개 마켓`);
         
-        // 배포 환경에서 디버깅
+        // 배포 환경에서 디버깅 (데이터 샘플 포함)
         if (!isDevelopment) {
-          console.log(`[Production] Upbit price update #${updateCounter} at ${currentTime}: ${updateCount} markets updated`);
+          const sampleData = Object.keys(upbitData).slice(0, 3).map(market => ({
+            market,
+            price: upbitData[market].trade_price,
+            change: upbitData[market].change_percent
+          }));
+          console.log(`[Production] Upbit price update #${updateCounter} at ${currentTime}: ${updateCount} markets updated`, {
+            sampleData,
+            exchangeRate: state.exchangeRate
+          });
         }
         
       } catch (error) {
@@ -1293,6 +1301,19 @@ export function PriceProvider({ children }) {
         
         if (updateCount > 0) {
           logger.api(`✅ Bitget 가격 업데이트: ${updateCount}개 심볼`);
+          
+          // 배포 환경에서 디버깅 (데이터 샘플 포함)
+          if (!isDevelopment) {
+            const sampleData = Object.keys(bitgetData).slice(0, 3).map(symbol => ({
+              symbol,
+              price: bitgetData[symbol].price,
+              change: bitgetData[symbol].changePercent24h
+            }));
+            console.log(`[Production] Bitget price update #${updateCounter} at ${currentTime}: ${updateCount} symbols updated`, {
+              sampleData,
+              totalRequested: symbols.length
+            });
+          }
         } else {
           logger.warn('⚠️ Bitget 업데이트할 데이터가 없음');
         }

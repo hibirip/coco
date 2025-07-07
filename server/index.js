@@ -30,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API 응답 캐시 (간단한 메모리 캐시)
 const cache = new Map();
-const CACHE_DURATION = 10000; // 10초
+const CACHE_DURATION = 2000; // 2초로 단축하여 실시간성 향상
 
 // 캐시 헬퍼 함수
 function getFromCache(key) {
@@ -83,12 +83,22 @@ app.use('/api/bitget', async (req, res) => {
     const url = `https://api.bitget.com${path}`;
     const cacheKey = `bitget_${req.path}_${JSON.stringify(req.query)}`;
     
-    console.log(`📡 Bitget 프록시: ${req.method} ${url}`);
+    console.log(`📡 Bitget 프록시: ${req.method} ${url}`, {
+      path: req.path,
+      query: req.query,
+      timestamp: new Date().toISOString()
+    });
     
     // 캐시 확인
     const cached = getFromCache(cacheKey);
     if (cached) {
-      console.log('✅ 캐시에서 응답');
+      console.log('✅ Bitget 캐시에서 응답:', {
+        dataLength: Array.isArray(cached.data) ? cached.data.length : 'not-array',
+        sampleData: Array.isArray(cached.data) && cached.data.length > 0 ? {
+          symbol: cached.data[0].symbol,
+          lastPr: cached.data[0].lastPr
+        } : null
+      });
       return res.json(cached);
     }
     
@@ -101,7 +111,14 @@ app.use('/api/bitget', async (req, res) => {
       }
     });
     
-    console.log(`✅ Bitget 응답: ${response.status}`);
+    console.log(`✅ Bitget 응답: ${response.status}`, {
+      dataLength: Array.isArray(response.data?.data) ? response.data.data.length : 'not-array',
+      sampleData: Array.isArray(response.data?.data) && response.data.data.length > 0 ? {
+        symbol: response.data.data[0].symbol,
+        lastPr: response.data.data[0].lastPr
+      } : null,
+      code: response.data?.code
+    });
     setCache(cacheKey, response.data);
     res.json(response.data);
     
@@ -118,12 +135,22 @@ app.use('/api/upbit', async (req, res) => {
     const url = `https://api.upbit.com${path}`;
     const cacheKey = `upbit_${req.path}_${JSON.stringify(req.query)}`;
     
-    console.log(`📡 Upbit 프록시: ${req.method} ${url}`);
+    console.log(`📡 Upbit 프록시: ${req.method} ${url}`, {
+      path: req.path,
+      query: req.query,
+      timestamp: new Date().toISOString()
+    });
     
     // 캐시 확인
     const cached = getFromCache(cacheKey);
     if (cached) {
-      console.log('✅ 캐시에서 응답');
+      console.log('✅ Upbit 캐시에서 응답:', {
+        dataLength: Array.isArray(cached) ? cached.length : 'not-array',
+        sampleData: Array.isArray(cached) && cached.length > 0 ? {
+          market: cached[0].market,
+          trade_price: cached[0].trade_price
+        } : null
+      });
       return res.json(cached);
     }
     
@@ -136,7 +163,13 @@ app.use('/api/upbit', async (req, res) => {
       }
     });
     
-    console.log(`✅ Upbit 응답: ${response.status}`);
+    console.log(`✅ Upbit 응답: ${response.status}`, {
+      dataLength: Array.isArray(response.data) ? response.data.length : 'not-array',
+      sampleData: Array.isArray(response.data) && response.data.length > 0 ? {
+        market: response.data[0].market,
+        trade_price: response.data[0].trade_price
+      } : null
+    });
     setCache(cacheKey, response.data);
     res.json(response.data);
     
