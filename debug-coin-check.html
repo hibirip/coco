@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Coin Check</title>
+</head>
+<body>
+    <h1>Debug Coin Check</h1>
+    <p>Please check the browser console at http://localhost:5175/prices</p>
+    <p>Look for these debug messages:</p>
+    <ul>
+        <li>🔍 PriceContext ALL_SYMBOLS 개수: (should be 100)</li>
+        <li>🔍 getBatchTickerData 호출 전 - ALL_SYMBOLS 개수: (should be 100)</li>
+        <li>🔍 getBatchTickerData - 요청된 심볼 개수: (should be 100)</li>
+        <li>🔍 fetchAllBitgetTickersData - 받은 전체 티커 개수: (actual tickers from Bitget)</li>
+        <li>🔍 getBatchTickerData - 성공한 심볼 개수: (how many matched)</li>
+        <li>🔍 getBatchTickerData - 찾지 못한 심볼: (which symbols are missing)</li>
+        <li>🔍 PricesPage - ALL_SYMBOLS 개수: (should be 100)</li>
+        <li>🔍 PricesPage - prices 개수: (actual loaded prices)</li>
+        <li>🔍 PricesPage - 필터링 후 코인 개수: (final display count)</li>
+    </ul>
+</body>
+</html>

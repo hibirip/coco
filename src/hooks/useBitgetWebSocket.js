@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { usePrices } from '../contexts';
 import { transformBitgetTickerData, getTickerData } from '../services/bitgetTicker';
 import { logger } from '../utils/logger';
 import { useWebSocketFallback } from './useWebSocketFallback';
@@ -40,13 +39,14 @@ const MAJOR_SYMBOLS = [
  * @param {Object} options - 연결 옵션
  * @param {boolean} options.enabled - WebSocket 활성화 여부 (기본값: true)
  * @param {Array} options.symbols - 구독할 심볼 목록 (기본값: MAJOR_SYMBOLS)
+ * @param {Function} options.updatePrice - 가격 업데이트 함수
  * @returns {Object} WebSocket 상태 및 제어 함수들
  */
 export function useBitgetWebSocket({ 
   enabled = true, 
-  symbols = MAJOR_SYMBOLS 
+  symbols = MAJOR_SYMBOLS,
+  updatePrice 
 } = {}) {
-  const { updatePrice } = usePrices();
   
   // WebSocket 관련 상태
   const [isConnected, setIsConnected] = useState(false);

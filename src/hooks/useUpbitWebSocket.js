@@ -5,7 +5,6 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { usePrices } from '../contexts/PriceContext';
 import { logger } from '../utils/logger';
 
 // WebSocket 설정
@@ -46,23 +45,25 @@ const UPBIT_MARKETS = [
  * @param {Object} options - 연결 옵션
  * @param {boolean} options.enabled - WebSocket 연결 활성화 여부
  * @param {Array} options.markets - 구독할 마켓 배열
+ * @param {Array} options.ALL_UPBIT_MARKETS - 전체 업비트 마켓 배열
+ * @param {Function} options.updateUpbitPrice - 업비트 가격 업데이트 함수
+ * @param {Function} options.addError - 에러 추가 함수
+ * @param {Function} options.clearErrors - 에러 클리어 함수
+ * @param {Function} options.setUpbitConnectionStatus - 연결 상태 설정 함수
+ * @param {Function} options.setUpbitConnecting - 연결 중 상태 설정 함수
  * @returns {Object} WebSocket 상태 및 제어 함수
  */
 export function useUpbitWebSocket(options = {}) {
   const {
     enabled = true,
-    markets = []
-  } = options;
-
-  // PriceContext 훅 사용
-  const {
-    ALL_UPBIT_MARKETS,
+    markets = [],
+    ALL_UPBIT_MARKETS = [],
     updateUpbitPrice,
     addError,
     clearErrors,
     setUpbitConnectionStatus,
     setUpbitConnecting
-  } = usePrices();
+  } = options;
 
   // 실제 구독할 마켓 결정 (전달된 markets 또는 ALL_UPBIT_MARKETS)
   const marketsToSubscribe = markets.length > 0 ? markets : ALL_UPBIT_MARKETS;

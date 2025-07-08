@@ -51,22 +51,38 @@ const Header = () => {
           </Link>
 
           {/* 데스크톱 네비게이션 */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-2">
             {navigation.map((item) => (
               <Link
                 key={item.key}
                 to={item.href}
-                className={`relative text-sm font-medium transition-all duration-300 hover:text-primary group ${
+                className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 group ${
                   isActive(item.href) 
-                    ? 'text-primary' 
-                    : 'text-text hover:text-white'
+                    ? 'text-white' 
+                    : 'text-gray-300 hover:text-white'
                 }`}
               >
                 <span className="relative z-10">{item.name}</span>
+                
+                {/* Active state background */}
                 {isActive(item.href) && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg -z-0"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg shadow-lg shadow-blue-500/25"></div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-0"></div>
+                
+                {/* Hover state background - smooth scale and glow effect */}
+                {!isActive(item.href) && (
+                  <div className="absolute inset-0 rounded-lg overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-700/0 to-gray-700/0 group-hover:from-gray-700/50 group-hover:to-gray-600/50 transition-all duration-300"></div>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0"></div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Click ripple effect container */}
+                <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+                  <div className="absolute inset-0 transform scale-0 group-active:scale-100 bg-white/10 transition-transform duration-500 origin-center rounded-lg"></div>
+                </div>
               </Link>
             ))}
           </nav>
@@ -129,14 +145,31 @@ const Header = () => {
                 <Link
                   key={item.key}
                   to={item.href}
-                  className={`block px-3 md:px-4 py-2 text-sm font-medium transition-colors hover:text-primary hover:bg-card rounded-lg ${
+                  className={`relative block px-4 py-3 text-sm font-medium transition-all duration-300 rounded-lg group ${
                     isActive(item.href) 
-                      ? 'text-primary bg-card' 
-                      : 'text-text'
+                      ? 'text-white' 
+                      : 'text-gray-300 hover:text-white'
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  <span className="relative z-10">{item.name}</span>
+                  
+                  {/* Active state background */}
+                  {isActive(item.href) && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg shadow-lg shadow-blue-500/25"></div>
+                  )}
+                  
+                  {/* Hover state background */}
+                  {!isActive(item.href) && (
+                    <div className="absolute inset-0 rounded-lg overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-gray-700/0 to-gray-700/0 hover:from-gray-700/50 hover:to-gray-600/50 transition-all duration-300"></div>
+                    </div>
+                  )}
+                  
+                  {/* Click ripple effect */}
+                  <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 transform scale-0 active:scale-100 bg-white/10 transition-transform duration-500 origin-center rounded-lg"></div>
+                  </div>
                 </Link>
               ))}
               <div className="px-3 md:px-4 pt-3 md:pt-4 border-t border-border">

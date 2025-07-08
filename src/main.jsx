@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { AuthProvider, PriceProvider, NewsProvider } from './contexts'
+import { AuthProvider, NewsProvider } from './contexts'
 import ErrorBoundary from './components/Common/ErrorBoundary'
 import { startNewsScheduler } from './services/newsScheduler'
 
@@ -21,11 +21,9 @@ try {
     <React.StrictMode>
       <ErrorBoundary>
         <AuthProvider>
-          <PriceProvider>
-            <NewsProvider>
-              <App />
-            </NewsProvider>
-          </PriceProvider>
+          <NewsProvider>
+            <App />
+          </NewsProvider>
         </AuthProvider>
       </ErrorBoundary>
     </React.StrictMode>,

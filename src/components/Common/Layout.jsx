@@ -4,12 +4,14 @@ import Header from './Header';
 import Footer from './Footer';
 import SideBanner from './SideBanner';
 import { useBitgetWebSocket } from '../../hooks/useBitgetWebSocket';
+import { usePrices } from '../../contexts';
 
 const Layout = () => {
   const location = useLocation();
+  const { updatePrice } = usePrices();
   
   // WebSocket 연결 시작 - 업비트는 REST API만 사용
-  const bitgetWS = useBitgetWebSocket({ enabled: true });
+  const bitgetWS = useBitgetWebSocket({ enabled: true, updatePrice });
   
   // WebSocket 상태 로깅 (개발 모드에서만)
   useEffect(() => {

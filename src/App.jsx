@@ -6,6 +6,7 @@ import ToastContainer from './components/Common/Toast';
 import ErrorBoundary from './components/Common/ErrorBoundary';
 import ApiStatusPanel from './components/DevTools/ApiStatusPanel';
 import { useToast } from './hooks';
+import { PriceProvider } from './contexts';
 
 // React.lazy로 페이지 컴포넌트들을 동적 import
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -22,58 +23,60 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <HomePage />
-              </Suspense>
-            } />
-            <Route path="mock-trading" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <MockTradingPage />
-              </Suspense>
-            } />
-            <Route path="prices" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PricesPage />
-              </Suspense>
-            } />
-            <Route path="coin/:symbol" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <CoinDetailPage />
-              </Suspense>
-            } />
-            <Route path="news" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <NewsPage />
-              </Suspense>
-            } />
-            <Route path="analysis" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <AnalysisPage />
-              </Suspense>
-            } />
-            <Route path="events" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <EventsPage />
-              </Suspense>
-            } />
-            <Route path="*" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <NotFoundPage />
-              </Suspense>
-            } />
-          </Route>
-        </Routes>
-        
-        {/* Toast 알림 */}
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
-        
-        {/* 개발환경용 API 모니터링 패널 */}
-        <ApiStatusPanel />
-      </Router>
+      <PriceProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <HomePage />
+                </Suspense>
+              } />
+              <Route path="mock-trading" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <MockTradingPage />
+                </Suspense>
+              } />
+              <Route path="prices" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PricesPage />
+                </Suspense>
+              } />
+              <Route path="coin/:symbol" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <CoinDetailPage />
+                </Suspense>
+              } />
+              <Route path="news" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <NewsPage />
+                </Suspense>
+              } />
+              <Route path="analysis" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <AnalysisPage />
+                </Suspense>
+              } />
+              <Route path="events" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <EventsPage />
+                </Suspense>
+              } />
+              <Route path="*" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <NotFoundPage />
+                </Suspense>
+              } />
+            </Route>
+          </Routes>
+          
+          {/* Toast 알림 */}
+          <ToastContainer toasts={toasts} removeToast={removeToast} />
+          
+          {/* 개발환경용 API 모니터링 패널 */}
+          <ApiStatusPanel />
+        </Router>
+      </PriceProvider>
     </ErrorBoundary>
   );
 }

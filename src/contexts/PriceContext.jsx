@@ -11,8 +11,6 @@ import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
-import { useBitgetWebSocket } from '../hooks/useBitgetWebSocket';
-import { useUpbitWebSocket } from '../hooks/useUpbitWebSocket';
 
 // 환경 감지
 const isDevelopment = import.meta.env.DEV;
@@ -917,17 +915,6 @@ const PriceContext = createContext(null);
 export function PriceProvider({ children }) {
   const [state, dispatch] = useReducer(priceReducer, initialState);
   
-  // WebSocket 훅들 - 주요 코인들만 실시간 업데이트
-  const bitgetWebSocket = useBitgetWebSocket({
-    enabled: true,
-    symbols: MAJOR_SYMBOLS // 상위 30개 코인만 WebSocket 구독
-  });
-  
-  const upbitWebSocket = useUpbitWebSocket({
-    enabled: true,
-    markets: MAJOR_UPBIT_MARKETS // 업비트 주요 마켓만 WebSocket 구독
-  });
-  
   // 연결 상태 설정
   const setConnectionStatus = useCallback((isConnected) => {
     dispatch({
@@ -1524,20 +1511,6 @@ export function PriceProvider({ children }) {
   const contextValue = {
     // 상태
     ...state,
-    
-    // WebSocket 상태
-    bitgetWebSocket: {
-      isConnected: bitgetWebSocket.isConnected,
-      isConnecting: bitgetWebSocket.isConnecting,
-      dataCount: bitgetWebSocket.dataCount,
-      lastDataReceived: bitgetWebSocket.lastDataReceived
-    },
-    upbitWebSocket: {
-      isConnected: upbitWebSocket.isConnected,
-      isConnecting: upbitWebSocket.isConnecting,
-      dataCount: upbitWebSocket.dataCount,
-      lastDataReceived: upbitWebSocket.lastDataReceived
-    },
     
     // 액션
     setConnectionStatus,
