@@ -15,11 +15,11 @@ const EXCHANGE_RATE_CONFIG = {
   ],
   // 프록시 서버
   PROXY_URL: API_CONFIG.EXCHANGE_RATE.BASE_URL,
-  // 구글 검색 "1달러 원화" 기준 (2025년 7월 기준)
-  DEFAULT_RATE: 1380,
-  // 1시간마다 업데이트
-  CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.EXCHANGE_RATE,
-  UPDATE_INTERVAL: API_CONFIG.COMMON.CACHE_DURATION.EXCHANGE_RATE,
+  // 구글 검색 "1달러 한국 환율" 기준 (2025년 7월 8일 실시간)
+  DEFAULT_RATE: 1439,
+  // 4시간마다 업데이트 (사용자 요청)
+  CACHE_DURATION: 4 * 60 * 60 * 1000, // 4시간
+  UPDATE_INTERVAL: 4 * 60 * 60 * 1000, // 4시간
   RETRY_ATTEMPTS: API_CONFIG.COMMON.RETRY_ATTEMPTS,
   TIMEOUT: 10000 // 10초 (더 빠른 사용자 경험을 위해 단축)
 };
@@ -48,7 +48,7 @@ function getCachedExchangeRate() {
     const now = Date.now();
     const cacheAge = now - parseInt(timestamp);
     
-    // 5시간 이내의 캐시만 유효
+    // 4시간 이내의 캐시만 유효
     if (cacheAge < EXCHANGE_RATE_CONFIG.CACHE_DURATION) {
       return {
         rate: parseFloat(rate),
@@ -152,7 +152,7 @@ async function fetchExchangeRateFromGoogleAPIs(retryCount = 0) {
         source = 'fxratesapi.com';
       }
       
-      if (krwRate && typeof krwRate === 'number' && krwRate > 1000 && krwRate < 2000) {
+      if (krwRate && typeof krwRate === 'number' && krwRate > 1200 && krwRate < 1600) {
         console.log(`✅ 유효한 환율 수신: ${krwRate} (${source})`);
         return {
           rate: Math.round(krwRate), // 소수점 반올림
@@ -179,13 +179,13 @@ async function fetchExchangeRateFromGoogleAPIs(retryCount = 0) {
  * @returns {object} 구글 기준 환율 데이터
  */
 function getGoogleSearchBasedRate() {
-  console.log(`📋 구글 검색 기준 환율 사용: ${EXCHANGE_RATE_CONFIG.DEFAULT_RATE}`);
+  console.log(`📋 구글 검색 "1달러 한국 환율" 기준값 사용: ${EXCHANGE_RATE_CONFIG.DEFAULT_RATE}원`);
   return {
     rate: EXCHANGE_RATE_CONFIG.DEFAULT_RATE,
     timestamp: Date.now(),
-    source: 'google_search_fallback',
+    source: 'google_search_2025_07_08',
     isFromCache: false,
-    message: '구글 검색 "1달러 원화" 기준값'
+    message: '구글 검색 "1달러 한국 환율" 기준값 (2025.07.08 실시간)'
   };
 }
 
@@ -196,11 +196,11 @@ function getGoogleSearchBasedRate() {
  */
 export async function getUSDKRWRate(forceRefresh = false) {
   try {
-    // 강제 새로고침이 아닌 경우 캐시 확인 (5시간 이내)
+    // 강제 새로고침이 아닌 경우 캐시 확인 (4시간 이내)
     if (!forceRefresh) {
       const cached = getCachedExchangeRate();
       if (cached) {
-        console.log(`✅ 캐시된 환율 사용: ${cached.rate} (${Math.round(cached.cacheAge / 60000)}분 전)`);
+        console.log(`✅ 캐시된 환율 사용: ${cached.rate}원 (${Math.round(cached.cacheAge / 60000)}분 전)`);
         return cached;
       }
     }
@@ -244,28 +244,29 @@ export async function getUSDKRWRate(forceRefresh = false) {
 }
 
 /**
- * 자동 환율 업데이트 시작 (5시간 간격)
+ * 자동 환율 업데이트 시작 (4시간 간격 - 구글 검색 기반)
  * @param {Function} onUpdate - 환율 업데이트 시 호출할 콜백 함수
  */
 export function startAutoUpdate(onUpdate = null) {
-  console.log('🤖 환율 자동 업데이트 시작 (5시간 간격)');
+  console.log('🤖 구글 검색 기반 환율 자동 업데이트 시작 (4시간 간격)');
   
   // 즉시 한 번 업데이트
   getUSDKRWRate(false).then(rateData => {
     if (onUpdate && rateData?.rate) {
       onUpdate(rateData.rate);
+      console.log(`💰 초기 환율 설정: ${rateData.rate}원 (${rateData.source})`);
     }
   });
   
-  // 5시간마다 자동 업데이트
+  // 4시간마다 자동 업데이트 (구글 검색 "1달러 한국 환율" 기준)
   const updateInterval = setInterval(async () => {
     try {
-      console.log('⏰ 5시간 자동 환율 업데이트 실행');
+      console.log('⏰ 4시간 주기 구글 기반 환율 업데이트 실행');
       const rateData = await getUSDKRWRate(true); // 강제 새로고침
       
       if (onUpdate && rateData?.rate) {
         onUpdate(rateData.rate);
-        console.log(`🔄 환율 업데이트 콜백 호출: ${rateData.rate}`);
+        console.log(`🔄 환율 업데이트 완료: ${rateData.rate}원 (${rateData.source})`);
       }
     } catch (error) {
       console.error('❌ 자동 환율 업데이트 실패:', error);

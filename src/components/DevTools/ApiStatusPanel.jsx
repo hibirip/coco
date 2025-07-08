@@ -5,16 +5,19 @@
 
 import { useState, useEffect } from 'react';
 import { apiMonitor } from '../../utils/apiMonitor';
+import { getExchangeRateServiceStatus, refreshExchangeRate } from '../../services/exchangeRate';
 
 const ApiStatusPanel = () => {
   const [apiStats, setApiStats] = useState({});
   const [isVisible, setIsVisible] = useState(false);
   const [alerts, setAlerts] = useState([]);
+  const [exchangeRateInfo, setExchangeRateInfo] = useState(null);
 
   // API 상태 업데이트
   useEffect(() => {
     const updateStats = () => {
       setApiStats(apiMonitor.getStatistics());
+      setExchangeRateInfo(getExchangeRateServiceStatus());
     };
 
     // 초기 상태 로드
@@ -146,8 +149,31 @@ const ApiStatusPanel = () => {
             </div>
           )}
 
+          {/* 환율 정보 섹션 */}
+          {exchangeRateInfo && (
+            <div className="mt-4 p-3 bg-green-50 rounded border-l-4 border-green-400">
+              <div className="text-sm font-medium text-green-800 mb-2">🔍 구글 검색 기반 환율</div>
+              <div className="text-lg font-bold text-green-900">
+                ${exchangeRateInfo.cache.rate || exchangeRateInfo.config.defaultRate}원
+              </div>
+              <div className="text-xs text-green-700 mt-1">
+                {exchangeRateInfo.cache.hasCachedData ? (
+                  <div>
+                    캐시: {exchangeRateInfo.cache.ageMinutes}분 전 
+                    ({exchangeRateInfo.cache.remainingMinutes}분 후 만료)
+                  </div>
+                ) : (
+                  <div>캐시 없음 - 기본값 사용 중</div>
+                )}
+              </div>
+              <div className="text-xs text-green-600 mt-1">
+                4시간마다 자동 업데이트 | 기준: 구글 "1달러 한국 환율"
+              </div>
+            </div>
+          )}
+
           {/* 액션 버튼 */}
-          <div className="mt-4 flex space-x-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => {
                 apiMonitor.performHealthCheck();
@@ -158,9 +184,23 @@ const ApiStatusPanel = () => {
               헬스체크
             </button>
             <button
+              onClick={async () => {
+                try {
+                  const newRate = await refreshExchangeRate();
+                  console.log('환율 새로고침:', newRate);
+                  setExchangeRateInfo(getExchangeRateServiceStatus());
+                } catch (error) {
+                  console.error('환율 새로고침 실패:', error);
+                }
+              }}
+              className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+            >
+              환율 새로고침
+            </button>
+            <button
               onClick={() => {
                 console.log('API Statistics:', apiMonitor.getStatistics());
-                console.log('Full API Status:', apiMonitor.getApiStatus());
+                console.log('Exchange Rate Info:', exchangeRateInfo);
               }}
               className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
             >
