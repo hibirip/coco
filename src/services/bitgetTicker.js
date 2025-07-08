@@ -34,6 +34,13 @@ if (isDevelopment) {
 // 메모리 캐시
 const tickerCache = new Map();
 
+// 동적 코인 리스트 캐시 (1시간 유지) - 즉시 새 데이터 로드를 위해 캐시 무효화
+const coinListCache = {
+  data: null,
+  timestamp: 0,
+  ttl: 60 * 60 * 1000 // 1시간
+};
+
 // 경고 로그 중복 방지를 위한 캐시 (5분간 같은 경고 무시)
 const warningCache = new Map();
 const WARNING_CACHE_DURATION = 5 * 60 * 1000; // 5분
@@ -328,6 +335,144 @@ export async function getTickerData(symbol) {
     logger.error(`Ticker 데이터 가져오기 실패 (${symbol}):`, error.message);
     
     throw error;
+  }
+}
+
+/**
+ * 모든 사용 가능한 USDT 페어 심볼 가져오기
+ * @returns {Promise<Array>} USDT 페어 심볼 배열
+ */
+export async function getAvailableUSDTPairs() {
+  try {
+    const allTickersData = await fetchAllBitgetTickersData();
+    
+    // USDT 페어만 필터링하고 거래량 기준으로 정렬
+    const usdtPairs = allTickersData
+      .filter(ticker => 
+        ticker.symbol.endsWith('USDT') && 
+        ticker.symbol !== 'USDT' && // USDT 자체 제외
+        ticker.usdtVolume && // usdtVolume 필드 존재 확인
+        parseFloat(ticker.usdtVolume || '0') > 1000 // 최소 거래량 $1K (거의 모든 코인 포함)
+      )
+      .sort((a, b) => parseFloat(b.usdtVolume || '0') - parseFloat(a.usdtVolume || '0')) // 거래량 내림차순
+      .map(ticker => ticker.symbol);
+    
+    logger.info(`사용 가능한 USDT 페어: ${usdtPairs.length}개`);
+    
+    // 상위 100개만 반환 (성능 최적화)
+    return usdtPairs.slice(0, 100);
+    
+  } catch (error) {
+    logger.error('USDT 페어 목록 가져오기 실패:', error);
+    
+    // 폴백: 기본 주요 코인들
+    return [
+      'BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'ADAUSDT', 'SOLUSDT',
+      'DOTUSDT', 'LINKUSDT', 'POLUSDT', 'UNIUSDT', 'AVAXUSDT',
+      'DOGEUSDT', 'SHIBUSDT', 'TRXUSDT', 'LTCUSDT', 'BCHUSDT'
+    ];
+  }
+}
+
+/**
+ * 동적으로 거래량 기준 상위 코인 가져오기
+ * @param {number} limit - 가져올 코인 개수 (기본 50개)
+ * @returns {Promise<Array>} 상위 코인 심볼 배열
+ */
+export async function getTopCoinsByVolume(limit = 50) {
+  // 캐시 확인 (1시간 유지) - 테스트를 위해 캐시 비활성화
+  const now = Date.now();
+  if (false && coinListCache.data && now - coinListCache.timestamp < coinListCache.ttl) {
+    logger.performance('캐시된 상위 코인 리스트 사용');
+    return coinListCache.data.slice(0, limit);
+  }
+  
+  try {
+    const allTickersData = await fetchAllBitgetTickersData();
+    
+    // USDT 페어 중 거래량 상위 코인 선별
+    const topCoins = allTickersData
+      .filter(ticker => {
+        const symbol = ticker.symbol;
+        const volumeUsd = parseFloat(ticker.usdtVolume || '0');
+        
+        return (
+          symbol.endsWith('USDT') && 
+          symbol !== 'USDT' &&
+          ticker.usdtVolume && // usdtVolume 필드 존재 확인
+          volumeUsd > 1000 && // 최소 거래량 $1K (거의 모든 코인 포함)
+          !symbol.includes('UP') && // 레버리지 토큰 제외
+          !symbol.includes('DOWN') && // 레버리지 토큰 제외
+          !symbol.includes('BEAR') && // 레버리지 토큰 제외
+          !symbol.includes('BULL') && // 레버리지 토큰 제외
+          !symbol.includes('3L') && // 3배 레버리지 토큰 제외
+          !symbol.includes('3S') // 3배 숏 토큰 제외
+        );
+      })
+      .sort((a, b) => parseFloat(b.usdtVolume || '0') - parseFloat(a.usdtVolume || '0'))
+      .map(ticker => ticker.symbol);
+    
+    // 캐시 업데이트
+    coinListCache.data = topCoins;
+    coinListCache.timestamp = now;
+    
+    // 디버깅: 실제 반환되는 코인 리스트 확인
+    console.log('🔍 DEBUG: getTopCoinsByVolume 결과:', {
+      totalFiltered: topCoins.length,
+      requestedLimit: limit,
+      actualReturned: topCoins.slice(0, limit).length,
+      first10Coins: topCoins.slice(0, 10),
+      volumeSample: allTickersData.slice(0, 3).map(t => ({
+        symbol: t.symbol,
+        usdtVolume: t.usdtVolume,
+        parsed: parseFloat(t.usdtVolume || 0)
+      }))
+    });
+    
+    logger.info(`거래량 상위 코인 캐시 업데이트: ${topCoins.length}개 → ${limit}개 반환`);
+    return topCoins.slice(0, limit);
+    
+  } catch (error) {
+    logger.error('상위 코인 선별 실패:', error);
+    
+    // 캐시된 데이터가 있으면 사용 (만료되었어도)
+    if (coinListCache.data) {
+      logger.warn('API 실패, 만료된 캐시 데이터 사용');
+      return coinListCache.data.slice(0, limit);
+    }
+    
+    return [];
+  }
+}
+
+/**
+ * 업비트 상장 코인과 매칭되는 심볼 가져오기
+ * @param {Array} upbitMarkets - 업비트 마켓 배열 
+ * @returns {Promise<Array>} 매칭되는 Bitget 심볼 배열
+ */
+export async function getMatchingSymbolsWithUpbit(upbitMarkets = []) {
+  try {
+    const availableSymbols = await getAvailableUSDTPairs();
+    
+    // 업비트 마켓에서 코인 심볼 추출
+    const upbitCoins = upbitMarkets
+      .filter(market => market.startsWith('KRW-'))
+      .map(market => market.replace('KRW-', '') + 'USDT');
+    
+    // Bitget에서 사용 가능하고 업비트에도 상장된 코인 필터링
+    const matchingSymbols = availableSymbols.filter(symbol => {
+      const baseCoin = symbol.replace('USDT', '');
+      return upbitCoins.includes(symbol) || 
+             upbitCoins.includes(baseCoin + 'USDT') ||
+             (baseCoin === 'POL' && upbitCoins.includes('MATICUSDT')); // POL-MATIC 매핑
+    });
+    
+    logger.info(`업비트 매칭 코인: ${matchingSymbols.length}개`);
+    return matchingSymbols;
+    
+  } catch (error) {
+    logger.error('업비트 매칭 심볼 가져오기 실패:', error);
+    return [];
   }
 }
 

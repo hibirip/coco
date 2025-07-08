@@ -7,7 +7,7 @@ import { createContext, useContext, useReducer, useCallback, useEffect } from 'r
 import { calculateKimchi } from '../utils/formatters';
 import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exchangeRate';
 import { getBatchSparklineData } from '../services/bitgetKline';
-import { getBatchTickerData } from '../services/bitgetTicker';
+import { getBatchTickerData, getTopCoinsByVolume } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
@@ -1344,11 +1344,33 @@ export function PriceProvider({ children }) {
     let updateCounter = 0;
     
     const fetchBitgetTickerData = async () => {
-      // 초기 로드시 주요 코인만 먼저 로드
+      // 동적 코인 리스트 로딩 시스템
       const isInitialLoad = Object.keys(state.prices).length === 0;
-      const symbols = isInitialLoad ? MAJOR_SYMBOLS : ALL_SYMBOLS;
       
-      logger.debug('Bitget 심볼 목록:', symbols);
+      let symbols = [];
+      
+      if (isInitialLoad) {
+        // 초기 로드: 주요 코인 우선
+        symbols = MAJOR_SYMBOLS;
+        logger.info('초기 로드: 주요 코인 10개 로드');
+      } else {
+        // 이후 로드: 동적으로 거래량 상위 코인 가져오기
+        try {
+          symbols = await getTopCoinsByVolume(80); // 상위 80개 코인
+          console.log('🔍 DEBUG: PriceContext 동적 로드 결과:', {
+            symbolsLength: symbols.length,
+            currentPricesCount: Object.keys(state.prices).length,
+            first10Symbols: symbols.slice(0, 10),
+            updateCounter
+          });
+          logger.info(`동적 로드: 거래량 상위 ${symbols.length}개 코인 로드`);
+        } catch (error) {
+          logger.error('동적 코인 리스트 로드 실패, 기본 리스트 사용:', error);
+          symbols = ALL_SYMBOLS; // 폴백
+        }
+      }
+      
+      logger.debug('Bitget 심볼 목록:', symbols.slice(0, 10), `... (총 ${symbols.length}개)`);
       
       if (symbols.length === 0) {
         logger.warn('Bitget 심볼 목록이 비어있음');
@@ -1397,9 +1419,14 @@ export function PriceProvider({ children }) {
           logger.warn('⚠️ Bitget 업데이트할 데이터가 없음');
         }
         
-        // 초기 로드 완료 후 전체 코인으로 확장
+        // 초기 로드 완료 후 점진적 확장 준비
         if (isInitialLoad && updateCount > 0) {
-          logger.info('🚀 Bitget 초기 로드 완료 - 다음 업데이트에서 전체 코인 로드');
+          logger.info('🚀 Bitget 초기 로드 완료 - 2번째 업데이트에서 동적 코인 로드 시작');
+          
+          // 3초 후 추가 코인 로드 (점진적 로딩)
+          setTimeout(() => {
+            logger.info('📈 백그라운드에서 추가 코인 로드 시작');
+          }, 3000);
         }
         
       } catch (error) {

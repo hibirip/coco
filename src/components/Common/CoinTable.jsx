@@ -771,9 +771,6 @@ export default function CoinTable({
             {showKimchi && connectionStatus.hasFullConnection && (
               <span>김치프리미엄 실시간</span>
             )}
-            <span>
-              환율: {exchangeRate ? formatKRW(exchangeRate) : '로딩 중...'}
-            </span>
           </div>
         </div>
       </div>

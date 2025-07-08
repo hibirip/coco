@@ -20,21 +20,32 @@ const Header = () => {
   const isActive = (href) => location.pathname === href;
 
   return (
-    <header className="sticky top-0 z-50 bg-section border-b border-border">
-      <div className="container mx-auto px-3 md:px-4">
+    <header className="sticky top-0 z-50 relative overflow-hidden">
+      {/* 배경 그라데이션과 블러 효과 */}
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-purple-500/5"></div>
+      
+      {/* 장식 요소들 */}
+      <div className="absolute top-0 left-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full blur-3xl"></div>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-500/10 to-transparent rounded-full blur-2xl"></div>
+      
+      {/* 하단 테두리 */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/50 to-transparent"></div>
+      
+      <div className="relative container mx-auto px-3 md:px-4">
         <div className="flex items-center justify-between h-14 md:h-16">
           {/* 로고 */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2 group">
             <img 
               src="/logo.png" 
               alt="Coindex Logo" 
-              className="h-8 w-auto md:h-10"
+              className="h-8 w-auto md:h-10 group-hover:scale-110 transition-transform duration-300"
               onError={(e) => {
                 // 로고 로딩 실패 시 텍스트로 fallback
                 e.target.style.display = 'none';
               }}
             />
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent group-hover:from-blue-200 group-hover:to-purple-200 transition-all duration-300">
               COINDEX
             </div>
           </Link>
@@ -45,13 +56,17 @@ const Header = () => {
               <Link
                 key={item.key}
                 to={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
+                className={`relative text-sm font-medium transition-all duration-300 hover:text-primary group ${
                   isActive(item.href) 
                     ? 'text-primary' 
-                    : 'text-text'
+                    : 'text-text hover:text-white'
                 }`}
               >
-                {item.name}
+                <span className="relative z-10">{item.name}</span>
+                {isActive(item.href) && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg -z-0"></div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-0"></div>
               </Link>
             ))}
           </nav>
@@ -106,8 +121,10 @@ const Header = () => {
 
         {/* 모바일 메뉴 */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border">
-            <div className="py-3 md:py-4 space-y-1.5 md:space-y-2">
+          <div className="md:hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-800/90 to-gray-900/90 backdrop-blur-lg"></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/50 to-transparent"></div>
+            <div className="relative py-3 md:py-4 space-y-1.5 md:space-y-2">
               {navigation.map((item) => (
                 <Link
                   key={item.key}

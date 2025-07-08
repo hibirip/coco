@@ -65,10 +65,36 @@ export default function PricesPage() {
     setSearchQuery(value);
   }, []);
 
-  // 필터링 및 정렬된 코인 데이터
+  // 필터링 및 정렬된 코인 데이터 - 동적 로딩 지원
   const filteredAndSortedCoins = useMemo(() => {
-    let coins = ALL_SYMBOLS.map(symbol => {
-      const coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
+    // 실제로 로드된 가격 데이터에서 코인 목록 생성 (동적)
+    const availableSymbols = Object.keys(prices);
+    
+    // 디버깅: 실제 데이터 상태 확인
+    console.log('🔍 DEBUG: PricesPage 필터링 시작:', {
+      availableSymbolsCount: availableSymbols.length,
+      upbitPricesCount: Object.keys(upbitPrices).length,
+      first10Symbols: availableSymbols.slice(0, 10),
+      searchQuery: debouncedSearch,
+      sortBy,
+      filterBy
+    });
+    
+    let coins = availableSymbols.map(symbol => {
+      // ALL_COINS에서 해당 코인 정보 찾기 (없으면 동적 생성)
+      let coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
+      
+      // 동적 코인 정보 생성 (ALL_COINS에 없는 새로운 코인)
+      if (!coin) {
+        const baseCoin = symbol.replace('USDT', '');
+        coin = {
+          symbol: symbol,
+          name: baseCoin, // 기본 이름 (API에서 가져올 수 있으면 더 좋음)
+          upbitMarket: `KRW-${baseCoin}`, // 추정 업비트 마켓
+          priority: 999 // 낮은 우선순위
+        };
+      }
+      
       const bitgetPrice = prices[symbol];
       const upbitPrice = upbitPrices[coin?.upbitMarket];
       const kimchiPremium = calculateKimchiPremium(symbol);
@@ -80,9 +106,12 @@ export default function PricesPage() {
         upbitPrice,
         kimchiPremium,
         priority: coin?.priority || 999,
-        hasData: bitgetPrice?.price || upbitPrice?.trade_price
+        hasData: bitgetPrice?.price || upbitPrice?.trade_price,
+        // 추가 정보 (정렬용)
+        volume24hUSD: bitgetPrice?.volume24h && bitgetPrice?.price ? 
+          bitgetPrice.volume24h * bitgetPrice.price : 0
       };
-    }).filter(item => item.coin && item.hasData);
+    }).filter(item => item.hasData); // 데이터가 있는 코인만
 
     // 검색 필터 적용
     if (debouncedSearch) {
@@ -149,9 +178,10 @@ export default function PricesPage() {
         break;
       case 'volume_desc':
         coins.sort((a, b) => {
-          const aVolume = Math.max(a.bitgetPrice?.volume24h || 0, a.upbitPrice?.acc_trade_volume_24h || 0);
-          const bVolume = Math.max(b.bitgetPrice?.volume24h || 0, b.upbitPrice?.acc_trade_volume_24h || 0);
-          return bVolume - aVolume;
+          // USD 거래량 기준으로 정렬 (더 정확함)
+          const aVolumeUSD = a.volume24hUSD || 0;
+          const bVolumeUSD = b.volume24hUSD || 0;
+          return bVolumeUSD - aVolumeUSD;
         });
         break;
       case 'kimchi_desc':
@@ -160,16 +190,33 @@ export default function PricesPage() {
       case 'kimchi_asc':
         coins.sort((a, b) => (a.kimchiPremium?.premium || 0) - (b.kimchiPremium?.premium || 0));
         break;
-      default: // priority
-        coins.sort((a, b) => a.priority - b.priority);
+      default: // priority + volume
+        // 기본 정렬: 거래량 내림차순 (동적 코인 리스트에 최적화)
+        coins.sort((a, b) => {
+          // 우선순위가 있는 코인 (주요 코인) 우선
+          if (a.priority < 100 && b.priority >= 100) return -1;
+          if (a.priority >= 100 && b.priority < 100) return 1;
+          
+          // 같은 우선순위 그룹 내에서는 거래량 순
+          return (b.volume24hUSD || 0) - (a.volume24hUSD || 0);
+        });
         break;
     }
 
+    // 디버깅: 최종 결과 확인
+    console.log('🔍 DEBUG: PricesPage 필터링 완료:', {
+      finalCoinsCount: coins.length,
+      first5Coins: coins.slice(0, 5).map(c => ({
+        symbol: c.symbol,
+        hasData: c.hasData,
+        priority: c.priority
+      }))
+    });
+
     return coins;
   }, [
-    ALL_SYMBOLS, 
+    prices, // 동적 코인 리스트의 기준이 됨
     ALL_COINS, 
-    prices, 
     upbitPrices, 
     calculateKimchiPremium, 
     debouncedSearch, 

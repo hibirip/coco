@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HEAD 요청 테스트</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0c0c0c; color: white; }
+        .result { margin: 10px 0; padding: 10px; background: #232425; border-radius: 4px; }
+        .success { background: #3ECF8E; color: black; }
+        .error { background: #ff4757; }
+        button { background: #3ECF8E; color: black; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>HEAD 요청 문제 해결 테스트</h1>
+    
+    <button onclick="testGetRequest()">GET 요청 테스트</button>
+    <button onclick="testHeadRequest()">HEAD 요청 테스트</button>
+    <button onclick="testOptionsRequest()">OPTIONS 요청 테스트</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testGetRequest() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="result">GET 요청 테스트 중...</div>';
+            
+            try {
+                const response = await fetch('/api/upbit/v1/ticker?markets=KRW-BTC', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    mode: 'cors',
+                    cache: 'no-store'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML += '<div class="result success">✅ GET 요청 성공: ' + data.length + '개 항목</div>';
+                } else {
+                    results.innerHTML += '<div class="result error">❌ GET 요청 실패: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ GET 요청 오류: ' + error.message + '</div>';
+            }
+        }
+
+        async function testHeadRequest() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="result">HEAD 요청 테스트 중...</div>';
+            
+            try {
+                const response = await fetch('/api/upbit/v1/ticker?markets=KRW-BTC', {
+                    method: 'HEAD',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    mode: 'cors',
+                    cache: 'no-store'
+                });
+                
+                if (response.ok) {
+                    results.innerHTML += '<div class="result success">✅ HEAD 요청 성공: ' + response.status + '</div>';
+                    results.innerHTML += '<div class="result">Content-Type: ' + response.headers.get('content-type') + '</div>';
+                } else {
+                    results.innerHTML += '<div class="result error">❌ HEAD 요청 실패: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ HEAD 요청 오류: ' + error.message + '</div>';
+            }
+        }
+
+        async function testOptionsRequest() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="result">OPTIONS 요청 테스트 중...</div>';
+            
+            try {
+                const response = await fetch('/api/upbit/v1/ticker?markets=KRW-BTC', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    results.innerHTML += '<div class="result success">✅ OPTIONS 요청 성공: ' + response.status + '</div>';
+                    results.innerHTML += '<div class="result">Allow-Methods: ' + response.headers.get('Access-Control-Allow-Methods') + '</div>';
+                } else {
+                    results.innerHTML += '<div class="result error">❌ OPTIONS 요청 실패: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                results.innerHTML += '<div class="result error">❌ OPTIONS 요청 오류: ' + error.message + '</div>';
+            }
+        }
+
+        // 자동으로 네트워크 탭 확인용 요청들 생성
+        console.log('HEAD 요청 테스트 페이지 로드됨');
+        console.log('브라우저 개발자 도구의 Network 탭에서 HEAD 요청 여부를 확인하세요.');
+    </script>
+</body>
+</html>

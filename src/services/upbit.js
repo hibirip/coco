@@ -131,8 +131,12 @@ async function fetchUpbitAPI(endpoint, params = {}, retryCount = 0) {
       method: 'GET',
       signal: controller.signal,
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      mode: 'cors',
+      cache: 'no-store'
     });
     
     clearTimeout(timeoutId);

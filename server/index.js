@@ -29,8 +29,9 @@ app.use(helmet());
 app.use(cors({
   origin: isProduction ? true : corsOrigins, // 배포 환경에서는 모든 origin 허용
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cache-Control', 'X-Requested-With', 'Pragma']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'], // HEAD 메소드 추가
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cache-Control', 'X-Requested-With', 'Pragma'],
+  optionsSuccessStatus: 200 // Internet Explorer (11) 호환성
 }));
 app.use(morgan('combined'));
 app.use(express.json());
@@ -84,6 +85,91 @@ function handleApiError(error, endpoint) {
   }
 }
 
+// 한국은행 API 설정
+const BOK_CONFIG = {
+  BASE_URL: 'https://ecos.bok.or.kr/api',
+  SERVICE_NAME: 'StatisticSearch',
+  STAT_CODE: '731Y001', // 원/달러 환율
+  CYCLE_TYPE: 'DD', // 일별
+  ITEM_CODE: '0000001', // 기준환율(매매기준율)
+  CACHE_DURATION: 30 * 60 * 1000 // 30분
+};
+
+/**
+ * 오늘 날짜를 YYYYMMDD 형식으로 반환
+ */
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+/**
+ * 한국은행 ECOS API에서 환율 조회
+ */
+async function fetchBOKExchangeRate() {
+  const bokApiKey = process.env.BOK_API_KEY;
+  
+  if (!bokApiKey) {
+    throw new Error('한국은행 API 키가 설정되지 않았습니다. BOK_API_KEY 환경변수를 설정해주세요.');
+  }
+  
+  try {
+    const today = getTodayDateString();
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const startDate = threeDaysAgo.getFullYear() + 
+                     String(threeDaysAgo.getMonth() + 1).padStart(2, '0') + 
+                     String(threeDaysAgo.getDate()).padStart(2, '0');
+    
+    // 한국은행 ECOS API URL 구성
+    const apiUrl = `${BOK_CONFIG.BASE_URL}/${BOK_CONFIG.SERVICE_NAME}/${bokApiKey}/json/kr/1/10/${BOK_CONFIG.STAT_CODE}/${BOK_CONFIG.CYCLE_TYPE}/${startDate}/${today}/${BOK_CONFIG.ITEM_CODE}`;
+    
+    console.log('🏛️ 한국은행 API 호출:', apiUrl.replace(bokApiKey, 'API_KEY'));
+    
+    const response = await axios.get(apiUrl, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'CoinTracker-BOK/1.0',
+        'Accept': 'application/json'
+      }
+    });
+    
+    const data = response.data;
+    console.log('📊 한국은행 API 응답:', data);
+    
+    // 한국은행 API 응답 구조 확인
+    if (!data.StatisticSearch || !data.StatisticSearch.row || data.StatisticSearch.row.length === 0) {
+      throw new Error('한국은행 API에서 환율 데이터를 찾을 수 없습니다');
+    }
+    
+    // 가장 최근 데이터 사용 (마지막 요소)
+    const latestData = data.StatisticSearch.row[data.StatisticSearch.row.length - 1];
+    const exchangeRate = parseFloat(latestData.DATA_VALUE);
+    
+    if (!exchangeRate || isNaN(exchangeRate) || exchangeRate <= 0) {
+      throw new Error(`잘못된 환율 데이터: ${latestData.DATA_VALUE}`);
+    }
+    
+    console.log(`✅ 한국은행 기준환율: ${exchangeRate}원 (${latestData.TIME})`);
+    
+    return {
+      success: true,
+      rate: exchangeRate,
+      timestamp: Date.now(),
+      source: 'bank_of_korea',
+      date: latestData.TIME,
+      message: `한국은행 공식 기준환율 (${latestData.TIME})`
+    };
+    
+  } catch (error) {
+    console.error('한국은행 API 조회 실패:', error.message);
+    throw error;
+  }
+}
+
 // === Bitget API 프록시 ===
 app.use('/api/bitget', async (req, res) => {
   try {
@@ -94,7 +180,41 @@ app.use('/api/bitget', async (req, res) => {
     // 로그 축소: 중요한 정보만 기록
     console.log(`📡 Bitget 프록시: ${req.method} ${path}`);
     
-    // 캐시 확인
+    // HEAD 요청 처리 - GET과 동일하게 처리하되 body는 없이 헤더만 반환
+    if (req.method === 'HEAD') {
+      try {
+        const response = await axios.head(url, {
+          params: req.query,
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'CoinTracker-Proxy/1.0',
+            'Accept': 'application/json'
+          }
+        });
+        
+        // 응답 헤더만 설정하고 body 없이 응답
+        Object.keys(response.headers).forEach(key => {
+          res.setHeader(key, response.headers[key]);
+        });
+        res.status(200).end();
+        return;
+      } catch (error) {
+        // HEAD 요청 실패 시 200으로 응답 (브라우저 호환성)
+        res.status(200).end();
+        return;
+      }
+    }
+    
+    // OPTIONS 요청 처리
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Cache-Control, X-Requested-With, Pragma');
+      res.status(200).end();
+      return;
+    }
+    
+    // 캐시 확인 (GET 요청에 대해서만)
     const cached = getFromCache(cacheKey);
     if (cached) {
       // 캐시 히트 로그 제거 (불필요한 로그 축소)
@@ -130,7 +250,41 @@ app.use('/api/upbit', async (req, res) => {
     // 로그 축소: 중요한 정보만 기록
     console.log(`📡 Upbit 프록시: ${req.method} ${path}`);
     
-    // 캐시 확인
+    // HEAD 요청 처리 - GET과 동일하게 처리하되 body는 없이 헤더만 반환
+    if (req.method === 'HEAD') {
+      try {
+        const response = await axios.head(url, {
+          params: req.query,
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'CoinTracker-Proxy/1.0',
+            'Accept': 'application/json'
+          }
+        });
+        
+        // 응답 헤더만 설정하고 body 없이 응답
+        Object.keys(response.headers).forEach(key => {
+          res.setHeader(key, response.headers[key]);
+        });
+        res.status(200).end();
+        return;
+      } catch (error) {
+        // HEAD 요청 실패 시 200으로 응답 (브라우저 호환성)
+        res.status(200).end();
+        return;
+      }
+    }
+    
+    // OPTIONS 요청 처리
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Cache-Control, X-Requested-With, Pragma');
+      res.status(200).end();
+      return;
+    }
+    
+    // 캐시 확인 (GET 요청에 대해서만)
     const cached = getFromCache(cacheKey);
     if (cached) {
       // 캐시 히트 로그 제거 (불필요한 로그 축소)
@@ -156,72 +310,89 @@ app.use('/api/upbit', async (req, res) => {
   }
 });
 
-// === 환율 API 프록시 ===
+// === 한국은행 환율 API 프록시 ===
 app.get('/api/exchange-rate', async (req, res) => {
   try {
-    const cacheKey = 'exchange_rate_usd_krw';
+    const cacheKey = 'bok_exchange_rate';
     
-    // 환율 요청 로그 제거 (불필요한 로그 축소)
-    
-    // 캐시 확인 (환율은 더 오래 캐시)
+    // 캐시 확인 (30분)
     const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 300000) { // 5분 캐시
-      // 캐시 히트 로그 제거
+    if (cached && Date.now() - cached.timestamp < BOK_CONFIG.CACHE_DURATION) {
+      console.log('💾 캐시된 한국은행 환율 사용');
       return res.json(cached.data);
     }
     
-    // 여러 환율 API를 시도
-    const apis = [
-      {
-        url: 'https://api.exchangerate-api.com/v4/latest/USD',
-        parser: (data) => data.rates?.KRW,
-        name: 'exchangerate-api'
-      },
-      {
-        url: 'https://open.er-api.com/v6/latest/USD',
-        parser: (data) => data.rates?.KRW,
-        name: 'er-api'
-      }
-    ];
-    
-    for (const api of apis) {
-      try {
-        const response = await axios.get(api.url, {
-          timeout: 10000,
-          headers: {
-            'User-Agent': 'CoinTracker-Proxy/1.0'
-          }
-        });
-        
-        const krwRate = api.parser(response.data);
-        
-        if (krwRate && typeof krwRate === 'number' && krwRate > 1200 && krwRate < 1600) {
-          const result = {
-            success: true,
-            rate: Math.round(krwRate),
-            timestamp: Date.now(),
-            source: api.name
-          };
-          
-          cache.set(cacheKey, { data: result, timestamp: Date.now() });
-          // 환율 응답 로그 제거
-          return res.json(result);
+    // 한국은행 API 직접 호출
+    try {
+      const bokResult = await fetchBOKExchangeRate();
+      
+      // 캐시 저장
+      cache.set(cacheKey, {
+        data: bokResult,
+        timestamp: Date.now()
+      });
+      
+      console.log(`🏛️ 한국은행 공식 환율: ${bokResult.rate}원`);
+      return res.json(bokResult);
+      
+    } catch (bokError) {
+      console.warn('한국은행 API 실패:', bokError.message);
+      
+      // 백업 환율 API들 시도
+      const backupApis = [
+        {
+          url: 'https://api.exchangerate-api.com/v4/latest/USD',
+          parser: (data) => data.rates?.KRW,
+          name: 'exchangerate-api'
+        },
+        {
+          url: 'https://open.er-api.com/v6/latest/USD',
+          parser: (data) => data.conversion_rates?.KRW,
+          name: 'er-api'
         }
-      } catch (apiError) {
-        console.warn(`${api.name} API 실패:`, apiError.message);
-        continue;
+      ];
+      
+      for (const api of backupApis) {
+        try {
+          const response = await axios.get(api.url, {
+            timeout: 8000,
+            headers: {
+              'User-Agent': 'CoinTracker-Proxy/1.0'
+            }
+          });
+          
+          const krwRate = api.parser(response.data);
+          
+          if (krwRate && typeof krwRate === 'number' && krwRate > 1200 && krwRate < 1600) {
+            const result = {
+              success: true,
+              rate: krwRate,
+              timestamp: Date.now(),
+              source: `backup_${api.name}`,
+              message: `한국은행 API 실패로 백업 API 사용: ${api.name}`
+            };
+            
+            console.log(`🔄 백업 API 사용 (${api.name}): ${krwRate}원`);
+            return res.json(result);
+          }
+        } catch (apiError) {
+          console.warn(`백업 API ${api.name} 실패:`, apiError.message);
+          continue;
+        }
       }
+      
+      // 모든 API 실패 시 기본값
+      const fallbackResult = {
+        success: true,
+        rate: 1366.56,
+        timestamp: Date.now(),
+        source: 'fallback_default',
+        message: '모든 환율 API 실패, 기본값 사용'
+      };
+      
+      console.log('⚠️ 모든 API 실패, 기본값 사용: 1366.56원');
+      res.json(fallbackResult);
     }
-    
-    // 환율 API 실패 시 구글 검색 기준값 반환 (2025.07.08 기준)
-    const fallbackResult = {
-      success: true,
-      rate: 1439,
-      timestamp: Date.now(),
-      source: 'google_search_fallback'
-    };
-    
-    res.json(fallbackResult);
     
   } catch (error) {
     const errorResponse = handleApiError(error, 'Exchange Rate');
@@ -442,7 +613,7 @@ app.get('/', (req, res) => {
       apis: {
         bitget: '/api/bitget/*',
         upbit: '/api/upbit/*',
-        exchangeRate: '/api/exchange-rate',
+        exchangeRate: '/api/exchange-rate (한국은행 공식)',
         news: '/api/news',
         coinMarketCap: '/api/cmc/*'
       }
@@ -464,7 +635,8 @@ app.get('/health', (req, res) => {
     message: 'Coco Proxy Server is running!',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    cacheSize: cache.size
+    cacheSize: cache.size,
+    bokApiKey: process.env.BOK_API_KEY ? '설정됨' : '미설정'
   });
 });
 
@@ -520,7 +692,8 @@ app.listen(PORT, () => {
   console.log('📋 지원 엔드포인트:');
   console.log('  • /api/bitget/* - Bitget API 프록시');
   console.log('  • /api/upbit/* - Upbit API 프록시');
-  console.log('  • /api/exchange-rate - 환율 API');
+  console.log('  • /api/exchange-rate - 한국은행 공식 환율 API');
   console.log('  • /api/news - CoinNess 뉴스 API');
   console.log('  • /api/cmc/* - CoinMarketCap API');
+  console.log(`🏛️ 한국은행 API 키: ${process.env.BOK_API_KEY ? '✅ 설정됨' : '❌ 미설정'}`);
 });

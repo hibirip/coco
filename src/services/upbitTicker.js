@@ -74,9 +74,11 @@ export async function getBatchUpbitTickerData(markets) {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'X-Requested-With': 'XMLHttpRequest' // 명시적으로 AJAX 요청임을 표시
       },
-      cache: 'no-store' // 캐시 완전 비활성화
+      cache: 'no-store', // 캐시 완전 비활성화
+      mode: 'cors' // CORS 모드 명시
     });
     
     clearTimeout(timeoutId);

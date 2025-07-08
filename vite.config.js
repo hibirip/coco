@@ -18,7 +18,19 @@ export default defineConfig({
             console.log('🚨 Bitget Proxy Error:', err.message)
           })
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('📡 Bitget API Request:', req.url)
+            console.log('📡 Bitget API Request:', req.method, req.url)
+            // HEAD 요청을 GET 요청으로 변환
+            if (req.method === 'HEAD') {
+              proxyReq.method = 'GET'
+            }
+          })
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            // OPTIONS 및 HEAD 요청에 대한 CORS 헤더 추가
+            if (req.method === 'OPTIONS' || req.method === 'HEAD') {
+              res.setHeader('Access-Control-Allow-Origin', '*')
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD')
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Cache-Control, X-Requested-With, Pragma')
+            }
           })
         }
       },
@@ -32,7 +44,19 @@ export default defineConfig({
             console.log('🚨 Upbit Proxy Error:', err.message)
           })
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('📡 Upbit API Request:', req.url)
+            console.log('📡 Upbit API Request:', req.method, req.url)
+            // HEAD 요청을 GET 요청으로 변환
+            if (req.method === 'HEAD') {
+              proxyReq.method = 'GET'
+            }
+          })
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            // OPTIONS 및 HEAD 요청에 대한 CORS 헤더 추가
+            if (req.method === 'OPTIONS' || req.method === 'HEAD') {
+              res.setHeader('Access-Control-Allow-Origin', '*')
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD')
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Cache-Control, X-Requested-With, Pragma')
+            }
           })
         }
       },
