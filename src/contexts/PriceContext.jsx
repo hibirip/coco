@@ -60,7 +60,7 @@ export const MAJOR_COINS = {
     priority: 7
   },
   MATIC: {
-    symbol: 'MATICUSDT',
+    symbol: 'POLUSDT', // Polygon이 POL로 리브랜딩됨
     name: 'Polygon',
     upbitMarket: null, // 업비트에 상장되지 않음
     priority: 8

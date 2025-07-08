@@ -59,8 +59,9 @@ const SYMBOL_MAPPING = {
   'SANDUSDT': 'KRW-SAND',
   'THETAUSDT': 'KRW-THETA',
   
-  // 추가 메이저 코인
-  'MATICUSDT': 'KRW-MATIC',
+  // 추가 메이저 코인 (Polygon 리브랜딩으로 POL 사용)
+  'POLUSDT': 'KRW-MATIC', // Bitget은 POL, 업비트는 여전히 MATIC
+  'MATICUSDT': 'KRW-MATIC', // 하위 호환성을 위해 유지
   'SOLUSDT': 'KRW-SOL',
   'AVAXUSDT': 'KRW-AVAX',
   'NEARUSDT': 'KRW-NEAR',

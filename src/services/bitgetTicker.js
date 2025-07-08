@@ -34,6 +34,10 @@ if (isDevelopment) {
 // 메모리 캐시
 const tickerCache = new Map();
 
+// 경고 로그 중복 방지를 위한 캐시 (5분간 같은 경고 무시)
+const warningCache = new Map();
+const WARNING_CACHE_DURATION = 5 * 60 * 1000; // 5분
+
 /**
  * 티커 데이터 캐시 키 생성
  */
@@ -355,7 +359,14 @@ export async function getBatchTickerData(symbols) {
           successCount++;
         }
       } else {
-        logger.warn(`Ticker 데이터 없음: ${symbol}`);
+        // 중복 경고 방지 - 5분간 같은 심볼에 대한 경고 무시
+        const warningKey = `missing_ticker_${symbol}`;
+        const lastWarning = warningCache.get(warningKey);
+        
+        if (!lastWarning || Date.now() - lastWarning > WARNING_CACHE_DURATION) {
+          logger.warn(`Ticker 데이터 없음: ${symbol} (5분간 동일 경고 무시)`);
+          warningCache.set(warningKey, Date.now());
+        }
       }
     }
     
@@ -385,7 +396,14 @@ export async function getBatchTickerData(symbols) {
         tickerDataMap[symbol] = data;
         successCount++;
       } else {
-        logger.warn(`Ticker 데이터 실패 (${symbol}): ${error}`);
+        // 중복 경고 방지 - 5분간 같은 심볼에 대한 경고 무시
+        const warningKey = `failed_ticker_${symbol}`;
+        const lastWarning = warningCache.get(warningKey);
+        
+        if (!lastWarning || Date.now() - lastWarning > WARNING_CACHE_DURATION) {
+          logger.warn(`Ticker 데이터 실패 (${symbol}): ${error} (5분간 동일 경고 무시)`);
+          warningCache.set(warningKey, Date.now());
+        }
       }
     }
     
