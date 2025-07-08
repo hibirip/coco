@@ -6,6 +6,9 @@
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
 
+// 환경 감지
+const isDevelopment = import.meta.env.DEV;
+
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
   // 모든 환경에서 프록시 경유 (통일된 방식)
@@ -54,6 +57,15 @@ export async function getBatchUpbitTickerData(markets) {
     const timestamp = Date.now();
     const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}&_t=${timestamp}`;
     
+    // 배포 환경에서 상세 로깅
+    if (!isDevelopment) {
+      console.log(`[Production] Upbit API call:`, {
+        url,
+        markets: markets.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
     
@@ -62,9 +74,7 @@ export async function getBatchUpbitTickerData(markets) {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       },
       cache: 'no-store' // 캐시 완전 비활성화
     });
@@ -79,6 +89,15 @@ export async function getBatchUpbitTickerData(markets) {
     const tickerArray = await response.json();
     
     logger.performance(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
+    
+    // 배포 환경에서 성공 로깅
+    if (!isDevelopment) {
+      console.log(`[Production] Upbit API success:`, {
+        receivedTickers: tickerArray.length,
+        sampleMarket: tickerArray[0]?.market,
+        samplePrice: tickerArray[0]?.trade_price
+      });
+    }
     
     // 데이터 변환
     const transformedData = {};
