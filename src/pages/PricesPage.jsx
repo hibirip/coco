@@ -67,6 +67,9 @@ export default function PricesPage() {
 
   // 필터링 및 정렬된 코인 데이터 - 전체 100개 코인 표시
   const filteredAndSortedCoins = useMemo(() => {
+    console.log('🔍 PricesPage - ALL_SYMBOLS 개수:', ALL_SYMBOLS.length);
+    console.log('🔍 PricesPage - prices 개수:', Object.keys(prices).length);
+    
     // ALL_SYMBOLS(100개)를 기준으로 모든 코인 표시
     let coins = ALL_SYMBOLS.map(symbol => {
       const coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
@@ -178,6 +181,9 @@ export default function PricesPage() {
         break;
     }
 
+    console.log('🔍 PricesPage - 필터링 후 코인 개수:', coins.length);
+    console.log('🔍 PricesPage - 가격 데이터가 있는 코인:', coins.filter(c => c.hasData).length);
+    
     return coins;
   }, [
     ALL_SYMBOLS, // 전체 100개 코인 기준

@@ -11,6 +11,8 @@ import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
+import { useBitgetWebSocket } from '../hooks/useBitgetWebSocket';
+import { useUpbitWebSocket } from '../hooks/useUpbitWebSocket';
 
 // 환경 감지
 const isDevelopment = import.meta.env.DEV;
@@ -684,6 +686,12 @@ export const ALL_UPBIT_MARKETS = Object.values(ALL_COINS)
   .map(coin => coin.upbitMarket)
   .filter(market => market !== null); // null 값 제거
 
+// 디버깅: 전체 코인 개수 확인
+console.log('🔍 PriceContext ALL_SYMBOLS 개수:', ALL_SYMBOLS.length);
+console.log('🔍 WebSocket 구독 코인 개수:', MAJOR_SYMBOLS.length);
+console.log('🔍 처음 10개 심볼:', ALL_SYMBOLS.slice(0, 10));
+console.log('🔍 마지막 10개 심볼:', ALL_SYMBOLS.slice(-10));
+
 // 초기 상태 정의
 const initialState = {
   // 가격 데이터
@@ -908,6 +916,17 @@ const PriceContext = createContext(null);
  */
 export function PriceProvider({ children }) {
   const [state, dispatch] = useReducer(priceReducer, initialState);
+  
+  // WebSocket 훅들 - 주요 코인들만 실시간 업데이트
+  const bitgetWebSocket = useBitgetWebSocket({
+    enabled: true,
+    symbols: MAJOR_SYMBOLS // 상위 30개 코인만 WebSocket 구독
+  });
+  
+  const upbitWebSocket = useUpbitWebSocket({
+    enabled: true,
+    markets: MAJOR_UPBIT_MARKETS // 업비트 주요 마켓만 WebSocket 구독
+  });
   
   // 연결 상태 설정
   const setConnectionStatus = useCallback((isConnected) => {
@@ -1232,7 +1251,9 @@ export function PriceProvider({ children }) {
         logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] Bitget REST API 데이터 로드 중...`);
         
         // Bitget API 호출 - 전체 100개 코인
+        console.log('🔍 getBatchTickerData 호출 전 - ALL_SYMBOLS 개수:', ALL_SYMBOLS.length);
         const bitgetData = await getBatchTickerData(ALL_SYMBOLS);
+        console.log('🔍 getBatchTickerData 응답 - 실제 받은 데이터:', Object.keys(bitgetData).length);
         logger.api(`Bitget API 응답: ${Object.keys(bitgetData).length}개 심볼`);
         
         // 데이터 변환 및 업데이트
@@ -1503,6 +1524,20 @@ export function PriceProvider({ children }) {
   const contextValue = {
     // 상태
     ...state,
+    
+    // WebSocket 상태
+    bitgetWebSocket: {
+      isConnected: bitgetWebSocket.isConnected,
+      isConnecting: bitgetWebSocket.isConnecting,
+      dataCount: bitgetWebSocket.dataCount,
+      lastDataReceived: bitgetWebSocket.lastDataReceived
+    },
+    upbitWebSocket: {
+      isConnected: upbitWebSocket.isConnected,
+      isConnecting: upbitWebSocket.isConnecting,
+      dataCount: upbitWebSocket.dataCount,
+      lastDataReceived: upbitWebSocket.lastDataReceived
+    },
     
     // 액션
     setConnectionStatus,

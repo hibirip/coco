@@ -13,7 +13,9 @@ export default function HomePage() {
     isConnected,
     upbitIsConnected,
     exchangeRate: contextExchangeRate,
-    stats
+    stats,
+    bitgetWebSocket,
+    upbitWebSocket
   } = usePrices();
 
   // 서비스 카드 데이터
@@ -173,8 +175,14 @@ export default function HomePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-300">연결:</span>
-                  <span className={`font-medium ${isConnected && upbitIsConnected ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {isConnected ? 'Bitget ✓' : 'Bitget ✗'} {upbitIsConnected ? 'Upbit ✓' : 'Upbit ✗'}
+                  <span className={`font-medium ${bitgetWebSocket?.isConnected && upbitWebSocket?.isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {bitgetWebSocket?.isConnected ? 'Bitget WS ✓' : 'Bitget REST'} {upbitWebSocket?.isConnected ? 'Upbit WS ✓' : 'Upbit REST'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">실시간:</span>
+                  <span className="text-green-400 font-medium">
+                    {bitgetWebSocket?.dataCount || 0} + {upbitWebSocket?.dataCount || 0} updates
                   </span>
                 </div>
               </div>

@@ -483,10 +483,13 @@ export async function getMatchingSymbolsWithUpbit(upbitMarkets = []) {
  */
 export async function getBatchTickerData(symbols) {
   logger.performance(`배치 Ticker 데이터 요청: ${symbols.length}개 심볼`);
+  console.log('🔍 getBatchTickerData - 요청된 심볼 개수:', symbols.length);
+  console.log('🔍 getBatchTickerData - 처음 10개:', symbols.slice(0, 10));
   
   try {
     // 모든 티커 데이터 한 번에 가져오기 (더 효율적)
     const allTickersData = await fetchAllBitgetTickersData();
+    console.log('🔍 fetchAllBitgetTickersData - 받은 전체 티커 개수:', allTickersData.length);
     
     // 심볼별로 데이터 매핑
     const tickerDataMap = {};
@@ -514,6 +517,9 @@ export async function getBatchTickerData(symbols) {
         }
       }
     }
+    
+    console.log('🔍 getBatchTickerData - 성공한 심볼 개수:', successCount);
+    console.log('🔍 getBatchTickerData - 찾지 못한 심볼:', symbols.filter(s => !tickerDataMap[s]));
     
     logger.performance(`배치 Ticker 완료: ${successCount}/${symbols.length}개 성공`);
     return tickerDataMap;
