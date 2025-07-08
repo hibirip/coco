@@ -91,22 +91,13 @@ app.use('/api/bitget', async (req, res) => {
     const url = `https://api.bitget.com${path}`;
     const cacheKey = `bitget_${req.path}_${JSON.stringify(req.query)}`;
     
-    console.log(`📡 Bitget 프록시: ${req.method} ${url}`, {
-      path: req.path,
-      query: req.query,
-      timestamp: new Date().toISOString()
-    });
+    // 로그 축소: 중요한 정보만 기록
+    console.log(`📡 Bitget 프록시: ${req.method} ${path}`);
     
     // 캐시 확인
     const cached = getFromCache(cacheKey);
     if (cached) {
-      console.log('✅ Bitget 캐시에서 응답:', {
-        dataLength: Array.isArray(cached.data) ? cached.data.length : 'not-array',
-        sampleData: Array.isArray(cached.data) && cached.data.length > 0 ? {
-          symbol: cached.data[0].symbol,
-          lastPr: cached.data[0].lastPr
-        } : null
-      });
+      // 캐시 히트 로그 제거 (불필요한 로그 축소)
       return res.json(cached);
     }
     
@@ -119,14 +110,7 @@ app.use('/api/bitget', async (req, res) => {
       }
     });
     
-    console.log(`✅ Bitget 응답: ${response.status}`, {
-      dataLength: Array.isArray(response.data?.data) ? response.data.data.length : 'not-array',
-      sampleData: Array.isArray(response.data?.data) && response.data.data.length > 0 ? {
-        symbol: response.data.data[0].symbol,
-        lastPr: response.data.data[0].lastPr
-      } : null,
-      code: response.data?.code
-    });
+    // 응답 성공 로그 제거 (불필요한 로그 축소)
     setCache(cacheKey, response.data);
     res.json(response.data);
     
@@ -143,22 +127,13 @@ app.use('/api/upbit', async (req, res) => {
     const url = `https://api.upbit.com${path}`;
     const cacheKey = `upbit_${req.path}_${JSON.stringify(req.query)}`;
     
-    console.log(`📡 Upbit 프록시: ${req.method} ${url}`, {
-      path: req.path,
-      query: req.query,
-      timestamp: new Date().toISOString()
-    });
+    // 로그 축소: 중요한 정보만 기록
+    console.log(`📡 Upbit 프록시: ${req.method} ${path}`);
     
     // 캐시 확인
     const cached = getFromCache(cacheKey);
     if (cached) {
-      console.log('✅ Upbit 캐시에서 응답:', {
-        dataLength: Array.isArray(cached) ? cached.length : 'not-array',
-        sampleData: Array.isArray(cached) && cached.length > 0 ? {
-          market: cached[0].market,
-          trade_price: cached[0].trade_price
-        } : null
-      });
+      // 캐시 히트 로그 제거 (불필요한 로그 축소)
       return res.json(cached);
     }
     
@@ -171,13 +146,7 @@ app.use('/api/upbit', async (req, res) => {
       }
     });
     
-    console.log(`✅ Upbit 응답: ${response.status}`, {
-      dataLength: Array.isArray(response.data) ? response.data.length : 'not-array',
-      sampleData: Array.isArray(response.data) && response.data.length > 0 ? {
-        market: response.data[0].market,
-        trade_price: response.data[0].trade_price
-      } : null
-    });
+    // 응답 성공 로그 제거 (불필요한 로그 축소)
     setCache(cacheKey, response.data);
     res.json(response.data);
     
@@ -192,45 +161,64 @@ app.get('/api/exchange-rate', async (req, res) => {
   try {
     const cacheKey = 'exchange_rate_usd_krw';
     
-    console.log('📡 환율 프록시: USD/KRW');
+    // 환율 요청 로그 제거 (불필요한 로그 축소)
     
     // 캐시 확인 (환율은 더 오래 캐시)
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < 300000) { // 5분 캐시
-      console.log('✅ 캐시에서 응답');
+      // 캐시 히트 로그 제거
       return res.json(cached.data);
     }
     
-    try {
-      const response = await axios.get('https://api.exchangerate-api.com/v6/latest/USD', {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'CoinTracker-Proxy/1.0'
-        }
-      });
-      
-      if (response.data.rates && response.data.rates.KRW) {
-        const result = {
-          success: true,
-          rate: response.data.rates.KRW,
-          timestamp: Date.now(),
-          source: 'exchangerate-api'
-        };
-        
-        cache.set(cacheKey, { data: result, timestamp: Date.now() });
-        console.log(`✅ 환율 응답: ${response.status} (${result.rate})`);
-        return res.json(result);
+    // 여러 환율 API를 시도
+    const apis = [
+      {
+        url: 'https://api.exchangerate-api.com/v4/latest/USD',
+        parser: (data) => data.rates?.KRW,
+        name: 'exchangerate-api'
+      },
+      {
+        url: 'https://open.er-api.com/v6/latest/USD',
+        parser: (data) => data.rates?.KRW,
+        name: 'er-api'
       }
-    } catch (apiError) {
-      console.warn('환율 API 실패, 고정값 사용:', apiError.message);
+    ];
+    
+    for (const api of apis) {
+      try {
+        const response = await axios.get(api.url, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'CoinTracker-Proxy/1.0'
+          }
+        });
+        
+        const krwRate = api.parser(response.data);
+        
+        if (krwRate && typeof krwRate === 'number' && krwRate > 1200 && krwRate < 1600) {
+          const result = {
+            success: true,
+            rate: Math.round(krwRate),
+            timestamp: Date.now(),
+            source: api.name
+          };
+          
+          cache.set(cacheKey, { data: result, timestamp: Date.now() });
+          // 환율 응답 로그 제거
+          return res.json(result);
+        }
+      } catch (apiError) {
+        console.warn(`${api.name} API 실패:`, apiError.message);
+        continue;
+      }
     }
     
-    // 환율 API 실패 시 고정값 반환
+    // 환율 API 실패 시 구글 검색 기준값 반환 (2025.07.08 기준)
     const fallbackResult = {
       success: true,
-      rate: 1300,
+      rate: 1439,
       timestamp: Date.now(),
-      source: 'fallback'
+      source: 'google_search_fallback'
     };
     
     res.json(fallbackResult);
