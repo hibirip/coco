@@ -65,36 +65,11 @@ export default function PricesPage() {
     setSearchQuery(value);
   }, []);
 
-  // 필터링 및 정렬된 코인 데이터 - 동적 로딩 지원
+  // 필터링 및 정렬된 코인 데이터 - 전체 100개 코인 표시
   const filteredAndSortedCoins = useMemo(() => {
-    // 실제로 로드된 가격 데이터에서 코인 목록 생성 (동적)
-    const availableSymbols = Object.keys(prices);
-    
-    // 디버깅: 실제 데이터 상태 확인
-    console.log('🔍 DEBUG: PricesPage 필터링 시작:', {
-      availableSymbolsCount: availableSymbols.length,
-      upbitPricesCount: Object.keys(upbitPrices).length,
-      first10Symbols: availableSymbols.slice(0, 10),
-      searchQuery: debouncedSearch,
-      sortBy,
-      filterBy
-    });
-    
-    let coins = availableSymbols.map(symbol => {
-      // ALL_COINS에서 해당 코인 정보 찾기 (없으면 동적 생성)
-      let coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
-      
-      // 동적 코인 정보 생성 (ALL_COINS에 없는 새로운 코인)
-      if (!coin) {
-        const baseCoin = symbol.replace('USDT', '');
-        coin = {
-          symbol: symbol,
-          name: baseCoin, // 기본 이름 (API에서 가져올 수 있으면 더 좋음)
-          upbitMarket: `KRW-${baseCoin}`, // 추정 업비트 마켓
-          priority: 999 // 낮은 우선순위
-        };
-      }
-      
+    // ALL_SYMBOLS(100개)를 기준으로 모든 코인 표시
+    let coins = ALL_SYMBOLS.map(symbol => {
+      const coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
       const bitgetPrice = prices[symbol];
       const upbitPrice = upbitPrices[coin?.upbitMarket];
       const kimchiPremium = calculateKimchiPremium(symbol);
@@ -111,7 +86,7 @@ export default function PricesPage() {
         volume24hUSD: bitgetPrice?.volume24h && bitgetPrice?.price ? 
           bitgetPrice.volume24h * bitgetPrice.price : 0
       };
-    }).filter(item => item.hasData); // 데이터가 있는 코인만
+    });
 
     // 검색 필터 적용
     if (debouncedSearch) {
@@ -203,20 +178,11 @@ export default function PricesPage() {
         break;
     }
 
-    // 디버깅: 최종 결과 확인
-    console.log('🔍 DEBUG: PricesPage 필터링 완료:', {
-      finalCoinsCount: coins.length,
-      first5Coins: coins.slice(0, 5).map(c => ({
-        symbol: c.symbol,
-        hasData: c.hasData,
-        priority: c.priority
-      }))
-    });
-
     return coins;
   }, [
-    prices, // 동적 코인 리스트의 기준이 됨
-    ALL_COINS, 
+    ALL_SYMBOLS, // 전체 100개 코인 기준
+    ALL_COINS,
+    prices,
     upbitPrices, 
     calculateKimchiPremium, 
     debouncedSearch, 

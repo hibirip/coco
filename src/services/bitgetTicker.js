@@ -357,10 +357,10 @@ export async function getAvailableUSDTPairs() {
       .sort((a, b) => parseFloat(b.usdtVolume || '0') - parseFloat(a.usdtVolume || '0')) // 거래량 내림차순
       .map(ticker => ticker.symbol);
     
-    logger.info(`사용 가능한 USDT 페어: ${usdtPairs.length}개`);
+    logger.info(`사용 가능한 USDT 페어: ${usdtPairs.length}개 (제한 없음)`);
     
-    // 상위 100개만 반환 (성능 최적화)
-    return usdtPairs.slice(0, 100);
+    // 모든 USDT 페어 반환 (제한 없음)
+    return usdtPairs;
     
   } catch (error) {
     logger.error('USDT 페어 목록 가져오기 실패:', error);

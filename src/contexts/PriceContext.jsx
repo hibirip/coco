@@ -7,7 +7,7 @@ import { createContext, useContext, useReducer, useCallback, useEffect } from 'r
 import { calculateKimchi } from '../utils/formatters';
 import { getUSDKRWRate, startAutoUpdate, stopAutoUpdate } from '../services/exchangeRate';
 import { getBatchSparklineData } from '../services/bitgetKline';
-import { getBatchTickerData, getTopCoinsByVolume } from '../services/bitgetTicker';
+import { getBatchTickerData } from '../services/bitgetTicker';
 import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
@@ -19,61 +19,71 @@ const isDevelopment = import.meta.env.DEV;
 export const MAJOR_COINS = {
   BTC: {
     symbol: 'BTCUSDT',
-    name: 'Bitcoin',
+    name: '비트코인',
+    nameEn: 'Bitcoin',
     upbitMarket: 'KRW-BTC',
     priority: 1
   },
   ETH: {
     symbol: 'ETHUSDT',
-    name: 'Ethereum',
+    name: '이더리움',
+    nameEn: 'Ethereum',
     upbitMarket: 'KRW-ETH',
     priority: 2
   },
   XRP: {
     symbol: 'XRPUSDT',
-    name: 'XRP',
+    name: '리플',
+    nameEn: 'XRP',
     upbitMarket: 'KRW-XRP',
     priority: 3
   },
   ADA: {
     symbol: 'ADAUSDT',
-    name: 'Cardano',
+    name: '에이다',
+    nameEn: 'Cardano',
     upbitMarket: 'KRW-ADA',
     priority: 4
   },
   SOL: {
     symbol: 'SOLUSDT',
-    name: 'Solana',
+    name: '솔라나',
+    nameEn: 'Solana',
     upbitMarket: 'KRW-SOL',
     priority: 5
   },
   DOT: {
     symbol: 'DOTUSDT',
-    name: 'Polkadot',
+    name: '폴카닷',
+    nameEn: 'Polkadot',
     upbitMarket: 'KRW-DOT',
     priority: 6
   },
   LINK: {
     symbol: 'LINKUSDT',
-    name: 'Chainlink',
+    name: '체인링크',
+    nameEn: 'Chainlink',
     upbitMarket: 'KRW-LINK',
     priority: 7
   },
   MATIC: {
     symbol: 'POLUSDT', // Polygon이 POL로 리브랜딩됨
-    name: 'Polygon',
+    name: '폴리곤',
+    nameEn: 'Polygon',
     upbitMarket: null, // 업비트에 상장되지 않음
     priority: 8
   },
   UNI: {
     symbol: 'UNIUSDT',
-    name: 'Uniswap',
+    name: '유니스왑',
+    nameEn: 'Uniswap',
     upbitMarket: 'KRW-UNI',
     priority: 9
   },
   AVAX: {
     symbol: 'AVAXUSDT',
-    name: 'Avalanche',
+    name: '아발란체',
+    nameEn: 'Avalanche',
     upbitMarket: 'KRW-AVAX',
     priority: 10
   }
@@ -87,139 +97,162 @@ export const ALL_COINS = {
   // 추가 90개 코인 (업비트 상장 + 주요 해외 코인)
   DOGE: {
     symbol: 'DOGEUSDT',
-    name: 'Dogecoin',
+    name: '도지코인',
+    nameEn: 'Dogecoin',
     upbitMarket: 'KRW-DOGE',
     priority: 11
   },
   SHIB: {
     symbol: 'SHIBUSDT',
-    name: 'Shiba Inu',
+    name: '시바이누',
+    nameEn: 'Shiba Inu',
     upbitMarket: 'KRW-SHIB',
     priority: 12
   },
   TRX: {
     symbol: 'TRXUSDT',
-    name: 'TRON',
+    name: '트론',
+    nameEn: 'TRON',
     upbitMarket: 'KRW-TRX',
     priority: 13
   },
   LTC: {
     symbol: 'LTCUSDT',
-    name: 'Litecoin',
+    name: '라이트코인',
+    nameEn: 'Litecoin',
     upbitMarket: 'KRW-LTC',
     priority: 14
   },
   BCH: {
     symbol: 'BCHUSDT',
-    name: 'Bitcoin Cash',
+    name: '비트코인캐시',
+    nameEn: 'Bitcoin Cash',
     upbitMarket: 'KRW-BCH',
     priority: 15
   },
   ETC: {
     symbol: 'ETCUSDT',
-    name: 'Ethereum Classic',
+    name: '이더리움클래식',
+    nameEn: 'Ethereum Classic',
     upbitMarket: 'KRW-ETC',
     priority: 16
   },
   ATOM: {
     symbol: 'ATOMUSDT',
-    name: 'Cosmos',
+    name: '코스모스',
+    nameEn: 'Cosmos',
     upbitMarket: 'KRW-ATOM',
     priority: 17
   },
   NEAR: {
     symbol: 'NEARUSDT',
-    name: 'NEAR Protocol',
+    name: '니어프로토콜',
+    nameEn: 'NEAR Protocol',
     upbitMarket: 'KRW-NEAR',
     priority: 18
   },
   ALGO: {
     symbol: 'ALGOUSDT',
-    name: 'Algorand',
+    name: '알고랜드',
+    nameEn: 'Algorand',
     upbitMarket: 'KRW-ALGO',
     priority: 19
   },
   HBAR: {
     symbol: 'HBARUSDT',
-    name: 'Hedera',
+    name: '헤데라',
+    nameEn: 'Hedera',
     upbitMarket: 'KRW-HBAR',
     priority: 20
   },
   ICP: {
     symbol: 'ICPUSDT',
-    name: 'Internet Computer',
+    name: '인터넷컴퓨터',
+    nameEn: 'Internet Computer',
     upbitMarket: 'KRW-ICP',
     priority: 21
   },
   VET: {
     symbol: 'VETUSDT',
-    name: 'VeChain',
+    name: '비체인',
+    nameEn: 'VeChain',
     upbitMarket: 'KRW-VET',
     priority: 22
   },
   FIL: {
     symbol: 'FILUSDT',
-    name: 'Filecoin',
+    name: '파일코인',
+    nameEn: 'Filecoin',
     upbitMarket: 'KRW-FIL',
     priority: 23
   },
   SAND: {
     symbol: 'SANDUSDT',
-    name: 'The Sandbox',
+    name: '샌드박스',
+    nameEn: 'The Sandbox',
     upbitMarket: 'KRW-SAND',
     priority: 24
   },
   MANA: {
     symbol: 'MANAUSDT',
-    name: 'Decentraland',
+    name: '디센트럴랜드',
+    nameEn: 'Decentraland',
     upbitMarket: 'KRW-MANA',
     priority: 25
   },
   THETA: {
     symbol: 'THETAUSDT',
-    name: 'Theta Network',
+    name: '쎄타토큰',
+    nameEn: 'Theta Network',
     upbitMarket: 'KRW-THETA',
     priority: 26
   },
   XTZ: {
     symbol: 'XTZUSDT',
-    name: 'Tezos',
+    name: '테조스',
+    nameEn: 'Tezos',
     upbitMarket: 'KRW-XTZ',
     priority: 27
   },
   EOS: {
     symbol: 'EOSUSDT',
-    name: 'EOS',
+    name: '이오스',
+    nameEn: 'EOS',
     upbitMarket: 'KRW-EOS',
     priority: 28
   },
   KSM: {
     symbol: 'KSMUSDT',
-    name: 'Kusama',
+    name: '쿠사마',
+    nameEn: 'Kusama',
     upbitMarket: 'KRW-KSM',
     priority: 29
   },
   FLOW: {
     symbol: 'FLOWUSDT',
-    name: 'Flow',
+    name: '플로우',
+    nameEn: 'Flow',
     upbitMarket: 'KRW-FLOW',
     priority: 30
   },
   CHZ: {
     symbol: 'CHZUSDT',
-    name: 'Chiliz',
+    name: '칠리즈',
+    nameEn: 'Chiliz',
     upbitMarket: 'KRW-CHZ',
     priority: 31
   },
   XLM: {
     symbol: 'XLMUSDT',
-    name: 'Stellar',
+    name: '스텔라루멘',
+    nameEn: 'Stellar',
     upbitMarket: 'KRW-XLM',
     priority: 32
   },
   AAVE: {
     symbol: 'AAVEUSDT',
-    name: 'Aave',
+    name: '에이브',
+    nameEn: 'Aave',
     upbitMarket: 'KRW-AAVE',
     priority: 33
   },
@@ -568,61 +601,71 @@ export const ALL_COINS = {
   // 해외 주요 코인 10개 (업비트 미상장)
   BNB: {
     symbol: 'BNBUSDT',
-    name: 'BNB',
+    name: '바이낸스코인',
+    nameEn: 'BNB',
     upbitMarket: null,
     priority: 91
   },
   TON: {
     symbol: 'TONUSDT',
-    name: 'Toncoin',
+    name: '톤코인',
+    nameEn: 'Toncoin',
     upbitMarket: null,
     priority: 92
   },
   RNDR: {
     symbol: 'RNDRUSDT',
-    name: 'Render Token',
+    name: '렌더토큰',
+    nameEn: 'Render Token',
     upbitMarket: null,
     priority: 93
   },
   FTM: {
     symbol: 'FTMUSDT',
-    name: 'Fantom',
+    name: '팬텀',
+    nameEn: 'Fantom',
     upbitMarket: null,
     priority: 94
   },
   RUNE: {
     symbol: 'RUNEUSDT',
-    name: 'THORChain',
+    name: '토르체인',
+    nameEn: 'THORChain',
     upbitMarket: null,
     priority: 95
   },
   CAKE: {
     symbol: 'CAKEUSDT',
-    name: 'PancakeSwap',
+    name: '팬케이크스왑',
+    nameEn: 'PancakeSwap',
     upbitMarket: null,
     priority: 96
   },
   GALA: {
     symbol: 'GALAUSDT',
-    name: 'Gala',
+    name: '갈라',
+    nameEn: 'Gala',
     upbitMarket: null,
     priority: 97
   },
   IMX: {
     symbol: 'IMXUSDT',
-    name: 'Immutable X',
+    name: '이뮤터블엑스',
+    nameEn: 'Immutable X',
     upbitMarket: null,
     priority: 98
   },
   ROSE: {
     symbol: 'ROSEUSDT',
-    name: 'Oasis Network',
+    name: '오아시스네트워크',
+    nameEn: 'Oasis Network',
     upbitMarket: null,
     priority: 99
   },
   XMR: {
     symbol: 'XMRUSDT',
-    name: 'Monero',
+    name: '모네로',
+    nameEn: 'Monero',
     upbitMarket: null,
     priority: 100
   }
@@ -1188,8 +1231,8 @@ export function PriceProvider({ children }) {
         
         logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] Bitget REST API 데이터 로드 중...`);
         
-        // Bitget API 호출
-        const bitgetData = await getBatchTickerData(MAJOR_SYMBOLS);
+        // Bitget API 호출 - 전체 100개 코인
+        const bitgetData = await getBatchTickerData(ALL_SYMBOLS);
         logger.api(`Bitget API 응답: ${Object.keys(bitgetData).length}개 심볼`);
         
         // 데이터 변환 및 업데이트
@@ -1246,9 +1289,8 @@ export function PriceProvider({ children }) {
     let updateCounter = 0; // 업데이트 카운터 추가
     
     const fetchUpbitTickerData = async () => {
-      // 초기 로드시 주요 코인만 먼저 로드
-      const isInitialLoad = Object.keys(state.upbitPrices).length === 0;
-      const upbitMarkets = isInitialLoad ? MAJOR_UPBIT_MARKETS : ALL_UPBIT_MARKETS;
+      // 항상 전체 업비트 마켓 로드
+      const upbitMarkets = ALL_UPBIT_MARKETS;
       
       logger.debug('업비트 마켓 목록:', upbitMarkets);
       
@@ -1354,20 +1396,9 @@ export function PriceProvider({ children }) {
         symbols = MAJOR_SYMBOLS;
         logger.info('초기 로드: 주요 코인 10개 로드');
       } else {
-        // 이후 로드: 동적으로 거래량 상위 코인 가져오기
-        try {
-          symbols = await getTopCoinsByVolume(80); // 상위 80개 코인
-          console.log('🔍 DEBUG: PriceContext 동적 로드 결과:', {
-            symbolsLength: symbols.length,
-            currentPricesCount: Object.keys(state.prices).length,
-            first10Symbols: symbols.slice(0, 10),
-            updateCounter
-          });
-          logger.info(`동적 로드: 거래량 상위 ${symbols.length}개 코인 로드`);
-        } catch (error) {
-          logger.error('동적 코인 리스트 로드 실패, 기본 리스트 사용:', error);
-          symbols = ALL_SYMBOLS; // 폴백
-        }
+        // 이후 로드: 전체 100개 코인 로드
+        symbols = ALL_SYMBOLS;
+        logger.info(`전체 코인 로드: ${symbols.length}개 코인`);
       }
       
       logger.debug('Bitget 심볼 목록:', symbols.slice(0, 10), `... (총 ${symbols.length}개)`);
