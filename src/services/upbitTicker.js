@@ -128,14 +128,32 @@ export function transformUpbitTickerData(tickerData) {
 
   try {
     const changePercent = (tickerData.change_rate || 0) * 100; // 소수점 -> 퍼센트
+    const tradePrice = parseFloat(tickerData.trade_price || 0);
+    
+    // 가격 유효성 검증
+    if (tradePrice <= 0 || isNaN(tradePrice)) {
+      logger.warn(`Invalid trade price for ${tickerData.market}: ${tickerData.trade_price}`);
+      return null;
+    }
+    
+    // 배포 환경에서 데이터 로깅 (BTC만)
+    if (!isDevelopment && tickerData.market === 'KRW-BTC') {
+      console.log('[Production] Upbit transform:', {
+        market: tickerData.market,
+        rawPrice: tickerData.trade_price,
+        parsedPrice: tradePrice,
+        changePercent: changePercent
+      });
+    }
     
     return {
       market: tickerData.market,
-      trade_price: parseFloat(tickerData.trade_price || 0),
+      trade_price: tradePrice,
       change: parseFloat(tickerData.change_price || 0),
       change_rate: parseFloat(tickerData.change_rate || 0),
       change_percent: changePercent,
       acc_trade_volume_24h: parseFloat(tickerData.acc_trade_volume_24h || 0),
+      acc_trade_price_24h: parseFloat(tickerData.acc_trade_price_24h || 0),
       high_price: parseFloat(tickerData.high_price || 0),
       low_price: parseFloat(tickerData.low_price || 0),
       timestamp: tickerData.timestamp || Date.now(),

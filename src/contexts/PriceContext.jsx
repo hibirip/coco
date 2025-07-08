@@ -1071,16 +1071,30 @@ export function PriceProvider({ children }) {
             payload: rateData.rate
           });
           logger.info(`환율 업데이트: ${rateData.rate}`);
+          
+          // 배포 환경에서 환율 확인
+          if (!isDevelopment) {
+            console.log('[Production] Exchange rate updated:', rateData.rate, 'source:', rateData.source);
+          }
         }
       } catch (error) {
         logger.warn('환율 로드 실패, 기본값 유지:', error.message);
+        // 배포 환경에서 환율 로드 실패 로깅
+        if (!isDevelopment) {
+          console.error('[Production] Exchange rate load failed:', error.message);
+        }
       }
     };
     
     // 즉시 환율 로드 시도
     loadExchangeRate();
     
-    return () => {};
+    // 30분마다 환율 재로드
+    const exchangeRateInterval = setInterval(loadExchangeRate, 30 * 60 * 1000);
+    
+    return () => {
+      clearInterval(exchangeRateInterval);
+    };
   }, []);
   
   // 스파크라인 데이터 자동 업데이트 (5분마다)
@@ -1157,8 +1171,74 @@ export function PriceProvider({ children }) {
     return () => clearTimeout(timeout);
   }, []);
 
-  // Bitget REST API는 WebSocket이 처리하므로 비활성화
-  // (중복 요청 방지)
+  // Bitget REST API Ticker 데이터 자동 업데이트
+  useEffect(() => {
+    let bitgetTickerInterval = null;
+    let updateCounter = 0;
+    
+    const fetchBitgetTickerData = async () => {
+      try {
+        updateCounter++;
+        const currentTime = new Date().toLocaleTimeString();
+        
+        // 배포 환경에서 API 호출 로깅
+        if (!isDevelopment) {
+          console.log(`[Production] Bitget ticker update #${updateCounter} at ${currentTime}`);
+        }
+        
+        logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] Bitget REST API 데이터 로드 중...`);
+        
+        // Bitget API 호출
+        const bitgetData = await getBatchTickerData(MAJOR_SYMBOLS);
+        logger.api(`Bitget API 응답: ${Object.keys(bitgetData).length}개 심볼`);
+        
+        // 데이터 변환 및 업데이트
+        let updateCount = 0;
+        const timestamp = Date.now();
+        
+        Object.entries(bitgetData).forEach(([symbol, ticker]) => {
+          updatePrice(symbol, {
+            ...ticker,
+            updateTimestamp: timestamp,
+            updateCounter: updateCounter
+          });
+          updateCount++;
+        });
+        
+        logger.api(`[${updateCounter}번째] Bitget 데이터 업데이트 완료: ${updateCount}개 심볼`);
+        
+        // 배포 환경에서 디버깅 (BTC 데이터 샘플 포함)
+        if (!isDevelopment && bitgetData['BTCUSDT']) {
+          console.log(`[Production] Bitget price update #${updateCounter} at ${currentTime}: BTC $${bitgetData['BTCUSDT'].price}`);
+        }
+        
+      } catch (error) {
+        logger.error('Bitget 데이터 로드 실패:', error);
+        
+        // 배포 환경에서 에러 로깅
+        if (!isDevelopment) {
+          console.error(`[Production] Bitget ticker update failed:`, error.message);
+        }
+      }
+    };
+    
+    // 즉시 한 번 실행
+    fetchBitgetTickerData();
+    
+    // 10초마다 업데이트 (업비트와 동일)
+    bitgetTickerInterval = setInterval(fetchBitgetTickerData, 10000);
+    
+    // 배포 환경에서 시작 로깅
+    if (!isDevelopment) {
+      console.log('[Production] Bitget REST API auto-update enabled (every 10s)');
+    }
+    
+    return () => {
+      if (bitgetTickerInterval) {
+        clearInterval(bitgetTickerInterval);
+      }
+    };
+  }, [updatePrice, setPricesBulk]);
   
   // 업비트 REST API Ticker 데이터 자동 업데이트
   useEffect(() => {
@@ -1304,14 +1384,13 @@ export function PriceProvider({ children }) {
           
           // 배포 환경에서 디버깅 (데이터 샘플 포함)
           if (!isDevelopment) {
-            const sampleData = Object.keys(bitgetData).slice(0, 3).map(symbol => ({
-              symbol,
-              price: bitgetData[symbol].price,
-              change: bitgetData[symbol].changePercent24h
-            }));
-            console.log(`[Production] Bitget price update #${updateCounter} at ${currentTime}: ${updateCount} symbols updated`, {
-              sampleData,
-              totalRequested: symbols.length
+            const btcData = bitgetData['BTCUSDT'];
+            const ethData = bitgetData['ETHUSDT'];
+            console.log(`[Production] Bitget price update #${updateCounter} at ${currentTime}:`, {
+              updateCount,
+              btc: btcData ? { price: btcData.price, change: btcData.changePercent24h } : null,
+              eth: ethData ? { price: ethData.price, change: ethData.changePercent24h } : null,
+              exchangeRate: state.exchangeRate
             });
           }
         } else {
@@ -1326,21 +1405,26 @@ export function PriceProvider({ children }) {
       } catch (error) {
         logger.error('Bitget API 오류:', error);
         addError(`Bitget 데이터 로드 실패: ${error.message}`);
+        
+        // 배포 환경에서 에러 로깅
+        if (!isDevelopment) {
+          console.error('[Production] Bitget API error:', error.message);
+        }
       }
     };
     
     // 즉시 로드
     fetchBitgetTickerData();
     
-    // 5초마다 업데이트 (업비트와 동일한 주기)
-    bitgetTickerInterval = setInterval(fetchBitgetTickerData, 5000);
+    // 10초마다 업데이트 (프록시 서버 캐시와 동기화)
+    bitgetTickerInterval = setInterval(fetchBitgetTickerData, 10000);
     
     return () => {
       if (bitgetTickerInterval) {
         clearInterval(bitgetTickerInterval);
       }
     };
-  }, [updatePrice, addError]); // 의존성 최소화
+  }, [updatePrice, addError, state.exchangeRate]); // 의존성 최소화
   
   // 통계 업데이트 (자동)
   useEffect(() => {

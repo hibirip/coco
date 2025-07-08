@@ -188,10 +188,25 @@ export const CoinLogoWithInfo = ({
   size = 40, 
   showSymbol = true,
   showName = true,
-  className = '' 
+  className = '',
+  layout = 'horizontal' // 'horizontal' or 'vertical'
 }) => {
   const cleanSymbol = symbol?.replace(/USDT$/, '') || '';
   
+  if (layout === 'vertical') {
+    return (
+      <div className={`flex flex-col items-center gap-1 ${className}`}>
+        <CoinLogo symbol={symbol} size={size} />
+        {showSymbol && (
+          <span className="text-xs font-medium text-textSecondary">
+            {cleanSymbol}
+          </span>
+        )}
+      </div>
+    );
+  }
+  
+  // Default horizontal layout
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <CoinLogo symbol={symbol} size={size} />

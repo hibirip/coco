@@ -636,38 +636,32 @@ export default function CoinTable({
                 onClick={() => handleCoinClick(symbol)}
               >
                 <div className="flex items-center justify-between">
-                  {/* 코인 정보 (로고 + 이름) */}
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* 코인 정보 (로고 + 심볼) */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="group-hover:scale-110 transition-transform duration-300">
                       <CoinLogoWithInfo 
                         symbol={symbol}
                         name={coin.name}
                         size={32}
-                        showSymbol={false}
+                        showSymbol={true}
                         showName={false}
+                        layout="vertical"
                       />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm font-bold text-white group-hover:text-green-400 transition-colors duration-300 truncate">
-                          {coin.name}
-                        </div>
-                        {/* 모바일 즐겨찾기 버튼 */}
-                        {showFavorites && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(symbol);
-                            }}
-                            className={`text-sm hover:scale-125 transition-all duration-300 ${
-                              favorites.has(symbol) ? 'text-yellow-400 drop-shadow-lg' : 'text-gray-500 hover:text-yellow-400'
-                            }`}
-                          >
-                            {favorites.has(symbol) ? '★' : '☆'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    {/* 모바일 즐겨찾기 버튼 */}
+                    {showFavorites && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(symbol);
+                        }}
+                        className={`text-sm hover:scale-125 transition-all duration-300 ml-2 ${
+                          favorites.has(symbol) ? 'text-yellow-400 drop-shadow-lg' : 'text-gray-500 hover:text-yellow-400'
+                        }`}
+                      >
+                        {favorites.has(symbol) ? '★' : '☆'}
+                      </button>
+                    )}
                   </div>
 
                   {/* 가격 정보 */}

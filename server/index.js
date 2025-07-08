@@ -18,11 +18,19 @@ const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
   : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'];
 
+// 배포 환경에서는 모든 도메인 허용 (임시)
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction) {
+  corsOrigins.push('*');
+}
+
 // 보안 및 미들웨어 설정
 app.use(helmet());
 app.use(cors({
-  origin: corsOrigins,
-  credentials: true
+  origin: isProduction ? true : corsOrigins, // 배포 환경에서는 모든 origin 허용
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 app.use(morgan('combined'));
 app.use(express.json());
@@ -30,7 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API 응답 캐시 (간단한 메모리 캐시)
 const cache = new Map();
-const CACHE_DURATION = 2000; // 2초로 단축하여 실시간성 향상
+const CACHE_DURATION = 8000; // 8초로 설정하여 클라이언트와 동기화
 
 // 캐시 헬퍼 함수
 function getFromCache(key) {

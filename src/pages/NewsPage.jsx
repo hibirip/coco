@@ -13,6 +13,8 @@ export default function NewsPage() {
   const [bookmarks, setBookmarks] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedNews, setSelectedNews] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   // 데이터 로딩
   useEffect(() => {
@@ -127,7 +129,10 @@ export default function NewsPage() {
       {headlineNews && (
         <section 
           className="bg-section rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 transform hover:scale-[1.01] group"
-          onClick={() => window.open(headlineNews.url, '_blank', 'noopener,noreferrer')}
+          onClick={() => {
+            setSelectedNews(headlineNews);
+            setShowModal(true);
+          }}
         >
           <div className="md:flex">
             {/* 이미지 */}
@@ -223,7 +228,10 @@ export default function NewsPage() {
               <article
                 key={news.id}
                 className="bg-section rounded-lg overflow-hidden hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] group"
-                onClick={() => window.open(news.url, '_blank', 'noopener,noreferrer')}
+                onClick={() => {
+                  setSelectedNews(news);
+                  setShowModal(true);
+                }}
               >
                 <div className="relative">
                   <img
@@ -382,6 +390,117 @@ export default function NewsPage() {
           </div>
         </div>
       </div>
+
+      {/* 뉴스 상세 모달 */}
+      {showModal && selectedNews && (
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div 
+            className="bg-section rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-bold text-text line-clamp-2">{selectedNews.title}</h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-textSecondary hover:text-text transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 모달 본문 */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              {/* 뉴스 메타 정보 */}
+              <div className="flex items-center gap-4 mb-6 text-sm text-textSecondary">
+                <span className="bg-primary/20 text-primary px-2 py-1 rounded">
+                  {selectedNews.category}
+                </span>
+                <span>{selectedNews.author || selectedNews.source}</span>
+                <span>{formatTimeAgo(selectedNews.publishedAt)}</span>
+                <span>{selectedNews.readTime}분 읽기</span>
+              </div>
+
+              {/* 이미지 */}
+              {selectedNews.imageUrl && (
+                <img
+                  src={selectedNews.imageUrl}
+                  alt={selectedNews.title}
+                  className="w-full h-64 object-cover rounded-lg mb-6"
+                />
+              )}
+
+              {/* 요약 */}
+              {selectedNews.summary && (
+                <div className="bg-card p-4 rounded-lg mb-6">
+                  <h3 className="font-semibold text-text mb-2">요약</h3>
+                  <p className="text-textSecondary">{selectedNews.summary}</p>
+                </div>
+              )}
+
+              {/* 본문 */}
+              <div className="prose prose-invert max-w-none">
+                <p className="text-text whitespace-pre-wrap">
+                  {selectedNews.content || selectedNews.summary || '내용을 불러올 수 없습니다.'}
+                </p>
+              </div>
+
+              {/* 원문 링크 (있는 경우만) */}
+              {selectedNews.url && selectedNews.url.startsWith('http') && (
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-sm text-textSecondary mb-2">
+                    ※ 이 뉴스는 외부 소스에서 제공된 내용입니다.
+                  </p>
+                  <a
+                    href={selectedNews.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <span>원문 보기</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="flex items-center justify-between p-6 border-t border-border">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleBookmark(selectedNews.id)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    bookmarks.has(selectedNews.id) 
+                      ? 'bg-warning/20 text-warning' 
+                      : 'bg-card text-textSecondary hover:text-text'
+                  }`}
+                >
+                  {bookmarks.has(selectedNews.id) ? '★ 북마크됨' : '☆ 북마크'}
+                </button>
+                <button
+                  onClick={() => shareNews(selectedNews)}
+                  className="px-4 py-2 bg-card text-textSecondary hover:text-text rounded-lg transition-colors"
+                >
+                  공유하기
+                </button>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

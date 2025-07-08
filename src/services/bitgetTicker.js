@@ -79,6 +79,11 @@ async function fetchBitgetTickerData(symbol) {
     
     logger.performance(`Bitget Ticker API 요청: ${symbol}`);
     
+    // 배포 환경에서 API 호출 로깅
+    if (!isDevelopment) {
+      console.log(`[Production] Bitget API call for ${symbol}:`, url);
+    }
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
     
@@ -109,6 +114,16 @@ async function fetchBitgetTickerData(symbol) {
     
   } catch (error) {
     logger.error(`Bitget Ticker API 오류 (${symbol}):`, error.message);
+    
+    // 배포 환경에서 에러 상세 로깅
+    if (!isDevelopment) {
+      console.error(`[Production] Bitget API error for ${symbol}:`, {
+        message: error.message,
+        name: error.name,
+        url: url
+      });
+    }
+    
     throw error;
   }
 }
@@ -124,6 +139,11 @@ async function fetchAllBitgetTickersData() {
     const url = `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`;
     
     logger.performance('Bitget All Tickers API 요청');
+    
+    // 배포 환경에서 API 호출 로깅
+    if (!isDevelopment) {
+      console.log(`[Production] Bitget All Tickers API call:`, url);
+    }
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
@@ -151,10 +171,35 @@ async function fetchAllBitgetTickersData() {
     }
     
     logger.performance(`Bitget All Tickers 데이터 수신: ${data.data.length}개`);
+    
+    // 배포 환경에서 성공 로깅
+    if (!isDevelopment) {
+      console.log(`[Production] Bitget All Tickers success: ${data.data.length} tickers received`);
+      // BTC 데이터 샘플 출력
+      const btcData = data.data.find(ticker => ticker.symbol === 'BTCUSDT');
+      if (btcData) {
+        console.log(`[Production] BTC sample data:`, {
+          symbol: btcData.symbol,
+          lastPr: btcData.lastPr,
+          change24h: btcData.change24h
+        });
+      }
+    }
+    
     return data.data;
     
   } catch (error) {
     logger.error('Bitget All Tickers API 오류:', error.message);
+    
+    // 배포 환경에서 에러 상세 로깅
+    if (!isDevelopment) {
+      console.error(`[Production] Bitget All Tickers error:`, {
+        message: error.message,
+        name: error.name,
+        url: `${BITGET_TICKER_CONFIG.BASE_URL}${BITGET_TICKER_CONFIG.TICKERS_ENDPOINT}`
+      });
+    }
+    
     // API 실패시 에러 반환
     throw error;
   }
@@ -187,22 +232,38 @@ export function transformBitgetTickerData(tickerData) {
     // }
     
     const symbol = tickerData.symbol;
-    const price = parseFloat(tickerData.lastPr || 0);
-    const open24h = parseFloat(tickerData.open || price);
+    const price = parseFloat(tickerData.lastPr || tickerData.last || 0);
+    const open24h = parseFloat(tickerData.open || tickerData.open24h || price);
     const change24h = price - open24h;
     const changePercent24h = parseFloat(tickerData.change24h || 0) * 100; // Bitget은 소수로 제공 (0.01 = 1%)
+    
+    // 가격 유효성 검증
+    if (price <= 0 || isNaN(price)) {
+      logger.warn(`Invalid price for ${symbol}: ${tickerData.lastPr}`);
+      return null;
+    }
+    
+    // 배포 환경에서 데이터 로깅 (BTC만)
+    if (!isDevelopment && symbol === 'BTCUSDT') {
+      console.log('[Production] Bitget transform:', {
+        symbol,
+        rawPrice: tickerData.lastPr,
+        parsedPrice: price,
+        changePercent: changePercent24h
+      });
+    }
     
     return {
       symbol,
       price,
       change24h,
       changePercent24h,
-      volume24h: parseFloat(tickerData.baseVolume || 0),
-      volumeUsdt24h: parseFloat(tickerData.usdtVolume || 0),
+      volume24h: parseFloat(tickerData.baseVolume || tickerData.baseVol || 0),
+      volumeUsdt24h: parseFloat(tickerData.usdtVolume || tickerData.quoteVolume || 0),
       high24h: parseFloat(tickerData.high24h || 0),
       low24h: parseFloat(tickerData.low24h || 0),
-      bid: parseFloat(tickerData.bidPr || 0),
-      ask: parseFloat(tickerData.askPr || 0),
+      bid: parseFloat(tickerData.bidPr || tickerData.bidPx || 0),
+      ask: parseFloat(tickerData.askPr || tickerData.askPx || 0),
       timestamp: parseInt(tickerData.ts || Date.now()),
       source: 'bitget-rest'
     };
