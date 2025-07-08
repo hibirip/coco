@@ -30,7 +30,7 @@ app.use(cors({
   origin: isProduction ? true : corsOrigins, // 배포 환경에서는 모든 origin 허용
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cache-Control', 'X-Requested-With']
 }));
 app.use(morgan('combined'));
 app.use(express.json());
