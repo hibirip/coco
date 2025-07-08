@@ -3,40 +3,29 @@
  * 최신 이벤트를 카드 형태로 표시
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getEvents } from '../../services/events';
 
 export default function EventsPreview() {
-  // 이벤트 데이터 (EventsPage와 동일한 데이터 사용)
-  const eventData = [
-    {
-      id: 1,
-      thumbnail: "🎉",
-      title: "신규 코인 상장 이벤트",
-      description: "새로운 암호화폐가 거래소에 상장됩니다. 더 많은 거래 기회를 잡으세요...",
-      date: "2024.01.15",
-      status: "진행중",
-      category: "상장"
-    },
-    {
-      id: 2,
-      thumbnail: "💰",
-      title: "김치프리미엄 특별 분석",
-      description: "이번 주 김치프리미엄 동향과 투자 전략을 상세히 분석해드립니다...",
-      date: "2024.01.12",
-      status: "완료",
-      category: "분석"
-    },
-    {
-      id: 3,
-      thumbnail: "🔔",
-      title: "실시간 알림 서비스 출시",
-      description: "원하는 코인의 가격 변동을 실시간으로 알려드립니다...",
-      date: "2024.01.10",
-      status: "진행중",
-      category: "서비스"
+  const [eventData, setEventData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const events = await getEvents();
+      setEventData(events);
+    } catch (error) {
+      console.error('이벤트 데이터 로드 실패:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   // 3개의 최신 이벤트만 표시
   const previewEvents = eventData.slice(0, 3);
@@ -56,8 +45,9 @@ export default function EventsPreview() {
       </div>
 
       {/* 이벤트 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {previewEvents.map((event) => (
+      {!loading && previewEvents.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {previewEvents.map((event) => (
           <div 
             key={event.id} 
             className="bg-card p-4 rounded-lg border border-border hover:border-primary/50 transition-colors cursor-pointer group"
@@ -114,10 +104,18 @@ export default function EventsPreview() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
+
+      {/* 로딩 상태 */}
+      {loading && (
+        <div className="text-center py-8">
+          <p className="text-textSecondary">이벤트를 불러오는 중...</p>
+        </div>
+      )}
 
       {/* 데이터 없음 상태 */}
-      {previewEvents.length === 0 && (
+      {!loading && previewEvents.length === 0 && (
         <div className="text-center py-8">
           <p className="text-textSecondary">진행 중인 이벤트가 없습니다.</p>
         </div>

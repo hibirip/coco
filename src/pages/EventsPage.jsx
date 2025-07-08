@@ -1,10 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainBanner } from '../components/Common';
+import { getEvents } from '../services/events';
 
 export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [eventData, setEventData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const eventData = [
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const events = await getEvents();
+      setEventData(events);
+    } catch (error) {
+      console.error('이벤트 데이터 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 더미 데이터 삭제 - 실제 이벤트는 API에서 가져옴
+  /*const dummyEventData = [
     {
       id: 1,
       thumbnail: "🎉",
@@ -251,7 +271,7 @@ VIP 승급 조건:
 지금 가입하고 최대 75,000원 혜택을 받아보세요!`,
       date: "2024.01.02"
     }
-  ];
+  ];*/
 
   const openModal = (event) => {
     setSelectedEvent(event);
@@ -266,9 +286,17 @@ VIP 승급 조건:
       {/* 홈페이지와 동일한 배너 */}
       <MainBanner />
 
+      {/* 로딩 상태 */}
+      {loading && (
+        <div className="text-center py-16">
+          <p className="text-textSecondary text-lg">이벤트를 불러오는 중...</p>
+        </div>
+      )}
+
       {/* 3x3 이벤트 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {eventData.map((event) => (
+      {!loading && eventData.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {eventData.map((event) => (
           <div 
             key={event.id}
             onClick={() => openModal(event)}
@@ -297,8 +325,18 @@ VIP 승급 조건:
               </span>
             </div>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* 데이터 없음 상태 */}
+      {!loading && eventData.length === 0 && (
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">📅</div>
+          <h3 className="text-xl font-bold text-text mb-2">진행 중인 이벤트가 없습니다</h3>
+          <p className="text-textSecondary">새로운 이벤트가 곧 시작될 예정입니다.</p>
+        </div>
+      )}
 
       {/* 팝업 모달 */}
       {selectedEvent && (

@@ -7,8 +7,11 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { formatKRW, formatUSD, formatPercent, getChangeColorClass } from '../../utils';
 import FearGreedGauge from './FearGreedGauge';
+import { getFearGreedIndex, getCryptoGlobalData, getStockIndicators } from '../../services/marketIndicators';
+import { usePrices } from '../../contexts';
 
 const MarketIndicators = () => {
+  const { prices, upbitPrices, exchangeRate, calculateKimchiPremium } = usePrices();
   const [indicators, setIndicators] = useState({
     fearGreed: { value: null, classification: '', loading: true },
     btcDominance: { value: null, change: null, loading: true },
@@ -101,18 +104,28 @@ const MarketIndicators = () => {
   // 주식 지표 로드 (Yahoo Finance 비공식 API)
   const loadStockIndicators = async () => {
     try {
-      // 임시로 모의 데이터 사용 (실제 API 연동은 CORS 문제로 백엔드 필요)
-      const mockStockData = {
-        sp500: { value: 4567.89, change: 23.45, changePercent: 0.52 },
-        nasdaq: { value: 14234.56, change: -45.67, changePercent: -0.32 },
-        dxy: { value: 103.45, change: 0.23, changePercent: 0.22 }
-      };
+      const stockData = await getStockIndicators();
 
       setIndicators(prev => ({
         ...prev,
-        sp500: { ...mockStockData.sp500, loading: false },
-        nasdaq: { ...mockStockData.nasdaq, loading: false },
-        dxy: { ...mockStockData.dxy, loading: false }
+        sp500: { 
+          value: stockData.sp500.price, 
+          change: stockData.sp500.change, 
+          changePercent: stockData.sp500.changePercent, 
+          loading: false 
+        },
+        nasdaq: { 
+          value: stockData.nasdaq.price, 
+          change: stockData.nasdaq.change, 
+          changePercent: stockData.nasdaq.changePercent, 
+          loading: false 
+        },
+        dxy: { 
+          value: stockData.dxy.price, 
+          change: stockData.dxy.change, 
+          changePercent: stockData.dxy.changePercent, 
+          loading: false 
+        }
       }));
     } catch (error) {
       console.error('주식 지표 로드 실패:', error);
@@ -154,14 +167,13 @@ const MarketIndicators = () => {
   // 김치프리미엄 계산
   const loadKimchiPremium = async () => {
     try {
-      // 실제로는 PriceContext에서 김치프리미엄을 가져와야 함
-      // 임시로 모의 데이터 사용
-      const mockKimchiPremium = 2.34;
+      // BTC 김치프리미엄 계산
+      const btcKimchiPremium = calculateKimchiPremium('BTCUSDT');
       
       setIndicators(prev => ({
         ...prev,
         kimchiPremium: {
-          value: mockKimchiPremium,
+          value: btcKimchiPremium?.premium || null,
           loading: false
         }
       }));
