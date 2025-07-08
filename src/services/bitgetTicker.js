@@ -5,6 +5,7 @@
 
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
+import { apiMonitor } from '../utils/apiMonitor';
 
 // 환경 감지
 const isDevelopment = import.meta.env.DEV;
@@ -133,6 +134,7 @@ async function fetchBitgetTickerData(symbol) {
  * 실제 Bitget Tickers API 호출 (모든 심볼)
  */
 async function fetchAllBitgetTickersData() {
+  const startTime = Date.now();
   
   try {
     // 모든 환경에서 동일한 프록시 사용 (로컬 기준)
@@ -146,7 +148,10 @@ async function fetchAllBitgetTickersData() {
     }
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      apiMonitor.recordTimeout('bitget');
+    }, BITGET_TICKER_CONFIG.REQUEST_TIMEOUT);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -170,6 +175,10 @@ async function fetchAllBitgetTickersData() {
       throw new Error(`API Error: ${data.msg || 'Unknown error'}`);
     }
     
+    // API 성공 기록
+    const responseTime = Date.now() - startTime;
+    apiMonitor.recordSuccess('bitget', responseTime);
+    
     logger.performance(`Bitget All Tickers 데이터 수신: ${data.data.length}개`);
     
     // 배포 환경에서 성공 로깅
@@ -189,6 +198,9 @@ async function fetchAllBitgetTickersData() {
     return data.data;
     
   } catch (error) {
+    // API 실패 기록
+    apiMonitor.recordFailure('bitget', error);
+    
     logger.error('Bitget All Tickers API 오류:', error.message);
     
     // 배포 환경에서 에러 상세 로깅

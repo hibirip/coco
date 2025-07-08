@@ -4,6 +4,7 @@ import { Layout } from './components/Common';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 import ToastContainer from './components/Common/Toast';
 import ErrorBoundary from './components/Common/ErrorBoundary';
+import ApiStatusPanel from './components/DevTools/ApiStatusPanel';
 import { useToast } from './hooks';
 
 // React.lazy로 페이지 컴포넌트들을 동적 import
@@ -69,6 +70,9 @@ function App() {
         
         {/* Toast 알림 */}
         <ToastContainer toasts={toasts} removeToast={removeToast} />
+        
+        {/* 개발환경용 API 모니터링 패널 */}
+        <ApiStatusPanel />
       </Router>
     </ErrorBoundary>
   );
