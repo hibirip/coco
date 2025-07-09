@@ -14,9 +14,7 @@ const SORT_OPTIONS = [
   { value: 'price_asc', label: '가격 낮은순', desc: 'Bitget USD 기준' },
   { value: 'change_desc', label: '상승률순', desc: '24시간 변동률' },
   { value: 'change_asc', label: '하락률순', desc: '24시간 변동률' },
-  { value: 'volume_desc', label: '거래량순', desc: '24시간 거래량' },
-  { value: 'kimchi_desc', label: '김프 높은순', desc: '김치프리미엄' },
-  { value: 'kimchi_asc', label: '김프 낮은순', desc: '김치프리미엄' }
+  { value: 'volume_desc', label: '거래량순', desc: '24시간 거래량' }
 ];
 
 // 필터 옵션 정의
@@ -24,9 +22,7 @@ const FILTER_OPTIONS = [
   { value: 'all', label: '전체', desc: '모든 코인' },
   { value: 'favorites', label: '즐겨찾기', desc: '즐겨찾기한 코인만' },
   { value: 'rising', label: '상승', desc: '24시간 상승 코인' },
-  { value: 'falling', label: '하락', desc: '24시간 하락 코인' },
-  { value: 'kimchi_positive', label: '김프 양수', desc: '김치프리미엄 > 0%' },
-  { value: 'kimchi_negative', label: '김프 음수', desc: '김치프리미엄 < 0%' }
+  { value: 'falling', label: '하락', desc: '24시간 하락 코인' }
 ];
 
 export default function PricesPage() {
@@ -39,13 +35,10 @@ export default function PricesPage() {
   // PriceContext에서 데이터 가져오기
   const {
     prices,
-    upbitPrices,
     exchangeRate,
     ALL_COINS,
     ALL_SYMBOLS,
-    calculateKimchiPremium,
     isConnected,
-    upbitIsConnected,
     stats
   } = usePrices();
 
@@ -74,17 +67,13 @@ export default function PricesPage() {
     let coins = ALL_SYMBOLS.map(symbol => {
       const coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
       const bitgetPrice = prices[symbol];
-      const upbitPrice = upbitPrices[coin?.upbitMarket];
-      const kimchiPremium = calculateKimchiPremium(symbol);
       
       return {
         symbol,
         coin,
         bitgetPrice,
-        upbitPrice,
-        kimchiPremium,
         priority: coin?.priority || 999,
-        hasData: bitgetPrice?.price || upbitPrice?.trade_price,
+        hasData: bitgetPrice?.price,
         // 추가 정보 (정렬용)
         volume24hUSD: bitgetPrice?.volume24h && bitgetPrice?.price ? 
           bitgetPrice.volume24h * bitgetPrice.price : 0
@@ -105,27 +94,15 @@ export default function PricesPage() {
     switch (filterBy) {
       case 'rising':
         coins = coins.filter(item => {
-          const change = Math.max(
-            item.bitgetPrice?.changePercent24h || 0,
-            item.upbitPrice?.change_percent || 0
-          );
+          const change = item.bitgetPrice?.changePercent24h || 0;
           return change > 0;
         });
         break;
       case 'falling':
         coins = coins.filter(item => {
-          const change = Math.max(
-            item.bitgetPrice?.changePercent24h || 0,
-            item.upbitPrice?.change_percent || 0
-          );
+          const change = item.bitgetPrice?.changePercent24h || 0;
           return change < 0;
         });
-        break;
-      case 'kimchi_positive':
-        coins = coins.filter(item => item.kimchiPremium?.premium > 0);
-        break;
-      case 'kimchi_negative':
-        coins = coins.filter(item => item.kimchiPremium?.premium < 0);
         break;
       // favorites는 향후 구현
       default:
@@ -142,15 +119,15 @@ export default function PricesPage() {
         break;
       case 'change_desc':
         coins.sort((a, b) => {
-          const aChange = Math.max(a.bitgetPrice?.changePercent24h || 0, a.upbitPrice?.change_percent || 0);
-          const bChange = Math.max(b.bitgetPrice?.changePercent24h || 0, b.upbitPrice?.change_percent || 0);
+          const aChange = a.bitgetPrice?.changePercent24h || 0;
+          const bChange = b.bitgetPrice?.changePercent24h || 0;
           return bChange - aChange;
         });
         break;
       case 'change_asc':
         coins.sort((a, b) => {
-          const aChange = Math.max(a.bitgetPrice?.changePercent24h || 0, a.upbitPrice?.change_percent || 0);
-          const bChange = Math.max(b.bitgetPrice?.changePercent24h || 0, b.upbitPrice?.change_percent || 0);
+          const aChange = a.bitgetPrice?.changePercent24h || 0;
+          const bChange = b.bitgetPrice?.changePercent24h || 0;
           return aChange - bChange;
         });
         break;
@@ -161,12 +138,6 @@ export default function PricesPage() {
           const bVolumeUSD = b.volume24hUSD || 0;
           return bVolumeUSD - aVolumeUSD;
         });
-        break;
-      case 'kimchi_desc':
-        coins.sort((a, b) => (b.kimchiPremium?.premium || 0) - (a.kimchiPremium?.premium || 0));
-        break;
-      case 'kimchi_asc':
-        coins.sort((a, b) => (a.kimchiPremium?.premium || 0) - (b.kimchiPremium?.premium || 0));
         break;
       default: // priority + volume
         // 기본 정렬: 거래량 내림차순 (동적 코인 리스트에 최적화)
@@ -189,8 +160,6 @@ export default function PricesPage() {
     ALL_SYMBOLS, // 전체 100개 코인 기준
     ALL_COINS,
     prices,
-    upbitPrices, 
-    calculateKimchiPremium, 
     debouncedSearch, 
     sortBy, 
     filterBy
@@ -199,26 +168,16 @@ export default function PricesPage() {
   // 통계 계산
   const pageStats = useMemo(() => {
     const rising = filteredAndSortedCoins.filter(item => {
-      const change = Math.max(
-        item.bitgetPrice?.changePercent24h || 0,
-        item.upbitPrice?.change_percent || 0
-      );
+      const change = item.bitgetPrice?.changePercent24h || 0;
       return change > 0;
     }).length;
 
     const falling = filteredAndSortedCoins.filter(item => {
-      const change = Math.max(
-        item.bitgetPrice?.changePercent24h || 0,
-        item.upbitPrice?.change_percent || 0
-      );
+      const change = item.bitgetPrice?.changePercent24h || 0;
       return change < 0;
     }).length;
 
-    const kimchiPositive = filteredAndSortedCoins.filter(item => 
-      item.kimchiPremium?.premium > 0
-    ).length;
-
-    return { rising, falling, kimchiPositive, total: filteredAndSortedCoins.length };
+    return { rising, falling, total: filteredAndSortedCoins.length };
   }, [filteredAndSortedCoins]);
 
   return (
@@ -226,7 +185,7 @@ export default function PricesPage() {
       {/* 메인 코인 테이블 */}
       <div className="bg-section rounded-lg overflow-hidden">
         <CoinTable 
-          showKimchi={true}
+          showKimchi={false}
           showFavorites={true}
           className=""
           customData={filteredAndSortedCoins}
