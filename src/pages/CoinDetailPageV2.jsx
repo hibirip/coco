@@ -219,64 +219,72 @@ export default function CoinDetailPageV2() {
 
           {/* 중앙: 호가창 */}
           <div className="xl:col-span-3">
-            <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/85 to-gray-900/75 backdrop-blur-xl rounded-xl p-6 h-[656px] overflow-hidden border border-gray-700/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-6 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/85 to-gray-900/75 backdrop-blur-xl rounded-xl p-4 h-[656px] flex flex-col border border-gray-700/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+              <h3 className="text-lg font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3 flex items-center gap-2">
                 <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-400 rounded-full shadow-lg shadow-green-500/50"></div>
                 Order Book
               </h3>
               
-              {/* 매도 호가 */}
-              <div className="space-y-1 mb-4">
-                <div className="grid grid-cols-3 text-xs text-gray-400 mb-3 pb-2 border-b border-gray-800/50">
-                  <span className="font-medium">Price (USDT)</span>
-                  <span className="text-right font-medium">Amount</span>
-                  <span className="text-right font-medium">Total</span>
-                </div>
-                
-                {orderBookData.asks.slice(0, 10).reverse().map((ask, i) => (
-                  <div 
-                    key={i} 
-                    className="grid grid-cols-3 text-sm hover:bg-red-500/10 px-2 py-1 relative transition-all duration-200 rounded-md"
-                  >
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-r from-red-500/15 to-transparent rounded-md" 
-                      style={{ width: `${(ask.total / orderBookData.asks[9]?.total) * 100}%` }}
-                    />
-                    <span className="text-red-400 relative z-10 font-medium">{formatUSD(ask.price)}</span>
-                    <span className="text-right relative z-10 text-gray-300">{ask.amount.toFixed(4)}</span>
-                    <span className="text-right text-gray-400 relative z-10">{ask.total.toFixed(4)}</span>
-                  </div>
-                ))}
+              {/* 컬럼 헤더 */}
+              <div className="grid grid-cols-3 text-xs text-gray-400 mb-2 pb-2 border-b border-gray-800/50">
+                <span className="font-medium">Price (USDT)</span>
+                <span className="text-right font-medium">Amount</span>
+                <span className="text-right font-medium">Total</span>
               </div>
 
-              {/* 현재가 구분선 */}
-              <div className="border-y border-gray-700/50 py-3 my-4 bg-gradient-to-r from-gray-800/30 via-gray-700/40 to-gray-800/30 rounded-lg">
-                <div className="text-center">
-                  <span className={`text-xl font-bold ${getChangeColorClass(change24h)} drop-shadow-lg`}>
-                    {bitgetPrice?.price ? formatUSD(bitgetPrice.price) : '-'}
-                  </span>
-                  <div className="text-sm text-gray-400 mt-1">
-                    ≈ {bitgetPrice?.price && exchangeRate ? formatKRW(bitgetPrice.price * exchangeRate) : '-'}
+              {/* 호가 컨테이너 */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* 매도 호가 */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                  <div className="space-y-0.5 pr-1">
+                    {orderBookData.asks.slice(0, 15).reverse().map((ask, i) => (
+                      <div 
+                        key={i} 
+                        className="grid grid-cols-3 text-sm hover:bg-red-500/10 px-2 py-1 relative transition-all duration-200 rounded"
+                      >
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-r from-red-500/15 to-transparent rounded" 
+                          style={{ width: `${(ask.total / orderBookData.asks[14]?.total) * 100}%` }}
+                        />
+                        <span className="text-red-400 relative z-10 font-medium">{formatUSD(ask.price)}</span>
+                        <span className="text-right relative z-10 text-gray-300">{ask.amount.toFixed(4)}</span>
+                        <span className="text-right text-gray-400 relative z-10">{ask.total.toFixed(4)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
 
-              {/* 매수 호가 */}
-              <div className="space-y-1">
-                {orderBookData.bids.slice(0, 10).map((bid, i) => (
-                  <div 
-                    key={i} 
-                    className="grid grid-cols-3 text-sm hover:bg-green-500/10 px-2 py-1 relative transition-all duration-200 rounded-md"
-                  >
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-r from-green-500/15 to-transparent rounded-md" 
-                      style={{ width: `${(bid.total / orderBookData.bids[9]?.total) * 100}%` }}
-                    />
-                    <span className="text-green-400 relative z-10 font-medium">{formatUSD(bid.price)}</span>
-                    <span className="text-right relative z-10 text-gray-300">{bid.amount.toFixed(4)}</span>
-                    <span className="text-right text-gray-400 relative z-10">{bid.total.toFixed(4)}</span>
+                {/* 현재가 구분선 */}
+                <div className="border-y-2 border-gray-700/50 py-2 my-1 bg-gradient-to-r from-gray-800/50 via-gray-700/60 to-gray-800/50 rounded-lg flex-shrink-0">
+                  <div className="text-center">
+                    <span className={`text-lg font-bold ${getChangeColorClass(change24h)} drop-shadow-lg`}>
+                      {bitgetPrice?.price ? formatUSD(bitgetPrice.price) : '-'}
+                    </span>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      ≈ {bitgetPrice?.price && exchangeRate ? formatKRW(bitgetPrice.price * exchangeRate) : '-'}
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* 매수 호가 */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                  <div className="space-y-0.5 pr-1">
+                    {orderBookData.bids.slice(0, 15).map((bid, i) => (
+                      <div 
+                        key={i} 
+                        className="grid grid-cols-3 text-sm hover:bg-green-500/10 px-2 py-1 relative transition-all duration-200 rounded"
+                      >
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-r from-green-500/15 to-transparent rounded" 
+                          style={{ width: `${(bid.total / orderBookData.bids[14]?.total) * 100}%` }}
+                        />
+                        <span className="text-green-400 relative z-10 font-medium">{formatUSD(bid.price)}</span>
+                        <span className="text-right relative z-10 text-gray-300">{bid.amount.toFixed(4)}</span>
+                        <span className="text-right text-gray-400 relative z-10">{bid.total.toFixed(4)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
