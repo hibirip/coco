@@ -21,11 +21,8 @@ export default function CoinDetailPageV2() {
   const navigate = useNavigate();
   const { 
     prices, 
-    upbitPrices, 
     exchangeRate,
-    ALL_COINS,
-    getBitgetWebSocketManager,
-    calculateKimchiPremium
+    ALL_COINS
   } = usePrices();
 
   // 심볼 정규화
@@ -39,8 +36,6 @@ export default function CoinDetailPageV2() {
   );
 
   const bitgetPrice = prices[normalizedSymbol];
-  const upbitPrice = upbitPrices[coinInfo?.upbitMarket];
-  const kimchiPremium = calculateKimchiPremium(normalizedSymbol);
 
   // 시간 프레임 상태
   const [timeframe, setTimeframe] = useState('60'); // TradingView interval format
@@ -119,10 +114,10 @@ export default function CoinDetailPageV2() {
     );
   }
 
-  const change24h = bitgetPrice?.changePercent24h || upbitPrice?.change_percent || 0;
+  const change24h = bitgetPrice?.changePercent24h || 0;
   const volume24h = bitgetPrice?.volume24h || 0;
-  const high24h = bitgetPrice?.high24h || upbitPrice?.high_price || 0;
-  const low24h = bitgetPrice?.low24h || upbitPrice?.low_price || 0;
+  const high24h = bitgetPrice?.high24h || 0;
+  const low24h = bitgetPrice?.low24h || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black">
@@ -183,12 +178,6 @@ export default function CoinDetailPageV2() {
             <div className="flex gap-2 items-center px-4 py-2 rounded-xl bg-gray-800/30 hover:bg-gray-700/30 transition-all duration-300 border border-gray-700/20">
               <span className="text-gray-400">24h Volume:</span>
               <span className="text-white font-semibold">{volume24h ? `$${formatNumber(volume24h * (bitgetPrice?.price || 0))}` : '-'}</span>
-            </div>
-            <div className="flex gap-2 items-center px-4 py-2 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/30 hover:from-gray-700/50 hover:to-gray-600/30 transition-all duration-300 border border-gray-600/30 ml-auto">
-              <span className="text-gray-400">Kimchi Premium:</span>
-              <span className={`font-semibold ${kimchiPremium?.premium > 0 ? 'text-primary' : 'text-danger'}`}>
-                {kimchiPremium ? formatPercent(kimchiPremium.premium) : '-'}
-              </span>
             </div>
           </div>
         </div>
@@ -354,14 +343,6 @@ export default function CoinDetailPageV2() {
                 <span className="text-gray-400">24h Volume</span>
                 <span className="text-gray-300 font-medium">{volume24h ? formatNumber(volume24h) : '-'}</span>
               </div>
-              {kimchiPremium && (
-                <div className="flex justify-between py-3 px-4 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/40 hover:from-gray-700/60 hover:to-gray-600/50 transition-all duration-300 border border-gray-600/40 shadow-lg">
-                  <span className="text-gray-300 font-medium">Kimchi Premium</span>
-                  <span className={`font-bold ${kimchiPremium.premium >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {formatPercent(kimchiPremium.premium)}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </div>
