@@ -1291,102 +1291,72 @@ export function PriceProvider({ children }) {
     };
   }, [updatePrice, setPricesBulk]);
   
-  // 업비트 REST API Ticker 데이터 자동 업데이트
+  // 업비트 데이터 업데이트 (환경별 분기)
   useEffect(() => {
-    let upbitTickerInterval = null;
-    let updateCounter = 0; // 업데이트 카운터 추가
-    
-    const fetchUpbitTickerData = async () => {
-      // 항상 전체 업비트 마켓 로드
-      const upbitMarkets = ALL_UPBIT_MARKETS;
+    if (isDevelopment) {
+      // 개발 환경: REST API 사용
+      let upbitTickerInterval = null;
+      let updateCounter = 0;
       
-      logger.debug('업비트 마켓 목록:', upbitMarkets);
-      
-      if (upbitMarkets.length === 0) {
-        logger.warn('업비트 마켓 목록이 비어있음');
-        return;
-      }
-      
-      // 업비트 API 호출 (빠른 배치 방식)
-      const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
-      
-      try {
-        updateCounter++;
-        const currentTime = new Date().toLocaleTimeString();
-        logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] 업비트 REST API 데이터 로드 중...`);
-        logger.debug('유효한 마켓:', validMarkets);
+      const fetchUpbitTickerData = async () => {
+        const upbitMarkets = ALL_UPBIT_MARKETS;
         
-        // 환경별 API 호출
-        const upbitData = await getBatchUpbitTickerData(validMarkets);
-        logger.api(`업비트 API 응답: ${Object.keys(upbitData).length}개 마켓 (요청: ${validMarkets.length}개)`);
+        logger.debug('업비트 마켓 목록:', upbitMarkets);
         
-        // 데이터 변환 및 업데이트
-        let updateCount = 0;
-        const timestamp = Date.now();
-        
-        Object.values(upbitData).forEach(ticker => {
-          // 타임스탬프 추가하여 항상 새로운 데이터로 인식되도록 함
-          updateUpbitPrice(ticker.market, {
-            ...ticker,
-            updateTimestamp: timestamp,
-            updateCounter: updateCounter
-          });
-          updateCount++;
-        });
-        
-        logger.api(`[${updateCounter}번째] 업비트 데이터 업데이트 완료: ${updateCount}개 마켓`);
-        
-        // 배포 환경에서 디버깅 (데이터 샘플 포함)
-        if (!isDevelopment) {
-          const sampleData = Object.keys(upbitData).slice(0, 3).map(market => ({
-            market,
-            price: upbitData[market].trade_price,
-            change: upbitData[market].change_percent
-          }));
-          console.log(`[Production] Upbit price update #${updateCounter} at ${currentTime}: ${updateCount} markets updated`, {
-            sampleData,
-            exchangeRate: state.exchangeRate
-          });
+        if (upbitMarkets.length === 0) {
+          logger.warn('업비트 마켓 목록이 비어있음');
+          return;
         }
         
-      } catch (error) {
-        logger.error(`[${updateCounter}번째] 업비트 REST API 실패:`, error);
-        addError(`업비트 API 실패: ${error.message}`);
+        const validMarkets = upbitMarkets.filter(market => market && market !== 'null');
         
-        // 배포 환경에서 에러 로깅
-        if (!isDevelopment) {
-          console.error(`[Production] Upbit API error #${updateCounter}:`, error);
+        try {
+          updateCounter++;
+          const currentTime = new Date().toLocaleTimeString();
+          logger.api(`[${updateCounter}번째 업데이트 - ${currentTime}] 업비트 REST API 데이터 로드 중...`);
+          
+          const upbitData = await getBatchUpbitTickerData(validMarkets);
+          logger.api(`업비트 API 응답: ${Object.keys(upbitData).length}개 마켓 (요청: ${validMarkets.length}개)`);
+          
+          let updateCount = 0;
+          const timestamp = Date.now();
+          
+          Object.values(upbitData).forEach(ticker => {
+            updateUpbitPrice(ticker.market, {
+              ...ticker,
+              updateTimestamp: timestamp,
+              updateCounter: updateCounter
+            });
+            updateCount++;
+          });
+          
+          logger.api(`[${updateCounter}번째] 업비트 데이터 업데이트 완료: ${updateCount}개 마켓`);
+          
+        } catch (error) {
+          logger.error(`[${updateCounter}번째] 업비트 REST API 실패:`, error);
+          addError(`업비트 API 실패: ${error.message}`);
         }
-      }
-    };
-    
-    // 즉시 시작 (Binance와 동시에)
-    fetchUpbitTickerData();
-    
-    // 첫 3초 후 한번 더 업데이트 (빠른 초기 로딩)
-    const initialTimeout = setTimeout(fetchUpbitTickerData, 3000);
-    
-    // 더 빈번한 업데이트로 실시간성 향상
-    const upbitUpdateInterval = 10 * 1000; // 10초 간격으로 실시간성 최대화
-    upbitTickerInterval = setInterval(fetchUpbitTickerData, upbitUpdateInterval);
-    
-    logger.info(`업비트 REST API 자동 업데이트 활성화 (${upbitUpdateInterval/1000}초 간격)`);
-    
-    // 배포 환경 디버깅
-    if (!isDevelopment) {
-      console.log(`[Production] Upbit REST API auto-update enabled (every ${upbitUpdateInterval/1000}s)`);
+      };
+      
+      // 개발 환경: REST API 10초 간격
+      fetchUpbitTickerData();
+      const initialTimeout = setTimeout(fetchUpbitTickerData, 3000);
+      const upbitUpdateInterval = 10 * 1000;
+      upbitTickerInterval = setInterval(fetchUpbitTickerData, upbitUpdateInterval);
+      
+      logger.info(`[개발환경] 업비트 REST API 자동 업데이트 활성화 (${upbitUpdateInterval/1000}초 간격)`);
+      
+      return () => {
+        if (upbitTickerInterval) {
+          clearInterval(upbitTickerInterval);
+          logger.info('업비트 REST API 업데이트 정리');
+        }
+        if (initialTimeout) {
+          clearTimeout(initialTimeout);
+        }
+      };
     }
-    
-    return () => {
-      if (upbitTickerInterval) {
-        clearInterval(upbitTickerInterval);
-        logger.info('업비트 REST API 업데이트 정리');
-      }
-      if (initialTimeout) {
-        clearTimeout(initialTimeout);
-      }
-    };
-  }, [updateUpbitPrice, addError]); // 의존성 최소화
+  }, [updateUpbitPrice, addError, isDevelopment]);
   
   // Bitget REST API Ticker 데이터 자동 업데이트 추가
   useEffect(() => {

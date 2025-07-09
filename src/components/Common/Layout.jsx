@@ -4,27 +4,70 @@ import Header from './Header';
 import Footer from './Footer';
 import SideBanner from './SideBanner';
 import { useBitgetWebSocket } from '../../hooks/useBitgetWebSocket';
+import { useUpbitWebSocket } from '../../hooks/useUpbitWebSocket';
 import { usePrices } from '../../contexts';
+import { ALL_UPBIT_MARKETS } from '../../contexts/PriceContext';
+
+// 환경 감지
+const isDevelopment = import.meta.env.DEV;
 
 const Layout = () => {
   const location = useLocation();
-  const { updatePrice } = usePrices();
+  const { 
+    updatePrice, 
+    updateUpbitPrice, 
+    addError, 
+    clearErrors,
+    setUpbitConnectionStatus,
+    setUpbitConnecting 
+  } = usePrices();
   
-  // WebSocket 연결 시작 - 업비트는 REST API만 사용
+  // Bitget WebSocket 연결 (모든 환경)
   const bitgetWS = useBitgetWebSocket({ enabled: true, updatePrice });
   
-  // WebSocket 상태 로깅 (개발 모드에서만)
+  // Upbit WebSocket 연결 (배포 환경에서만)
+  const upbitWS = useUpbitWebSocket({
+    enabled: !isDevelopment, // 배포 환경에서만 활성화
+    markets: ALL_UPBIT_MARKETS,
+    ALL_UPBIT_MARKETS,
+    updateUpbitPrice,
+    addError,
+    clearErrors,
+    setUpbitConnectionStatus,
+    setUpbitConnecting
+  });
+  
+  // WebSocket 상태 로깅
   useEffect(() => {
-    console.log('📊 Layout WebSocket 상태:', {
-      bitget: {
-        connected: bitgetWS.isConnected,
-        connecting: bitgetWS.isConnecting,
-        reconnectAttempts: bitgetWS.reconnectAttempts
-      },
-      upbit: 'REST API only (10초 간격 업데이트)'
-    });
+    if (isDevelopment) {
+      console.log('📊 Layout WebSocket 상태 (개발환경):', {
+        bitget: {
+          connected: bitgetWS.isConnected,
+          connecting: bitgetWS.isConnecting,
+          reconnectAttempts: bitgetWS.reconnectAttempts
+        },
+        upbit: 'REST API 사용 (PriceContext에서 처리)'
+      });
+    } else {
+      console.log('📊 Layout WebSocket 상태 (배포환경):', {
+        bitget: {
+          connected: bitgetWS.isConnected,
+          connecting: bitgetWS.isConnecting,
+          reconnectAttempts: bitgetWS.reconnectAttempts
+        },
+        upbit: {
+          connected: upbitWS.isConnected,
+          connecting: upbitWS.isConnecting || upbitWS.isReconnecting,
+          reconnectAttempts: upbitWS.reconnectAttempts,
+          dataReceived: upbitWS.dataReceived
+        }
+      });
+    }
   }, [
-    bitgetWS.isConnected, bitgetWS.isConnecting, bitgetWS.reconnectAttempts
+    bitgetWS.isConnected, bitgetWS.isConnecting, bitgetWS.reconnectAttempts,
+    upbitWS.isConnected, upbitWS.isConnecting, upbitWS.isReconnecting, 
+    upbitWS.reconnectAttempts, upbitWS.dataReceived,
+    isDevelopment
   ]);
   
   // 코인 상세 페이지인지 체크

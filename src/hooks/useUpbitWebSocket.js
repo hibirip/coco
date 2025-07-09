@@ -7,9 +7,15 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { logger } from '../utils/logger';
 
+// 환경 감지
+const isDevelopment = import.meta.env.DEV;
+
 // WebSocket 설정
 const UPBIT_WS_CONFIG = {
-  URL: 'wss://api.upbit.com/websocket/v1',
+  // 배포 환경에서는 Render 프록시 서버 사용 (불변)
+  URL: isDevelopment 
+    ? 'wss://api.upbit.com/websocket/v1' 
+    : 'wss://coco-proxy-server.onrender.com/ws/upbit',
   RECONNECT_INTERVAL: 3000, // 3초 재연결 간격
   MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
   CONNECTION_TIMEOUT: 10000, // 10초로 복원
@@ -318,7 +324,17 @@ export function useUpbitWebSocket(options = {}) {
     }
 
     updateConnectionState(WS_STATES.CONNECTING);
-    logSuccess('업비트 WebSocket 연결 시도...');
+    logSuccess(`업비트 WebSocket 연결 시도: ${UPBIT_WS_CONFIG.URL}`);
+    
+    // 배포 환경에서 연결 시도 로깅
+    if (!isDevelopment) {
+      console.log('[Production] Upbit WebSocket 연결 시도:', {
+        url: UPBIT_WS_CONFIG.URL,
+        environment: 'production',
+        proxyServer: 'Render',
+        timestamp: new Date().toISOString()
+      });
+    }
 
     try {
       wsRef.current = new WebSocket(UPBIT_WS_CONFIG.URL);
