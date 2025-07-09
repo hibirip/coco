@@ -188,9 +188,9 @@ export default function CoinDetailPageV2() {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* 왼쪽: 차트 영역 */}
           <div className="xl:col-span-6">
-            <div className="bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70 backdrop-blur-xl rounded-xl p-6 border border-gray-700/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
+            <div className="bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70 backdrop-blur-xl rounded-xl p-4 h-[656px] flex flex-col border border-gray-700/40 shadow-2xl hover:shadow-3xl transition-all duration-300">
               {/* 시간 프레임 선택 */}
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 {Object.entries(timeframeMap).map(([label, value]) => (
                   <button
                     key={label}
@@ -207,11 +207,11 @@ export default function CoinDetailPageV2() {
               </div>
 
               {/* TradingView 차트 */}
-              <div className="rounded-lg overflow-hidden border border-gray-700/30 shadow-xl">
+              <div className="flex-1 rounded-lg overflow-hidden border border-gray-700/30 shadow-xl">
                 <TradingViewChart 
                   symbol={normalizedSymbol}
                   interval={timeframe}
-                  height={600}
+                  height={580}
                 />
               </div>
             </div>
