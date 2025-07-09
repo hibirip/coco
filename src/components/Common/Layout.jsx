@@ -25,9 +25,9 @@ const Layout = () => {
   // Bitget WebSocket 연결 (모든 환경)
   const bitgetWS = useBitgetWebSocket({ enabled: true, updatePrice });
   
-  // Upbit WebSocket 연결 (배포 환경에서만)
+  // Upbit WebSocket 연결 (임시 비활성화 - REST API 사용)
   const upbitWS = useUpbitWebSocket({
-    enabled: window.location.hostname !== 'localhost', // 배포 환경에서만 활성화
+    enabled: false, // REST API로 대체하여 임시 비활성화
     markets: ALL_UPBIT_MARKETS,
     ALL_UPBIT_MARKETS,
     updateUpbitPrice,
