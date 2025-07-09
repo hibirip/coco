@@ -188,54 +188,6 @@ export const formatDate = (date, format = 'datetime') => {
   }
 };
 
-/**
- * 김치프리미엄 계산
- * @param {number} krwPrice - 한국 가격 (원)
- * @param {number} usdPrice - 해외 가격 (달러)
- * @param {number} exchangeRate - 환율 (기본: 1300)
- * @returns {object} { premium: number, isPositive: boolean, formatted: string }
- */
-export const calculateKimchi = (krwPrice, usdPrice, exchangeRate = 1380) => {
-  if (!krwPrice || !usdPrice || !exchangeRate) {
-    return {
-      premium: 0,
-      isPositive: false,
-      formatted: '0.00%'
-    };
-  }
-
-  // 데이터 유효성 검증
-  if (krwPrice <= 0 || usdPrice <= 0 || exchangeRate <= 0) {
-    return {
-      premium: 0,
-      isPositive: false,
-      formatted: '0.00%'
-    };
-  }
-
-  // 해외 가격을 원화로 환산
-  const usdToKrw = usdPrice * exchangeRate;
-  
-  // 김치프리미엄 계산 ((한국가격 - 해외가격) / 해외가격 * 100)
-  const premium = ((krwPrice - usdToKrw) / usdToKrw) * 100;
-  const isPositive = premium > 0;
-  
-  // 비정상적인 프리미엄 범위 검증 (-20% ~ 20%)
-  if (Math.abs(premium) > 20) {
-    console.warn(`Abnormal kimchi premium detected: ${premium.toFixed(2)}%`, {
-      krwPrice,
-      usdPrice,
-      exchangeRate,
-      usdToKrw
-    });
-  }
-  
-  return {
-    premium: premium,
-    isPositive: isPositive,
-    formatted: formatPercent(premium)
-  };
-};
 
 /**
  * 숫자 포맷팅 (천 단위 콤마)
@@ -276,6 +228,5 @@ export default {
   formatVolume,
   formatDate,
   formatNumber,
-  calculateKimchi,
   getChangeColorClass
 };
