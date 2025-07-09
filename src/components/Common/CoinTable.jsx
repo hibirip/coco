@@ -408,36 +408,34 @@ export default function CoinTable({
                   {/* 현재가 */}
                   <td className="px-6 py-4 text-right">
                     {(() => {
-                      const upbitCurrentPrice = upbitPrice?.trade_price;
                       const bitgetPriceKRW = bitgetPrice?.price && exchangeRate ? 
                         (bitgetPrice.price * exchangeRate) : null;
+                      const bitgetPriceUSD = bitgetPrice?.price;
                       
                       // 깜빡임 애니메이션 클래스 가져오기
                       const flashClass = flashStates[symbol]?.flashClass || '';
                       
-                      if (bitgetPriceKRW) {
+                      if (bitgetPriceKRW && bitgetPriceUSD) {
                         return (
                           <div className={`transition-all duration-200 rounded px-2 py-1 ${flashClass}`}>
-                            {/* 비트겟 가격 (메인) */}
+                            {/* 원화 가격 (메인) */}
                             <div className="font-bold text-text whitespace-nowrap">
                               {formatKRW(bitgetPriceKRW)}
                             </div>
-                            {/* 업비트 가격 (서브) */}
-                            {upbitCurrentPrice && (
-                              <div className="text-xs font-light text-textSecondary whitespace-nowrap">
-                                업비트: {formatKRW(upbitCurrentPrice)}
-                              </div>
-                            )}
+                            {/* 달러 가격 (서브) */}
+                            <div className="text-xs font-light text-textSecondary whitespace-nowrap">
+                              {formatUSD(bitgetPriceUSD)}
+                            </div>
                           </div>
                         );
-                      } else if (upbitCurrentPrice) {
+                      } else if (bitgetPriceUSD) {
                         return (
                           <div className={`transition-all duration-200 rounded px-2 py-1 ${flashClass}`}>
                             <div className="font-bold text-text whitespace-nowrap">
-                              {formatKRW(upbitCurrentPrice)}
+                              {formatUSD(bitgetPriceUSD)}
                             </div>
                             <div className="text-xs font-light text-textSecondary whitespace-nowrap">
-                              비트겟: 로딩 중
+                              환율 로딩 중
                             </div>
                           </div>
                         );
