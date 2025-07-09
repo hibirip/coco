@@ -16,13 +16,47 @@ const UPBIT_API_CONFIG = {
   TICKER_ENDPOINT: API_CONFIG.UPBIT.TICKER,
   USE_MOCK: false, // 실제 API 사용
   CACHE_DURATION: API_CONFIG.COMMON.CACHE_DURATION.TICKER,
-  TIMEOUT: 8000 // 8초 타임아웃
+  TIMEOUT: 30000, // 30초로 증가 (Render Cold Start 대응)
+  RETRY_TIMEOUT: 15000, // 재시도 시 15초
+  MAX_RETRIES: 2 // 최대 2회 재시도
 };
 
 // 캐시 저장소
 const tickerCache = new Map();
 
 // Mock 데이터는 사용하지 않음 - 실제 API 데이터만 사용
+
+/**
+ * 프록시 서버 상태 확인
+ * @returns {Promise<boolean>} 프록시 서버가 정상인지 여부
+ */
+export async function checkProxyHealth() {
+  try {
+    const healthUrl = `${UPBIT_API_CONFIG.BASE_URL}/health`;
+    console.log('🏥 프록시 서버 헬스체크:', healthUrl);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+    
+    const response = await fetch(healthUrl, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    const isHealthy = response.ok;
+    console.log('🏥 프록시 서버 상태:', isHealthy ? '✅ 정상' : '❌ 비정상', `(${response.status})`);
+    
+    return isHealthy;
+  } catch (error) {
+    console.error('🏥 프록시 서버 헬스체크 실패:', error.message);
+    return false;
+  }
+}
 
 
 /**
@@ -50,6 +84,18 @@ export async function getBatchUpbitTickerData(markets) {
   console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] 업비트 마켓을 ${chunks.length}개 청크로 나누어 요청 (각 ${CHUNK_SIZE}개)`);
 
   try {
+    // 배포 환경에서만 프록시 서버 헬스체크 수행
+    if (!isDevelopment) {
+      console.log('🔍 [Cold Start Detection] 프록시 서버 상태 확인 중...');
+      const isProxyHealthy = await checkProxyHealth();
+      if (!isProxyHealthy) {
+        console.warn('⚠️ [Cold Start] 프록시 서버가 응답하지 않음 - Cold Start 가능성 높음');
+        // Cold Start가 감지되면 첫 번째 요청 전에 추가 대기
+        console.log('⏳ Cold Start 대응: 5초 추가 대기...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+    
     logger.performance(`업비트 ticker API 호출: 총 ${markets.length}개 마켓 (${chunks.length}개 청크)`);
     
     // 모든 청크에서 데이터 수집
@@ -72,89 +118,142 @@ export async function getBatchUpbitTickerData(markets) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
       
-      try {
-        const fetchStart = Date.now();
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          cache: 'no-store',
-          mode: 'cors'
-        });
-        
-        clearTimeout(timeoutId);
-        const fetchTime = Date.now() - fetchStart;
-        
-        console.log(`🔍 [레이어 1] 응답 수신 (청크 ${i + 1}):`, {
-          status: response.status,
-          ok: response.ok,
-          응답시간: `${fetchTime}ms`,
-          headers: response.headers.get('content-type')
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`❌ [레이어 1] HTTP 에러 (청크 ${i + 1}):`, {
-            status: response.status,
-            statusText: response.statusText,
-            errorBody: errorText.substring(0, 200)
-          });
-          continue;
-        }
-        
-        // 🔍 레이어 2: 프록시 서버 → 업비트 API 응답 분석
-        const responseText = await response.text();
-        console.log(`🔍 [레이어 2] 프록시 서버 응답 크기:`, responseText.length, 'bytes');
-        
-        let tickerArray;
+      // 재시도 로직 추가
+      let lastError = null;
+      let retryCount = 0;
+      
+      while (retryCount <= UPBIT_API_CONFIG.MAX_RETRIES) {
         try {
-          tickerArray = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error(`❌ [레이어 3] JSON 파싱 실패:`, {
-            error: parseError.message,
-            responsePreview: responseText.substring(0, 200)
-          });
-          continue;
-        }
-        
-        console.log(`✅ [레이어 2] 청크 ${i + 1} 성공:`, {
-          데이터수: tickerArray.length,
-          첫번째_마켓: tickerArray[0]?.market,
-          첫번째_가격: tickerArray[0]?.trade_price
-        });
-        
-        // 🔍 레이어 3: 데이터 파싱 및 변환
-        console.log(`🔍 [레이어 3] 데이터 변환 시작 (청크 ${i + 1})`);
-        let transformCount = 0;
-        
-        for (const ticker of tickerArray) {
-          const transformedTicker = transformUpbitTickerData(ticker);
-          if (transformedTicker) {
-            allTransformedData[ticker.market] = transformedTicker;
-            transformCount++;
-          } else {
-            console.warn(`⚠️ [레이어 3] 변환 실패:`, ticker.market);
+          const fetchStart = Date.now();
+          const currentTimeout = retryCount === 0 ? UPBIT_API_CONFIG.TIMEOUT : UPBIT_API_CONFIG.RETRY_TIMEOUT;
+          
+          if (retryCount > 0) {
+            console.log(`🔄 재시도 ${retryCount}/${UPBIT_API_CONFIG.MAX_RETRIES} (청크 ${i + 1}), 타임아웃: ${currentTimeout}ms`);
           }
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            cache: 'no-store',
+            mode: 'cors'
+          });
+          
+          clearTimeout(timeoutId);
+          const fetchTime = Date.now() - fetchStart;
+          
+          console.log(`🔍 [레이어 1] 응답 수신 (청크 ${i + 1}):`, {
+            status: response.status,
+            ok: response.ok,
+            응답시간: `${fetchTime}ms`,
+            headers: response.headers.get('content-type'),
+            재시도횟수: retryCount
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ [레이어 1] HTTP 에러 (청크 ${i + 1}):`, {
+              status: response.status,
+              statusText: response.statusText,
+              errorBody: errorText.substring(0, 200)
+            });
+            
+            // 404나 400 에러는 재시도하지 않음
+            if (response.status === 404 || response.status === 400) {
+              break;
+            }
+            
+            // 5XX 에러나 타임아웃은 재시도
+            if (response.status >= 500 || response.status === 408) {
+              lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+              retryCount++;
+              if (retryCount <= UPBIT_API_CONFIG.MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // 재시도 전 대기
+                continue;
+              }
+            }
+            break;
+          }
+          
+          // 🔍 레이어 2: 프록시 서버 → 업비트 API 응답 분석
+          const responseText = await response.text();
+          console.log(`🔍 [레이어 2] 프록시 서버 응답 크기:`, responseText.length, 'bytes');
+          
+          let tickerArray;
+          try {
+            tickerArray = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error(`❌ [레이어 3] JSON 파싱 실패:`, {
+              error: parseError.message,
+              responsePreview: responseText.substring(0, 200)
+            });
+            lastError = parseError;
+            retryCount++;
+            if (retryCount <= UPBIT_API_CONFIG.MAX_RETRIES) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+              continue;
+            }
+            break;
+          }
+          
+          console.log(`✅ [레이어 2] 청크 ${i + 1} 성공:`, {
+            데이터수: tickerArray.length,
+            첫번째_마켓: tickerArray[0]?.market,
+            첫번째_가격: tickerArray[0]?.trade_price
+          });
+          
+          // 🔍 레이어 3: 데이터 파싱 및 변환
+          console.log(`🔍 [레이어 3] 데이터 변환 시작 (청크 ${i + 1})`);
+          let transformCount = 0;
+          
+          for (const ticker of tickerArray) {
+            const transformedTicker = transformUpbitTickerData(ticker);
+            if (transformedTicker) {
+              allTransformedData[ticker.market] = transformedTicker;
+              transformCount++;
+            } else {
+              console.warn(`⚠️ [레이어 3] 변환 실패:`, ticker.market);
+            }
+          }
+          
+          console.log(`✅ [레이어 3] 변환 완료:`, {
+            원본데이터: tickerArray.length,
+            변환성공: transformCount,
+            누적데이터: Object.keys(allTransformedData).length
+          });
+          
+          // 성공적으로 처리됨 - 재시도 루프 종료
+          break;
+          
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          lastError = fetchError;
+          
+          // AbortError (타임아웃) 또는 네트워크 에러는 재시도
+          if (fetchError.name === 'AbortError' || fetchError.message.includes('fetch')) {
+            console.warn(`⚠️ [Cold Start] 타임아웃/네트워크 에러 (청크 ${i + 1}, 시도 ${retryCount + 1}):`, fetchError.message);
+            retryCount++;
+            if (retryCount <= UPBIT_API_CONFIG.MAX_RETRIES) {
+              // Render Cold Start 대응: 재시도 간격 증가
+              const waitTime = 2000 + (retryCount * 1000); // 2초, 3초, 4초
+              console.log(`⏳ ${waitTime}ms 대기 후 재시도...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              continue;
+            }
+          }
+          
+          console.error(`❌ [최종실패] 청크 ${i + 1} 처리 실패:`, fetchError.message);
+          break;
         }
-        
-        console.log(`✅ [레이어 3] 변환 완료:`, {
-          원본데이터: tickerArray.length,
-          변환성공: transformCount,
-          누적데이터: Object.keys(allTransformedData).length
-        });
-        
-        // 청크 간 딜레이 (프록시 서버 부하 방지)
-        if (i < chunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-        
-      } catch (chunkError) {
-        console.error(`청크 ${i + 1} 에러:`, chunkError.message);
-        // 에러가 발생해도 다음 청크 계속 처리
+      }
+      
+      // 청크 간 딜레이 (프록시 서버 부하 방지)
+      if (i < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
     
@@ -266,5 +365,6 @@ export default {
   getBatchUpbitTickerData,
   getUpbitTickerData,
   transformUpbitTickerData,
-  clearUpbitTickerCache
+  clearUpbitTickerCache,
+  checkProxyHealth
 };
