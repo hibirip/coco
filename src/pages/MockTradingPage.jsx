@@ -5,7 +5,7 @@ import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Package, AlertCircle } 
 import CoinLogo from '../components/Common/CoinLogo';
 
 export default function MockTradingPage() {
-  const { prices, upbitPrices, exchangeRate } = usePrices();
+  const { prices, exchangeRate, ALL_COINS } = usePrices();
   
   // 초기 자본금 1000만원
   const INITIAL_BALANCE = 10000000;
@@ -39,10 +39,13 @@ export default function MockTradingPage() {
   // 현재 포트폴리오 가치 계산
   const calculatePortfolioValue = () => {
     let totalValue = 0;
-    Object.entries(tradingData.portfolio).forEach(([symbol, data]) => {
-      const currentPrice = upbitPrices[symbol]?.trade_price || 0;
-      totalValue += data.quantity * currentPrice;
-    });
+    if (tradingData.portfolio && typeof tradingData.portfolio === 'object') {
+      Object.entries(tradingData.portfolio).forEach(([symbol, data]) => {
+        const currentPrice = prices[symbol]?.price || 0;
+        const priceInKRW = currentPrice * (exchangeRate || 1380);
+        totalValue += data.quantity * priceInKRW;
+      });
+    }
     return totalValue;
   };
 
@@ -59,7 +62,8 @@ export default function MockTradingPage() {
     }
 
     const amount = parseFloat(tradeAmount);
-    const currentPrice = upbitPrices[selectedCoin]?.trade_price;
+    const bitgetPrice = prices[selectedCoin]?.price;
+    const currentPrice = bitgetPrice ? bitgetPrice * (exchangeRate || 1380) : null;
     
     if (!currentPrice) {
       alert('현재 가격을 불러올 수 없습니다.');
@@ -257,11 +261,16 @@ export default function MockTradingPage() {
                 className="w-full bg-card border border-border rounded-lg px-4 py-2 text-text focus:outline-none focus:border-primary"
               >
                 <option value="">코인을 선택하세요</option>
-                {Object.keys(upbitPrices).sort().map(symbol => (
-                  <option key={symbol} value={symbol}>
-                    {symbol} - {formatKRW(upbitPrices[symbol].trade_price)}
-                  </option>
-                ))}
+                {Object.keys(prices).sort().map(symbol => {
+                  const price = prices[symbol]?.price;
+                  const priceInKRW = price ? price * (exchangeRate || 1380) : 0;
+                  const coinInfo = Object.values(ALL_COINS).find(c => c.symbol === symbol);
+                  return (
+                    <option key={symbol} value={symbol}>
+                      {coinInfo?.name || symbol.replace('USDT', '')} - {formatKRW(priceInKRW)}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -279,7 +288,7 @@ export default function MockTradingPage() {
               />
               {selectedCoin && tradeAmount && (
                 <p className="text-sm text-textSecondary mt-2">
-                  예상 {tradeType === 'buy' ? '매수' : '매도'} 금액: {formatKRW(parseFloat(tradeAmount || 0) * (upbitPrices[selectedCoin]?.trade_price || 0))}
+                  예상 {tradeType === 'buy' ? '매수' : '매도'} 금액: {formatKRW(parseFloat(tradeAmount || 0) * ((prices[selectedCoin]?.price || 0) * (exchangeRate || 1380)))}
                 </p>
               )}
             </div>
@@ -303,7 +312,7 @@ export default function MockTradingPage() {
             <div className="mt-4 p-3 bg-card rounded-lg">
               <p className="text-sm text-textSecondary">보유 수량</p>
               <p className="text-lg font-bold text-text">
-                {formatNumber(tradingData.portfolio[selectedCoin].quantity, 8)} {selectedCoin}
+                {formatNumber(tradingData.portfolio[selectedCoin].quantity, 8)} {Object.values(ALL_COINS).find(c => c.symbol === selectedCoin)?.name || selectedCoin.replace('USDT', '')}
               </p>
               <p className="text-sm text-textSecondary">
                 평균 매수가: {formatKRW(tradingData.portfolio[selectedCoin].avgPrice)}
@@ -346,18 +355,20 @@ export default function MockTradingPage() {
                   </thead>
                   <tbody>
                     {Object.entries(tradingData.portfolio).map(([symbol, data]) => {
-                      const currentPrice = upbitPrices[symbol]?.trade_price || 0;
+                      const bitgetPrice = prices[symbol]?.price || 0;
+                      const currentPrice = bitgetPrice * (exchangeRate || 1380);
                       const currentValue = data.quantity * currentPrice;
                       const investedValue = data.quantity * data.avgPrice;
                       const profit = currentValue - investedValue;
                       const profitRate = ((currentPrice - data.avgPrice) / data.avgPrice) * 100;
+                      const coinInfo = Object.values(ALL_COINS).find(c => c.symbol === symbol);
 
                       return (
                         <tr key={symbol} className="border-b border-border/50 hover:bg-card/50">
                           <td className="py-3">
                             <div className="flex items-center gap-2">
-                              <CoinLogo symbol={symbol} className="w-6 h-6" />
-                              <span className="font-medium text-text">{symbol}</span>
+                              <CoinLogo symbol={symbol.replace('USDT', '')} className="w-6 h-6" />
+                              <span className="font-medium text-text">{coinInfo?.name || symbol.replace('USDT', '')}</span>
                             </div>
                           </td>
                           <td className="text-right py-3 text-text">
@@ -428,8 +439,8 @@ export default function MockTradingPage() {
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-2">
-                            <CoinLogo symbol={tx.symbol} className="w-5 h-5" />
-                            <span className="font-medium text-text">{tx.symbol}</span>
+                            <CoinLogo symbol={tx.symbol.replace('USDT', '')} className="w-5 h-5" />
+                            <span className="font-medium text-text">{Object.values(ALL_COINS).find(c => c.symbol === tx.symbol)?.name || tx.symbol.replace('USDT', '')}</span>
                           </div>
                         </td>
                         <td className="text-right py-3 text-text">
