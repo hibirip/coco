@@ -1324,11 +1324,24 @@ export function PriceProvider({ children }) {
           const currentTime = new Date().toLocaleTimeString();
           logger.api(`[${isDevelopment ? 'Dev' : 'Prod'}] [${updateCounter}번째 업데이트 - ${currentTime}] 업비트 REST API 데이터 로드 중...`);
           
+          console.log(`🔍 [레이어 4] React 상태 업데이트 시작`);
           const upbitData = await getBatchUpbitTickerData(validMarkets);
-          logger.api(`업비트 API 응답: ${Object.keys(upbitData).length}개 마켓 (요청: ${validMarkets.length}개)`);
+          
+          console.log(`🔍 [레이어 4] getBatchUpbitTickerData 결과:`, {
+            요청마켓수: validMarkets.length,
+            응답데이터수: Object.keys(upbitData).length,
+            데이터존재: Object.keys(upbitData).length > 0,
+            BTC데이터: upbitData['KRW-BTC'] ? '있음' : '없음'
+          });
           
           let updateCount = 0;
           const timestamp = Date.now();
+          
+          // 상태 업데이트 전 현재 상태 확인
+          console.log(`🔍 [레이어 4] 업데이트 전 upbitPrices 상태:`, {
+            현재데이터수: Object.keys(state.upbitPrices).length,
+            BTC현재가격: state.upbitPrices['KRW-BTC']?.trade_price
+          });
           
           Object.values(upbitData).forEach(ticker => {
             updateUpbitPrice(ticker.market, {
@@ -1337,6 +1350,11 @@ export function PriceProvider({ children }) {
               updateCounter: updateCounter
             });
             updateCount++;
+          });
+          
+          console.log(`✅ [레이어 4] React 상태 업데이트 완료:`, {
+            업데이트된_마켓수: updateCount,
+            타임스탬프: new Date(timestamp).toLocaleTimeString()
           });
           
           // 에러 처리: 각 API 독립적으로

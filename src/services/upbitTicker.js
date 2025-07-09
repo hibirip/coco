@@ -62,7 +62,8 @@ export async function getBatchUpbitTickerData(markets) {
       const timestamp = Date.now();
       const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}&_t=${timestamp}`;
       
-      console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API 청크 ${i + 1}/${chunks.length} 호출:`, {
+      console.log(`🔍 [레이어 1] 브라우저 → 프록시 서버 요청 시작 (청크 ${i + 1}/${chunks.length}):`, {
+        url: url.substring(0, 100) + '...',
         markets: chunk.length,
         firstMarket: chunk[0],
         lastMarket: chunk[chunk.length - 1]
@@ -72,6 +73,7 @@ export async function getBatchUpbitTickerData(markets) {
       const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
       
       try {
+        const fetchStart = Date.now();
         const response = await fetch(url, {
           method: 'GET',
           signal: controller.signal,
@@ -85,22 +87,65 @@ export async function getBatchUpbitTickerData(markets) {
         });
         
         clearTimeout(timeoutId);
+        const fetchTime = Date.now() - fetchStart;
+        
+        console.log(`🔍 [레이어 1] 응답 수신 (청크 ${i + 1}):`, {
+          status: response.status,
+          ok: response.ok,
+          응답시간: `${fetchTime}ms`,
+          headers: response.headers.get('content-type')
+        });
         
         if (!response.ok) {
-          console.error(`청크 ${i + 1} 실패: HTTP ${response.status}`);
-          continue; // 실패한 청크는 건너뛰고 계속 진행
+          const errorText = await response.text();
+          console.error(`❌ [레이어 1] HTTP 에러 (청크 ${i + 1}):`, {
+            status: response.status,
+            statusText: response.statusText,
+            errorBody: errorText.substring(0, 200)
+          });
+          continue;
         }
         
-        const tickerArray = await response.json();
-        console.log(`청크 ${i + 1} 성공: ${tickerArray.length}개 데이터`);
+        // 🔍 레이어 2: 프록시 서버 → 업비트 API 응답 분석
+        const responseText = await response.text();
+        console.log(`🔍 [레이어 2] 프록시 서버 응답 크기:`, responseText.length, 'bytes');
         
-        // 데이터 변환 및 병합
+        let tickerArray;
+        try {
+          tickerArray = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error(`❌ [레이어 3] JSON 파싱 실패:`, {
+            error: parseError.message,
+            responsePreview: responseText.substring(0, 200)
+          });
+          continue;
+        }
+        
+        console.log(`✅ [레이어 2] 청크 ${i + 1} 성공:`, {
+          데이터수: tickerArray.length,
+          첫번째_마켓: tickerArray[0]?.market,
+          첫번째_가격: tickerArray[0]?.trade_price
+        });
+        
+        // 🔍 레이어 3: 데이터 파싱 및 변환
+        console.log(`🔍 [레이어 3] 데이터 변환 시작 (청크 ${i + 1})`);
+        let transformCount = 0;
+        
         for (const ticker of tickerArray) {
           const transformedTicker = transformUpbitTickerData(ticker);
           if (transformedTicker) {
             allTransformedData[ticker.market] = transformedTicker;
+            transformCount++;
+          } else {
+            console.warn(`⚠️ [레이어 3] 변환 실패:`, ticker.market);
           }
         }
+        
+        console.log(`✅ [레이어 3] 변환 완료:`, {
+          원본데이터: tickerArray.length,
+          변환성공: transformCount,
+          누적데이터: Object.keys(allTransformedData).length
+        });
         
         // 청크 간 딜레이 (프록시 서버 부하 방지)
         if (i < chunks.length - 1) {
