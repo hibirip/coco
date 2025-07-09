@@ -38,91 +38,95 @@ export async function getBatchUpbitTickerData(markets) {
 
   // 실제 API만 사용 - Mock 데이터는 절대 사용하지 않음
 
-
-  const cacheKey = markets.sort().join(',');
-  const now = Date.now();
+  // 업비트 API는 한 번에 많은 마켓 요청 시 실패할 수 있음
+  // 20개씩 나누어 요청 (안전한 청크 크기)
+  const CHUNK_SIZE = 20;
+  const chunks = [];
   
-  // 캐시 확인
-  if (tickerCache.has(cacheKey)) {
-    const cached = tickerCache.get(cacheKey);
-    if (now - cached.timestamp < UPBIT_API_CONFIG.CACHE_DURATION) {
-      logger.debug(`업비트 ticker 캐시 사용: ${markets.length}개 마켓`);
-      return cached.data;
-    }
+  for (let i = 0; i < markets.length; i += CHUNK_SIZE) {
+    chunks.push(markets.slice(i, i + CHUNK_SIZE));
   }
+  
+  console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] 업비트 마켓을 ${chunks.length}개 청크로 나누어 요청 (각 ${CHUNK_SIZE}개)`);
 
   try {
-    logger.performance(`업비트 ticker API 호출: ${markets.length}개 마켓`);
+    logger.performance(`업비트 ticker API 호출: 총 ${markets.length}개 마켓 (${chunks.length}개 청크)`);
     
-    // 마켓 파라미터 생성
-    const marketsParam = markets.join(',');
+    // 모든 청크에서 데이터 수집
+    const allTransformedData = {};
     
-    // 캐시 무시를 위한 타임스탬프 추가
-    const timestamp = Date.now();
-    const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}&_t=${timestamp}`;
-    
-    // 환경별 상세 로깅
-    console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API call:`, {
-      url,
-      isDevelopment,
-      baseUrl: UPBIT_API_CONFIG.BASE_URL,
-      endpoint: UPBIT_API_CONFIG.TICKER_ENDPOINT,
-      markets: markets.length,
-      hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown',
-      timestamp: new Date().toISOString()
-    });
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'X-Requested-With': 'XMLHttpRequest' // 명시적으로 AJAX 요청임을 표시
-      },
-      cache: 'no-store', // 캐시 완전 비활성화
-      mode: 'cors' // CORS 모드 명시
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    // 모든 환경에서 동일한 방식으로 JSON 파싱 (로컬 기준)
-    const tickerArray = await response.json();
-    
-    logger.performance(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
-    
-    // 환경별 성공 로깅
-    console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API success:`, {
-      receivedTickers: tickerArray.length,
-      sampleMarket: tickerArray[0]?.market,
-      samplePrice: tickerArray[0]?.trade_price?.toLocaleString()
-    });
-    
-    // 데이터 변환
-    const transformedData = {};
-    for (let i = 0; i < tickerArray.length; i++) {
-      const ticker = tickerArray[i];
-      const transformedTicker = transformUpbitTickerData(ticker);
-      if (transformedTicker) {
-        transformedData[ticker.market] = transformedTicker;
+    // 각 청크별로 API 호출
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const marketsParam = chunk.join(',');
+      const timestamp = Date.now();
+      const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}&_t=${timestamp}`;
+      
+      console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API 청크 ${i + 1}/${chunks.length} 호출:`, {
+        markets: chunk.length,
+        firstMarket: chunk[0],
+        lastMarket: chunk[chunk.length - 1]
+      });
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
+      
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          cache: 'no-store',
+          mode: 'cors'
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.error(`청크 ${i + 1} 실패: HTTP ${response.status}`);
+          continue; // 실패한 청크는 건너뛰고 계속 진행
+        }
+        
+        const tickerArray = await response.json();
+        console.log(`청크 ${i + 1} 성공: ${tickerArray.length}개 데이터`);
+        
+        // 데이터 변환 및 병합
+        for (const ticker of tickerArray) {
+          const transformedTicker = transformUpbitTickerData(ticker);
+          if (transformedTicker) {
+            allTransformedData[ticker.market] = transformedTicker;
+          }
+        }
+        
+        // 청크 간 딜레이 (프록시 서버 부하 방지)
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+      } catch (chunkError) {
+        console.error(`청크 ${i + 1} 에러:`, chunkError.message);
+        // 에러가 발생해도 다음 청크 계속 처리
       }
     }
     
-    // 캐시 저장
-    tickerCache.set(cacheKey, {
-      data: transformedData,
-      timestamp: now
+    console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API 전체 결과:`, {
+      요청한_마켓수: markets.length,
+      성공한_마켓수: Object.keys(allTransformedData).length,
+      sampleMarket: allTransformedData['KRW-BTC']?.trade_price?.toLocaleString()
     });
     
-    logger.performance(`업비트 ticker 데이터 변환 완료: ${Object.keys(transformedData).length}개 마켓`);
-    return transformedData;
+    // 캐시 저장 (전체 결과)
+    const cacheKey = markets.sort().join(',');
+    tickerCache.set(cacheKey, {
+      data: allTransformedData,
+      timestamp: Date.now()
+    });
+    
+    return allTransformedData;
     
   } catch (error) {
     logger.error('업비트 ticker API 실패:', error.message);
