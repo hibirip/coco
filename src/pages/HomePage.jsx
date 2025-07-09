@@ -9,13 +9,9 @@ export default function HomePage() {
   // PriceContext 훅 사용
   const {
     prices,
-    upbitPrices: contextUpbitPrices,
     isConnected,
-    upbitIsConnected,
     exchangeRate: contextExchangeRate,
-    stats,
-    bitgetWebSocket,
-    upbitWebSocket
+    stats
   } = usePrices();
 
   // 서비스 카드 데이터
@@ -109,7 +105,7 @@ export default function HomePage() {
       <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         <CoinTable 
           limit={10}
-          showKimchi={true}
+          showKimchi={false}
           showFavorites={false}
           showHeader={false}
           className="mb-4"
@@ -156,54 +152,29 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-500/20">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                   <DollarSign className="w-4 h-4 text-blue-400" />
                 </div>
-                <h3 className="font-medium text-white">가격 데이터</h3>
+                <h3 className="font-medium text-white">가격 데이터 (Bitget)</h3>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-300">Bitget:</span>
-                  <span className="text-blue-400 font-medium">{Object.keys(prices).length}개</span>
+                  <span className="text-gray-300">코인 수:</span>
+                  <span className="text-blue-400 font-medium">{Object.keys(prices || {}).length}개</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-300">업비트:</span>
-                  <span className="text-blue-400 font-medium">{Object.keys(contextUpbitPrices).length}개</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">연결:</span>
-                  <span className={`font-medium ${bitgetWebSocket?.isConnected && upbitWebSocket?.isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {bitgetWebSocket?.isConnected ? 'Bitget WS ✓' : 'Bitget REST'} {upbitWebSocket?.isConnected ? 'Upbit WS ✓' : 'Upbit REST'}
+                  <span className="text-gray-300">연결 상태:</span>
+                  <span className={`font-medium ${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {isConnected ? '실시간 연결' : 'REST API'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-300">실시간:</span>
+                  <span className="text-gray-300">환율:</span>
                   <span className="text-green-400 font-medium">
-                    {bitgetWebSocket?.dataCount || 0} + {upbitWebSocket?.dataCount || 0} updates
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-purple-400" />
-                </div>
-                <h3 className="font-medium text-white">김치프리미엄</h3>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-300">계산 가능:</span>
-                  <span className="text-purple-400 font-medium">{stats.kimchiPremiumCount}개</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">상태:</span>
-                  <span className={`font-medium ${stats.kimchiPremiumCount > 0 ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {stats.kimchiPremiumCount > 0 ? '정상 계산' : '데이터 대기'}
+                    ₩{contextExchangeRate?.toLocaleString()}
                   </span>
                 </div>
               </div>

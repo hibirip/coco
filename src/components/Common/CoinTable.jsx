@@ -33,7 +33,7 @@ import CoinTableLoader from './CoinTableLoader';
  */
 export default function CoinTable({
   limit,
-  showKimchi = true,
+  showKimchi = false,
   showFavorites = true,
   className = '',
   onCoinClick,
@@ -52,14 +52,11 @@ export default function CoinTable({
   // PriceContext에서 데이터 가져오기
   const {
     prices,
-    upbitPrices,
     exchangeRate,
     klineData,
     MAJOR_COINS,
     MAJOR_SYMBOLS,
-    calculateKimchiPremium,
-    isConnected,
-    upbitIsConnected
+    isConnected
   } = usePrices();
 
   // 정렬된 테이블 데이터 준비
@@ -74,20 +71,16 @@ export default function CoinTable({
       data = MAJOR_SYMBOLS.map(symbol => {
         const coin = Object.values(MAJOR_COINS).find(c => c.symbol === symbol);
         const bitgetPrice = prices[symbol];
-        const upbitPrice = upbitPrices[coin?.upbitMarket];
-        const kimchiPremium = showKimchi ? calculateKimchiPremium(symbol) : null;
         
         return {
           symbol,
           coin,
           bitgetPrice,
-          upbitPrice,
-          kimchiPremium,
           sparklineData: klineData[symbol] || null,
           // 정렬을 위한 우선순위
           priority: coin?.priority || 999,
           // 데이터 유효성
-          hasData: bitgetPrice?.price || upbitPrice?.trade_price
+          hasData: bitgetPrice?.price
         };
       })
       .filter(item => item.coin && item.hasData); // 유효한 데이터만 표시
@@ -99,16 +92,12 @@ export default function CoinTable({
       
       switch (sortBy) {
         case 'price':
-          aValue = a.bitgetPrice?.price || a.upbitPrice?.trade_price || 0;
-          bValue = b.bitgetPrice?.price || b.upbitPrice?.trade_price || 0;
-          break;
-        case 'kimchi':
-          aValue = a.kimchiPremium?.premium || 0;
-          bValue = b.kimchiPremium?.premium || 0;
+          aValue = a.bitgetPrice?.price || 0;
+          bValue = b.bitgetPrice?.price || 0;
           break;
         case 'change':
-          aValue = a.upbitPrice?.change_percent || a.bitgetPrice?.changePercent24h || 0;
-          bValue = b.upbitPrice?.change_percent || b.bitgetPrice?.changePercent24h || 0;
+          aValue = a.bitgetPrice?.changePercent24h || 0;
+          bValue = b.bitgetPrice?.changePercent24h || 0;
           break;
         case 'volume':
           aValue = (a.bitgetPrice?.volume24h && a.bitgetPrice?.price) ? 
@@ -134,12 +123,9 @@ export default function CoinTable({
   }, [
     customData,
     prices, 
-    upbitPrices, 
     klineData,
     MAJOR_SYMBOLS, 
     MAJOR_COINS, 
-    calculateKimchiPremium, 
-    showKimchi, 
     limit,
     sortBy,
     sortOrder
@@ -181,16 +167,16 @@ export default function CoinTable({
 
   // 연결 상태 확인 - useMemo로 최적화
   const connectionStatus = useMemo(() => ({
-    hasConnection: isConnected || upbitIsConnected,
-    hasFullConnection: isConnected && upbitIsConnected && exchangeRate
-  }), [isConnected, upbitIsConnected, exchangeRate]);
+    hasConnection: isConnected,
+    hasFullConnection: isConnected && exchangeRate
+  }), [isConnected, exchangeRate]);
 
   // 가격 깜빡임 애니메이션을 위한 가격 맵 생성
   const pricesMap = useMemo(() => {
     const map = {};
-    tableData.forEach(({ symbol, bitgetPrice, upbitPrice }) => {
-      // Bitget 가격 우선, 없으면 업비트 가격 사용
-      const price = bitgetPrice?.price || upbitPrice?.trade_price;
+    tableData.forEach(({ symbol, bitgetPrice }) => {
+      // Bitget 가격 사용
+      const price = bitgetPrice?.price;
       if (price) {
         map[symbol] = price;
       }
