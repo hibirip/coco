@@ -1042,7 +1042,7 @@ export function PriceProvider({ children }) {
     });
   }, []);
   
-  // 김치프리미엄 계산
+  // 김치프리미엄 계산 (두 거래소 API 데이터 필수)
   const calculateKimchiPremium = useCallback((symbol) => {
     if (!state.exchangeRate) {
       logger.debug(`김치프리미엄 계산 불가: 환율 없음 (${symbol})`);
@@ -1060,26 +1060,36 @@ export function PriceProvider({ children }) {
       return null;
     }
     
+    // Bitget 데이터 처리 (USD 가격)
     const bitgetPrice = state.prices[symbol];
+    // 업비트 데이터 처리 (KRW 가격)
     const upbitPrice = state.upbitPrices[coin.upbitMarket];
     
-    // 업비트는 trade_price 필드 사용
+    // 김치프리미엄 계산 (두 데이터 필수)
     if (!bitgetPrice?.price || !upbitPrice?.trade_price) {
-      // 디버깅 정보 출력 (BTC만)
+      // 디버깅: BTC 데이터 상태 확인
       if (symbol === 'BTCUSDT') {
-        logger.debug(`김치프리미엄 계산 불가 (${symbol}):`, {
-          bitgetPrice: bitgetPrice?.price,
-          upbitPrice: upbitPrice?.trade_price,
-          exchangeRate: state.exchangeRate,
-          upbitMarket: coin.upbitMarket
-        });
+        console.log('=== 김치프리미엄 계산 실패 (BTC) ===');
+        console.log('Bitget BTC:', bitgetPrice?.price ? `$${bitgetPrice.price}` : '데이터 없음');
+        console.log('Upbit BTC:', upbitPrice?.trade_price ? `₩${upbitPrice.trade_price?.toLocaleString()}` : '데이터 없음');
+        console.log('환율:', state.exchangeRate ? `₩${state.exchangeRate}` : '데이터 없음');
+        console.log('업비트 마켓:', coin.upbitMarket);
       }
       return null;
     }
     
     try {
+      // 김프 계산: ((업비트KRW - Bitget USD * 환율) / (Bitget USD * 환율)) * 100
       const result = calculateKimchi(upbitPrice.trade_price, bitgetPrice.price, state.exchangeRate);
       
+      // 성공 시 디버깅 (BTC만)
+      if (symbol === 'BTCUSDT') {
+        console.log('=== 김치프리미엄 계산 성공 (BTC) ===');
+        console.log('Bitget BTC:', `$${bitgetPrice.price}`);
+        console.log('Upbit BTC:', `₩${upbitPrice.trade_price?.toLocaleString()}`);
+        console.log('환율:', `₩${state.exchangeRate}`);
+        console.log('김프:', `${result?.toFixed(2)}%`);
+      }
       
       return result;
     } catch (error) {
@@ -1329,7 +1339,19 @@ export function PriceProvider({ children }) {
             updateCount++;
           });
           
+          // 에러 처리: 각 API 독립적으로
           logger.api(`[${updateCounter}번째] 업비트 데이터 업데이트 완료: ${updateCount}개 마켓`);
+          
+          // 디버깅: 업비트 핵심 데이터 확인
+          const btcData = upbitData['KRW-BTC'];
+          if (btcData) {
+            console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] 업비트 BTC 데이터:`, {
+              price: `₩${btcData.trade_price?.toLocaleString()}`,
+              change: `${btcData.change_percent?.toFixed(2)}%`,
+              market: btcData.market,
+              timestamp: new Date(btcData.timestamp).toLocaleTimeString()
+            });
+          }
           
         } catch (error) {
           logger.error(`[${updateCounter}번째] 업비트 REST API 실패:`, error);
@@ -1462,20 +1484,41 @@ export function PriceProvider({ children }) {
     };
   }, [updatePrice, addError, state.exchangeRate]); // 의존성 최소화
   
-  // 통계 업데이트 (자동)
+  // 두 API 데이터 동기화 상태 모니터링 및 통계 업데이트
   useEffect(() => {
-    const connectedCoins = Object.keys(state.prices).length;
+    const bitgetCount = Object.keys(state.prices).length;
+    const upbitCount = Object.keys(state.upbitPrices).length;
     const kimchiPremiums = getAllKimchiPremiums();
     const kimchiPremiumCount = Object.keys(kimchiPremiums).length;
+    
+    // 디버깅: 두 API 데이터 상태 확인
+    console.log('=== 두 거래소 API 데이터 상태 ===');
+    console.log('Bitget 데이터:', bitgetCount, '개');
+    console.log('Upbit 데이터:', upbitCount, '개');
+    console.log('김치프리미엄 계산 가능:', kimchiPremiumCount, '개');
+    
+    // 핵심 코인들의 개별 상태 확인
+    ['BTCUSDT', 'ETHUSDT', 'XRPUSDT'].forEach(symbol => {
+      const coin = Object.values(ALL_COINS).find(c => c.symbol === symbol);
+      if (coin?.upbitMarket) {
+        const bitgetPrice = state.prices[symbol]?.price;
+        const upbitPrice = state.upbitPrices[coin.upbitMarket]?.trade_price;
+        console.log(`${symbol}:`, {
+          bitget: bitgetPrice ? `$${bitgetPrice}` : '❌',
+          upbit: upbitPrice ? `₩${upbitPrice.toLocaleString()}` : '❌',
+          kimchi: calculateKimchiPremium(symbol)?.toFixed(2) + '%' || '❌'
+        });
+      }
+    });
     
     dispatch({
       type: ACTIONS.UPDATE_STATS,
       payload: {
-        connectedCoins,
+        connectedCoins: bitgetCount,
         kimchiPremiumCount
       }
     });
-  }, [state.prices, state.upbitPrices, getAllKimchiPremiums]);
+  }, [state.prices, state.upbitPrices, getAllKimchiPremiums, calculateKimchiPremium]);
   
   // Context 값 준비
   const contextValue = {
