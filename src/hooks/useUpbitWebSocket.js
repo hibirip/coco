@@ -7,8 +7,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { logger } from '../utils/logger';
 
-// 환경 감지
-const isDevelopment = import.meta.env.DEV;
+// 환경 감지 (더 확실한 방법)
+const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
 
 // WebSocket 설정
 const UPBIT_WS_CONFIG = {
@@ -327,14 +327,18 @@ export function useUpbitWebSocket(options = {}) {
     logSuccess(`업비트 WebSocket 연결 시도: ${UPBIT_WS_CONFIG.URL}`);
     
     // 배포 환경에서 연결 시도 로깅
-    if (!isDevelopment) {
-      console.log('[Production] Upbit WebSocket 연결 시도:', {
-        url: UPBIT_WS_CONFIG.URL,
-        environment: 'production',
-        proxyServer: 'Render',
-        timestamp: new Date().toISOString()
-      });
-    }
+    console.log('[Upbit WebSocket] 연결 시도:', {
+      url: UPBIT_WS_CONFIG.URL,
+      isDevelopment,
+      environment: isDevelopment ? 'development' : 'production',
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown',
+      import_meta_env: {
+        DEV: import.meta.env.DEV,
+        MODE: import.meta.env.MODE,
+        PROD: import.meta.env.PROD
+      },
+      timestamp: new Date().toISOString()
+    });
 
     try {
       wsRef.current = new WebSocket(UPBIT_WS_CONFIG.URL);

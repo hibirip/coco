@@ -8,8 +8,8 @@ import { useUpbitWebSocket } from '../../hooks/useUpbitWebSocket';
 import { usePrices } from '../../contexts';
 import { ALL_UPBIT_MARKETS } from '../../contexts/PriceContext';
 
-// 환경 감지
-const isDevelopment = import.meta.env.DEV;
+// 환경 감지 (더 확실한 방법)
+const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development' || window.location.hostname === 'localhost';
 
 const Layout = () => {
   const location = useLocation();
@@ -27,7 +27,7 @@ const Layout = () => {
   
   // Upbit WebSocket 연결 (배포 환경에서만)
   const upbitWS = useUpbitWebSocket({
-    enabled: !isDevelopment, // 배포 환경에서만 활성화
+    enabled: !isDevelopment, // 배포 환경에서만 활성화 (프로덕션에서는 항상 true)
     markets: ALL_UPBIT_MARKETS,
     ALL_UPBIT_MARKETS,
     updateUpbitPrice,
