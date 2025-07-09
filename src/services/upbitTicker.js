@@ -6,8 +6,8 @@
 import { logger } from '../utils/logger';
 import { API_CONFIG } from '../config/api';
 
-// 환경 감지
-const isDevelopment = import.meta.env.DEV;
+// 환경 감지 (hostname 기반)
+const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 
 // 업비트 API 설정
 const UPBIT_API_CONFIG = {
@@ -114,14 +114,16 @@ export async function getBatchUpbitTickerData(markets) {
     const timestamp = Date.now();
     const url = `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}?markets=${marketsParam}&_t=${timestamp}`;
     
-    // 배포 환경에서 상세 로깅
-    if (!isDevelopment) {
-      console.log(`[Production] Upbit API call:`, {
-        url,
-        markets: markets.length,
-        timestamp: new Date().toISOString()
-      });
-    }
+    // 환경별 상세 로깅
+    console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API call:`, {
+      url,
+      isDevelopment,
+      baseUrl: UPBIT_API_CONFIG.BASE_URL,
+      endpoint: UPBIT_API_CONFIG.TICKER_ENDPOINT,
+      markets: markets.length,
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown',
+      timestamp: new Date().toISOString()
+    });
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), UPBIT_API_CONFIG.TIMEOUT);
@@ -149,14 +151,12 @@ export async function getBatchUpbitTickerData(markets) {
     
     logger.performance(`업비트 ticker 응답: ${tickerArray.length}개 항목`);
     
-    // 배포 환경에서 성공 로깅
-    if (!isDevelopment) {
-      console.log(`[Production] Upbit API success:`, {
-        receivedTickers: tickerArray.length,
-        sampleMarket: tickerArray[0]?.market,
-        samplePrice: tickerArray[0]?.trade_price
-      });
-    }
+    // 환경별 성공 로깅
+    console.log(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API success:`, {
+      receivedTickers: tickerArray.length,
+      sampleMarket: tickerArray[0]?.market,
+      samplePrice: tickerArray[0]?.trade_price?.toLocaleString()
+    });
     
     // 데이터 변환
     const transformedData = {};

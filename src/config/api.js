@@ -4,8 +4,8 @@
  * 배포환경: 배포된 Express 프록시 서버 사용
  */
 
-// 환경별 설정
-const isDevelopment = import.meta.env.DEV;
+// 환경별 설정 (hostname 기반)
+const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 
 // 환경변수에서 백엔드 서버 URL 가져오기 (배포환경용)
 const BACKEND_SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'https://coco-proxy-server.onrender.com';
