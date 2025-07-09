@@ -22,56 +22,7 @@ const UPBIT_API_CONFIG = {
 // 캐시 저장소
 const tickerCache = new Map();
 
-/**
- * Mock 데이터 생성
- */
-function generateMockUpbitData(markets) {
-  const mockPrices = {
-    'KRW-BTC': 148300000,
-    'KRW-ETH': 4750000,
-    'KRW-XRP': 1030,
-    'KRW-ADA': 720,
-    'KRW-SOL': 269000,
-    'KRW-DOT': 11800,
-    'KRW-LINK': 27000,
-    'KRW-MATIC': 1450,
-    'KRW-UNI': 16800,
-    'KRW-AVAX': 68000,
-    'KRW-DOGE': 315,
-    'KRW-SHIB': 0.0463,
-    'KRW-LTC': 162000,
-    'KRW-BCH': 685000,
-    'KRW-ETC': 41200,
-    'KRW-ATOM': 15200,
-    'KRW-XLM': 531,
-    'KRW-ALGO': 435,
-    'KRW-NEAR': 12300,
-    'KRW-VET': 69.8
-  };
-
-  const result = {};
-  markets.forEach(market => {
-    const basePrice = mockPrices[market] || Math.random() * 10000 + 1000;
-    const changeRate = (Math.random() - 0.5) * 0.1; // -5% ~ +5%
-    const change = basePrice * changeRate;
-    
-    result[market] = {
-      market: market,
-      trade_price: basePrice,
-      change: change,
-      change_rate: changeRate,
-      change_percent: changeRate * 100,
-      acc_trade_volume_24h: Math.random() * 1000000,
-      acc_trade_price_24h: Math.random() * 100000000000,
-      high_price: basePrice * 1.05,
-      low_price: basePrice * 0.95,
-      timestamp: Date.now(),
-      source: 'upbit-mock'
-    };
-  });
-  
-  return result;
-}
+// Mock 데이터는 사용하지 않음 - 실제 API 데이터만 사용
 
 
 /**
@@ -85,11 +36,7 @@ export async function getBatchUpbitTickerData(markets) {
     return {};
   }
 
-  // Mock 모드 사용 시
-  if (UPBIT_API_CONFIG.USE_MOCK) {
-    logger.debug('업비트 Mock 데이터 사용');
-    return generateMockUpbitData(markets);
-  }
+  // 실제 API만 사용 - Mock 데이터는 절대 사용하지 않음
 
 
   const cacheKey = markets.sort().join(',');

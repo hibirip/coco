@@ -18,9 +18,7 @@ const UPBIT_WS_CONFIG = {
     : 'wss://coco-proxy-server.onrender.com/ws/upbit',
   RECONNECT_INTERVAL: 3000, // 3초 재연결 간격
   MAX_RECONNECT_ATTEMPTS: 5, // 다시 5회로 복원
-  CONNECTION_TIMEOUT: 10000, // 10초로 복원
-  USE_MOCK: false, // 실제 WebSocket 우선 시도
-  MOCK_INTERVAL: 15000 // Mock 데이터 15초 간격으로 실시간성 향상
+  CONNECTION_TIMEOUT: 10000 // 10초로 복원
 };
 
 // WebSocket 연결 상태
@@ -85,7 +83,6 @@ export function useUpbitWebSocket(options = {}) {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const connectionTimeoutRef = useRef(null);
-  const mockDataIntervalRef = useRef(null);
 
   /**
    * 연결 상태 업데이트
@@ -126,88 +123,9 @@ export function useUpbitWebSocket(options = {}) {
     logger.websocket('업비트:', message);
   }, []);
 
-  /**
-   * Mock 데이터 생성
-   */
-  const generateMockUpbitData = useCallback((market) => {
-    // 비트겟 Mock 데이터와 연동된 가격 (환율 1380 기준 + 김치프리미엄)
-    const basePrice = {
-      'KRW-BTC': 60500000,  // Bitget $42,750 * 1380 * 1.024 (2.4% 김프)
-      'KRW-ETH': 3480000,   // Bitget $2,465 * 1380 * 1.023 (2.3% 김프)
-      'KRW-XRP': 730,       // Bitget $0.514 * 1380 * 1.03 (3% 김프)
-      'KRW-ADA': 535,       // Bitget $0.377 * 1380 * 1.029 (2.9% 김프)
-      'KRW-SOL': 132000,    // Bitget $94.2 * 1380 * 1.015 (1.5% 김프)
-      'KRW-DOT': 8700,      // Bitget $6.16 * 1380 * 1.024 (2.4% 김프)
-      'KRW-LINK': 20300,    // Bitget $14.35 * 1380 * 1.025 (2.5% 김프)
-      'KRW-MATIC': 1490,    // 약 2% 김프
-      'KRW-UNI': 9500,      // 약 2.2% 김프
-      'KRW-AVAX': 49000     // 약 2% 김프
-    }[market] || 10000;
+  // Mock 데이터는 절대 사용하지 않음 - 실제 데이터만 사용
 
-    const variance = 0.01; // 1% 변동 (작게)
-    const randomChange = (Math.random() - 0.5) * variance;
-    const currentPrice = basePrice * (1 + randomChange);
-    const change = basePrice * (Math.random() - 0.5) * 0.06; // 6% 범위 변동
-    const changePercent = (change / basePrice) * 100;
-
-    return {
-      market,
-      trade_price: currentPrice,
-      change,
-      change_rate: changePercent / 100,
-      change_percent: changePercent,
-      acc_trade_volume_24h: Math.random() * 1000000,
-      high_price: currentPrice * 1.06,
-      low_price: currentPrice * 0.94,
-      timestamp: Date.now(),
-      source: 'mock-upbit-ws'
-    };
-  }, []);
-
-  /**
-   * Mock 데이터 시작
-   */
-  const startMockData = useCallback(() => {
-    if (mockDataIntervalRef.current) {
-      clearInterval(mockDataIntervalRef.current);
-    }
-
-    updateConnectionState(WS_STATES.CONNECTED);
-    logger.info('Mock 업비트 WebSocket 시뮬레이션 시작');
-
-    mockDataIntervalRef.current = setInterval(() => {
-      marketsToSubscribe.forEach(market => {
-        const mockData = generateMockUpbitData(market);
-        updateUpbitPrice(market, mockData);
-        setDataReceived(prev => prev + 1);
-      });
-      setMessageCount(prev => prev + 1);
-      setLastDataTime(Date.now());
-    }, UPBIT_WS_CONFIG.MOCK_INTERVAL);
-
-    // 첫 번째 데이터 즉시 전송
-    setTimeout(() => {
-      marketsToSubscribe.forEach(market => {
-        const mockData = generateMockUpbitData(market);
-        updateUpbitPrice(market, mockData);
-        setDataReceived(prev => prev + 1);
-      });
-      setLastDataTime(Date.now());
-      logger.info(`Mock 업비트 데이터 생성: ${marketsToSubscribe.length}개 마켓`);
-    }, 500);
-  }, [marketsToSubscribe, updateConnectionState, logSuccess, generateMockUpbitData, updateUpbitPrice]);
-
-  /**
-   * Mock 데이터 중지
-   */
-  const stopMockData = useCallback(() => {
-    if (mockDataIntervalRef.current) {
-      clearInterval(mockDataIntervalRef.current);
-      mockDataIntervalRef.current = null;
-    }
-    updateConnectionState(WS_STATES.DISCONNECTED);
-    logger.info('Mock 업비트 WebSocket 해제');
-  }, [updateConnectionState, logSuccess]);
+  // Mock 데이터 함수들은 모두 제거됨 - 실제 데이터만 사용
 
   /**
    * 구독 메시지 전송
@@ -316,12 +234,7 @@ export function useUpbitWebSocket(options = {}) {
       return;
     }
 
-    // Mock 모드 사용 시
-    if (UPBIT_WS_CONFIG.USE_MOCK) {
-      logSuccess('Mock 모드로 업비트 WebSocket 시뮬레이션 시작');
-      startMockData();
-      return;
-    }
+    // Mock 모드는 사용하지 않음 - 실제 데이터만 사용
 
     updateConnectionState(WS_STATES.CONNECTING);
     logSuccess(`업비트 WebSocket 연결 시도: ${UPBIT_WS_CONFIG.URL}`);
@@ -417,15 +330,8 @@ export function useUpbitWebSocket(options = {}) {
       updateConnectionState(WS_STATES.FAILED);
       logError(`최대 재시도 횟수 (${UPBIT_WS_CONFIG.MAX_RECONNECT_ATTEMPTS}회) 초과`);
       
-      // 실제 WebSocket 연결 실패 시 Mock 모드로 전환
-      if (!UPBIT_WS_CONFIG.USE_MOCK) {
-        logSuccess('실제 업비트 WebSocket 연결 실패, Mock 모드로 전환');
-        UPBIT_WS_CONFIG.USE_MOCK = true;
-        setReconnectAttempts(0);
-        setTimeout(() => {
-          startMockData(); // 직접 Mock 데이터 시작
-        }, 1000);
-      }
+      // WebSocket 연결 실패 시 에러 상태 유지 (Mock 사용하지 않음)
+      logError('업비트 WebSocket 연결 실패 - 실제 데이터만 사용');
       return;
     }
 
@@ -444,9 +350,6 @@ export function useUpbitWebSocket(options = {}) {
    * WebSocket 연결 해제
    */
   const disconnect = useCallback(() => {
-    // Mock 데이터 중지
-    stopMockData();
-    
     // 모든 타이머 정리
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -467,7 +370,7 @@ export function useUpbitWebSocket(options = {}) {
     updateConnectionState(WS_STATES.DISCONNECTED);
     setReconnectAttempts(0);
     logSuccess('업비트 WebSocket 연결 해제');
-  }, [stopMockData, updateConnectionState, logSuccess]);
+  }, [updateConnectionState, logSuccess]);
 
   /**
    * 수동 재연결
