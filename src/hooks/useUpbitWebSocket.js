@@ -320,7 +320,7 @@ export function useUpbitWebSocket(options = {}) {
       logError(`연결 생성 실패: ${error.message}`);
       handleReconnect();
     }
-  }, [connectionState, updateConnectionState, sendSubscribe, handleMessage, clearErrors, logSuccess, logError, startMockData]);
+  }, [connectionState, updateConnectionState, sendSubscribe, handleMessage, clearErrors, logSuccess, logError]);
 
   /**
    * 재연결 처리
