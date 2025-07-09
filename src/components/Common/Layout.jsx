@@ -27,7 +27,7 @@ const Layout = () => {
   
   // Upbit WebSocket 연결 (배포 환경에서만)
   const upbitWS = useUpbitWebSocket({
-    enabled: !isDevelopment, // 배포 환경에서만 활성화 (프로덕션에서는 항상 true)
+    enabled: window.location.hostname !== 'localhost', // 배포 환경에서만 활성화
     markets: ALL_UPBIT_MARKETS,
     ALL_UPBIT_MARKETS,
     updateUpbitPrice,
@@ -39,15 +39,24 @@ const Layout = () => {
   
   // WebSocket 상태 로깅
   useEffect(() => {
-    if (isDevelopment) {
-      console.log('📊 Layout WebSocket 상태 (개발환경):', {
-        bitget: {
-          connected: bitgetWS.isConnected,
-          connecting: bitgetWS.isConnecting,
-          reconnectAttempts: bitgetWS.reconnectAttempts
-        },
-        upbit: 'REST API 사용 (PriceContext에서 처리)'
-      });
+    const isLocal = window.location.hostname === 'localhost';
+    console.log('📊 Layout WebSocket 상태:', {
+      environment: isLocal ? 'development' : 'production',
+      hostname: window.location.hostname,
+      bitget: {
+        connected: bitgetWS.isConnected,
+        connecting: bitgetWS.isConnecting,
+        reconnectAttempts: bitgetWS.reconnectAttempts
+      },
+      upbit: isLocal ? 'REST API 사용 (PriceContext에서 처리)' : {
+        enabled: upbitWS?.isConnected !== undefined,
+        connected: upbitWS?.isConnected,
+        connecting: upbitWS?.isConnecting,
+        reconnectAttempts: upbitWS?.reconnectAttempts
+      }
+    });
+    
+    if (isLocal) {
     } else {
       console.log('📊 Layout WebSocket 상태 (배포환경):', {
         bitget: {

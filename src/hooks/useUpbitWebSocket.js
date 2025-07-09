@@ -7,8 +7,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { logger } from '../utils/logger';
 
-// 환경 감지 (더 확실한 방법)
-const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
+// 환경 감지 (hostname 기반)
+const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 
 // WebSocket 설정
 const UPBIT_WS_CONFIG = {

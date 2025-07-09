@@ -12,8 +12,8 @@ import { getBatchUpbitTickerData } from '../services/upbitTicker';
 import { preloadLogos } from '../components/Common/CoinLogo';
 import { logger } from '../utils/logger';
 
-// 환경 감지
-const isDevelopment = import.meta.env.DEV;
+// 환경 감지 (hostname 기반)
+const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 
 // 주요 10개 코인 (홈페이지용)
 export const MAJOR_COINS = {
