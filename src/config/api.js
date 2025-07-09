@@ -59,9 +59,9 @@ export const API_CONFIG = {
     WEBSOCKET: 'wss://ws.bitget.com/v2/ws/public' // WebSocket은 직접 연결
   },
 
-  // Upbit API (직접 호출 - CORS 허용됨)
+  // Upbit API (프록시 서버를 통해 호출)
   UPBIT: {
-    BASE_URL: 'https://api.upbit.com', // 직접 업비트 API 호출
+    BASE_URL: getApiEndpoint('UPBIT'),
     TICKER: '/v1/ticker',
     MARKET: '/v1/market/all',
     WEBSOCKET: 'wss://api.upbit.com/websocket/v1' // WebSocket은 직접 연결

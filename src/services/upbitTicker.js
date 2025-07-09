@@ -134,9 +134,13 @@ export async function getBatchUpbitTickerData(markets) {
       return cached.data;
     }
     
-    // API 완전 실패시 Mock 데이터 사용
-    logger.warn('업비트 API 완전 실패, Mock 데이터로 대체');
-    return generateMockUpbitData(markets);
+    // API 완전 실패시 빈 객체 반환 (Mock 데이터 사용하지 않음)
+    console.error(`[${isDevelopment ? 'Dev' : 'Prod'}] Upbit API 완전 실패:`, {
+      error: error.message,
+      url: `${UPBIT_API_CONFIG.BASE_URL}${UPBIT_API_CONFIG.TICKER_ENDPOINT}`,
+      markets: markets.length
+    });
+    return {};
   }
 }
 
